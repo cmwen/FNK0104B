@@ -1,3 +1,3 @@
-# Touch diagnostic (reserved)
+# Touch diagnostic
 
-Buildable placeholder only. A future diagnostic should report touch coordinates over serial after controller and orientation behavior are brought up.
+Build and upload with `pio run -e touch -t upload`. Tap the screen and inspect landscape coordinates at 115200 baud. The touch setup uses the verified GPIO map and the landscape transform from Freenove's FNK0104B example.

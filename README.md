@@ -14,6 +14,8 @@ pio run
 # Build an app target
 pio run -e hello
 pio run -e display
+pio run -e touch
+pio run -e calculator
 pio run -e wifi
 pio run -e codex-monitor
 
@@ -30,7 +32,7 @@ pio device monitor -b 115200
 pio debug -e hello-debug
 ```
 
-`hello` is the first diagnostic firmware. The other named environments are buildable placeholders; they do not initialize their future hardware feature yet. See `test/hardware/README.md` for the future device test matrix.
+`hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the verified display and touch support. See `apps/09-calculator/README.md` for its controls.
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.
 

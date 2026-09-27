@@ -1,3 +1,3 @@
-# Display diagnostic (reserved)
+# Display diagnostic
 
-Buildable placeholder only. A future diagnostic should initialize the verified ILI9341 wiring through shared FNK0104B board support and draw a simple color pattern.
+Build and upload with `pio run -e display -t upload`. This diagnostic initializes the verified ILI9341 display through shared FNK0104B board support and cycles full-screen color patterns.
