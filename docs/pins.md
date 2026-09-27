@@ -24,11 +24,13 @@ GPIO values are centralized in `lib/fnk0104b/src/fnk0104b/pins.hpp`. These value
 | MicroSD | DAT3 | 47 | Four-bit SDIO data | Schematic; module spec §4.2; Freenove SD_MMC example |
 | RGB LED | WS2812 data | 42 | One addressable pixel | Schematic; Freenove RGB example |
 | Audio | Amplifier enable | 1 | Active low per module spec | Schematic; module spec §4.2 |
-| Audio | I²S MCLK | 4 | ES8311 codec bus | Schematic; module spec §4.2 |
-| Audio | I²S BCLK | 5 | ES8311 codec bus | Schematic; module spec §4.2 |
-| Audio | I²S DOUT | 6 | ESP32-S3 output to codec | Schematic; module spec §4.2 |
-| Audio | I²S WS/LRCK | 7 | ES8311 codec bus | Schematic; module spec §4.2 |
-| Audio | I²S DIN | 8 | Codec-to-ESP32-S3 input | Schematic; module spec §4.2 |
+| Audio | I²S MCLK | 4 | ES8311 codec bus | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | I²S BCLK | 5 | ES8311 codec bus | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | I²S DOUT | 6 | ESP32-S3 output to codec | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | I²S WS/LRCK | 7 | ES8311 codec bus | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | I²S DIN | 8 | Codec-to-ESP32-S3 input | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | I²C SDA/SCL | 16 / 15 | Shared with touch | Schematic; module spec §4.2; Freenove Echo example |
+| Audio | ES8311 I²C address | `0x18` | CE pin low | Freenove ES8311 example driver |
 | Audio/touch/expansion | I²C SDA/SCL | 16 / 15 | Shared with touch and extension I²C | Schematic; module spec §4.2 |
 | System | BOOT button | 0 | Also download-mode select | Schematic; module spec §4.2 |
 | System | Battery voltage ADC | 9 | Analog battery monitor input | Schematic; module spec §4.2 |

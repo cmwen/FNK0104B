@@ -39,11 +39,38 @@ constexpr int count = 1;
 
 namespace audio {
 constexpr int amplifier_enable = 1;
-constexpr int i2s_master_clock = 4;
-constexpr int i2s_bit_clock = 5;
-constexpr int i2s_data_out = 6;
-constexpr int i2s_word_select = 7;
-constexpr int i2s_data_in = 8;
+#ifndef FNK0104B_AUDIO_I2C_SDA
+#define FNK0104B_AUDIO_I2C_SDA 16
+#endif
+#ifndef FNK0104B_AUDIO_I2C_SCL
+#define FNK0104B_AUDIO_I2C_SCL 15
+#endif
+#ifndef FNK0104B_AUDIO_I2C_ADDRESS
+#define FNK0104B_AUDIO_I2C_ADDRESS 0x18
+#endif
+#ifndef FNK0104B_AUDIO_I2S_MCLK
+#define FNK0104B_AUDIO_I2S_MCLK 4
+#endif
+#ifndef FNK0104B_AUDIO_I2S_BCLK
+#define FNK0104B_AUDIO_I2S_BCLK 5
+#endif
+#ifndef FNK0104B_AUDIO_I2S_DATA_OUT
+#define FNK0104B_AUDIO_I2S_DATA_OUT 6
+#endif
+#ifndef FNK0104B_AUDIO_I2S_WS
+#define FNK0104B_AUDIO_I2S_WS 7
+#endif
+#ifndef FNK0104B_AUDIO_I2S_DATA_IN
+#define FNK0104B_AUDIO_I2S_DATA_IN 8
+#endif
+constexpr int i2c_sda = FNK0104B_AUDIO_I2C_SDA;
+constexpr int i2c_scl = FNK0104B_AUDIO_I2C_SCL;
+constexpr int codec_i2c_address = FNK0104B_AUDIO_I2C_ADDRESS;
+constexpr int i2s_master_clock = FNK0104B_AUDIO_I2S_MCLK;
+constexpr int i2s_bit_clock = FNK0104B_AUDIO_I2S_BCLK;
+constexpr int i2s_data_out = FNK0104B_AUDIO_I2S_DATA_OUT;
+constexpr int i2s_word_select = FNK0104B_AUDIO_I2S_WS;
+constexpr int i2s_data_in = FNK0104B_AUDIO_I2S_DATA_IN;
 }  // namespace audio
 
 namespace system {

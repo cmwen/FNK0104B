@@ -18,6 +18,8 @@ pio run -e touch
 pio run -e calculator
 pio run -e wifi
 pio run -e codex-monitor
+pio run -e audio-diag
+pio run -e locallink
 
 # Run host-side tests without a board
 pio test -e native
@@ -33,6 +35,7 @@ pio debug -e hello-debug
 ```
 
 `hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the verified display and touch support. See `apps/09-calculator/README.md` for its controls.
+`audio-diag` checks the onboard ES8311 microphone path by reporting signal presence without printing samples. `locallink` combines mic capture, Wi-Fi/DNS-SD, HTTP transcription, and an LVGL touchscreen UI; configure private Wi-Fi values and see `apps/12-locallink/README.md` before flashing.
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.
 
