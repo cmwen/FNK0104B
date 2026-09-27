@@ -11,12 +11,13 @@
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.2.1";
+constexpr char kFirmwareVersion[] = "0.2.2";
 constexpr char kBleName[] = "FNK0104B-DIAG";
 constexpr size_t kMaxWifiResults = 32;
 constexpr size_t kMaxBleResults = 5;
-constexpr int32_t kScreenWidth = 320;
-constexpr int32_t kScreenHeight = 240;
+constexpr int32_t kExpectedScreenWidth = 320;
+constexpr int32_t kExpectedScreenHeight = 240;
+constexpr int32_t kKeyboardTop = 113;
 constexpr uint32_t kBleScanSeconds = 4;
 
 constexpr uint32_t kColorBackground = 0x101827;
@@ -92,6 +93,8 @@ lv_obj_t* ssid_textarea = nullptr;
 lv_obj_t* password_textarea = nullptr;
 lv_obj_t* keyboard = nullptr;
 lv_obj_t* join_hint_label = nullptr;
+int32_t screen_width = 0;
+int32_t screen_height = 0;
 
 TFT_eSPI& displayDriver() { return fnk0104b::display.driver(); }
 
@@ -416,8 +419,11 @@ void createMainScreens() {
                               7, 96, 306, 15, &lv_font_montserrat_12, kColorMuted);
 
   keyboard = lv_keyboard_create(join_screen);
-  lv_obj_set_pos(keyboard, 0, 113);
-  lv_obj_set_size(keyboard, kScreenWidth, kScreenHeight - 113);
+  const int32_t keyboard_height = screen_height - kKeyboardTop;
+  lv_obj_set_size(keyboard, lv_pct(100), keyboard_height);
+  // lv_keyboard_create() bottom-aligns itself. Keep that anchor and leave its
+  // offset at zero; adding a positive y offset would place most of it offscreen.
+  lv_obj_set_align(keyboard, LV_ALIGN_BOTTOM_MID);
   lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
   lv_keyboard_set_textarea(keyboard, ssid_textarea);
   lv_obj_set_style_bg_color(keyboard, lv_color_hex(kColorPanel), LV_PART_MAIN);
@@ -636,11 +642,22 @@ void updateWifiState() {
 }
 
 void initializeLvgl() {
+  screen_width = displayDriver().width();
+  screen_height = displayDriver().height();
+  Serial.printf("display_resolution=%ldx%ld\n", static_cast<long>(screen_width),
+                static_cast<long>(screen_height));
+  if (screen_width != kExpectedScreenWidth ||
+      screen_height != kExpectedScreenHeight) {
+    Serial.printf("display_resolution_warning=expected_%ldx%ld\n",
+                  static_cast<long>(kExpectedScreenWidth),
+                  static_cast<long>(kExpectedScreenHeight));
+  }
+
   lv_init();
   lv_tick_set_cb(lvTick);
-  lv_display = lv_display_create(kScreenWidth, kScreenHeight);
+  lv_display = lv_display_create(screen_width, screen_height);
   lv_display_set_color_format(lv_display, LV_COLOR_FORMAT_RGB565);
-  static uint16_t draw_buffer[kScreenWidth * 24];
+  static uint16_t draw_buffer[kExpectedScreenWidth * 24];
   lv_display_set_buffers(lv_display, draw_buffer, nullptr, sizeof(draw_buffer),
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(lv_display, flushDisplay);
@@ -655,6 +672,10 @@ void initializeLvgl() {
   lv_timer_set_period(lv_indev_get_read_timer(lv_touch), 45);
 
   createMainScreens();
+  Serial.printf("keyboard_geometry=x0 y=%ld w=%ld h=%ld\n",
+                static_cast<long>(kKeyboardTop),
+                static_cast<long>(screen_width),
+                static_cast<long>(screen_height - kKeyboardTop));
   refreshWifiStatus();
   refreshWifiList();
   refreshBleStatus();
