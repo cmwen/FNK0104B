@@ -40,7 +40,10 @@
           <div><p class="eyebrow">One step to install</p><h2 id="install-heading">Connect your board</h2></div>
           <label class="firmware-picker"><span>Firmware</span><select id="firmware-choice" disabled aria-label="Choose firmware environment"><option>Loading firmware…</option></select></label>
         </div>
-        <p id="firmware-description" class="firmware-description"></p>
+        <div class="firmware-info" aria-live="polite">
+          <p class="firmware-info-label">What this firmware does</p>
+          <p id="firmware-description" class="firmware-description"></p>
+        </div>
 
         <ol class="steps">
           <li><span class="step-num">01</span><span>Connect the board with a USB data cable.</span></li>

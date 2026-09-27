@@ -24,19 +24,19 @@ PARTS = (
 )
 
 NAMES = {
-    "hello": ("Hello", "USB serial and board status diagnostic"),
-    "display": ("Display", "Display diagnostic"),
-    "touch": ("Touch", "Touch diagnostic"),
-    "calculator": ("Calculator", "Display and touch calculator"),
-    "wifi": ("Wi-Fi", "Wi-Fi diagnostic"),
-    "connectivity": ("Connectivity", "Connectivity UI"),
-    "nvs": ("NVS", "Nonvolatile storage diagnostic"),
-    "sd": ("SD card", "SD card diagnostic"),
-    "mqtt": ("MQTT", "MQTT app"),
-    "ota": ("OTA", "OTA app"),
-    "codex-monitor": ("Codex monitor", "Codex monitor app"),
-    "audio-diag": ("Audio", "Microphone diagnostic"),
-    "locallink": ("LocalLink", "Local network speech UI"),
+    "hello": ("Hello", "USB serial diagnostic. Reports the chip, flash, PSRAM, and free heap; it does not initialize the display."),
+    "display": ("Display", "Cycles red, green, blue, white, and black screens to check the display panel."),
+    "touch": ("Touch", "Reads screen taps and prints their coordinates over USB serial."),
+    "calculator": ("Calculator", "Touchscreen calculator with decimal input, sign toggle, backspace, clear, and chained basic arithmetic."),
+    "wifi": ("Wi-Fi", "Shows a setup QR code for Espressif's phone app to provision 2.4 GHz Wi-Fi. Credentials are saved on the board."),
+    "connectivity": ("Connectivity", "Touchscreen tools to scan for and join Wi-Fi networks, scan BLE devices, or advertise a BLE diagnostic device."),
+    "nvs": ("NVS", "Placeholder only: reports startup information but does not test nonvolatile storage yet."),
+    "sd": ("SD card", "Placeholder only: does not read from or write to an SD card yet."),
+    "mqtt": ("MQTT", "Placeholder only: does not connect to an MQTT broker yet."),
+    "ota": ("OTA", "Placeholder only: does not install updates over the air yet."),
+    "codex-monitor": ("Codex monitor", "Placeholder only: the monitor dashboard is not implemented yet."),
+    "audio-diag": ("Audio", "Captures one second of onboard microphone audio at a time and reports signal detection; it never prints or saves samples."),
+    "locallink": ("LocalLink", "Records speech with the onboard microphone, discovers a Speech Recognition service on your LAN, and shows the returned transcript. Requires Wi-Fi and a compatible service."),
 }
 
 
