@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101715">
+    <meta name="description" content="Install firmware built for the Freenove FNK0104B ESP32-S3 display board over USB.">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <title>FNK0104B Firmware Installer</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="FNK0104B firmware installer home">
+          <span class="brand-mark" aria-hidden="true">F</span>
+          <span>Freenove <b>FNK0104B</b></span>
+        </a>
+        <span class="secure-indicator"><span class="dot"></span> USB installer</span>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Firmware · direct from this repository</p>
+          <h1 id="page-title">Put your display<br><em>back to work.</em></h1>
+          <p class="lede">Install the latest FNK0104B firmware straight to your board. No IDE or command line required.</p>
+        </div>
+        <div class="board-art" role="img" aria-label="Illustration of an ESP32 display board">
+          <div class="board-screen"><span>FNK<span class="accent">·</span>0104B</span><small>ESP32-S3</small><i></i></div>
+          <div class="board-chip">ESP32<br><b>S3</b></div>
+          <div class="board-usb"></div>
+          <div class="pins pins-left"></div><div class="pins pins-right"></div>
+          <div class="board-light"></div>
+        </div>
+      </section>
+
+      <section class="installer" aria-labelledby="install-heading">
+        <div class="section-heading">
+          <div><p class="eyebrow">One step to install</p><h2 id="install-heading">Connect your board</h2></div>
+          <label class="firmware-picker"><span>Firmware</span><select id="firmware-choice" disabled aria-label="Choose firmware environment"><option>Loading firmware…</option></select></label>
+        </div>
+        <p id="firmware-description" class="firmware-description"></p>
+
+        <ol class="steps">
+          <li><span class="step-num">01</span><span>Connect the board with a USB data cable.</span></li>
+          <li><span class="step-num">02</span><span>Choose the Espressif USB serial device.</span></li>
+          <li><span class="step-num">03</span><span>Keep the tab open until writing finishes.</span></li>
+        </ol>
+
+        <div id="support-message" class="notice" role="status" aria-live="polite"></div>
+        <div id="manifest-error" class="notice notice-error" role="alert" hidden></div>
+
+        <div class="flash-row">
+          <esp-web-install-button id="install" class="install-button" hidden>
+            <button slot="activate" class="cta"><span>Install firmware</span><span aria-hidden="true">↗</span></button>
+            <span slot="unsupported">This browser cannot access USB serial. Open this page in Chrome or Microsoft Edge on a desktop computer.</span>
+            <span slot="not-allowed">USB flashing requires a secure connection (HTTPS or localhost).</span>
+          </esp-web-install-button>
+          <p id="install-hint" class="install-hint">Loading the firmware release…</p>
+        </div>
+        <div id="flash-status" class="flash-status" role="status" aria-live="polite" hidden></div>
+
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> Installing firmware writes the board’s boot and application data. Keep the USB cable connected during installation.</p>
+      </section>
+
+      <footer>
+        <span>Built for the FNK0104B · ESP32-S3</span>
+        <a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a>
+      </footer>
+    </main>
+    <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

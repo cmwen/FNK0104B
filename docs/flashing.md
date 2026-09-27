@@ -27,6 +27,21 @@ pio run -e hello -t upload --upload-port /dev/ttyACM0
 
 PlatformIO is configured for 16 MB flash, QIO at 80 MHz with OPI PSRAM, USB CDC on boot, and 460800 baud upload. The partition profile matches the 16 MB / 3 MB app / 9.9 MB FATFS setting shown in Freenove's tutorial and reserves two OTA app slots. The factory partition table has not been read from this physical board. Upload writes the selected table along with bootloader/application files; review `docs/memory.md` before the first upload if existing on-flash data must be preserved. The configuration does not request an erase-all operation.
 
+## Browser flasher
+
+The [GitHub Pages flasher](https://cmwen.github.io/FNK0104B/) offers the firmware builds from this repository. It uses Web Serial through ESP Web Tools, so use a desktop Chromium browser on an HTTPS origin (or localhost), connect the FNK0104B with a USB data cable, choose the firmware environment, and press **Install**. If the board is not detected, use BOOT and RESET to enter download mode as described below and try again. Close serial monitors and other programs using the port first.
+
+The page installs the PlatformIO bootloader, selected partition table, OTA metadata image, and selected application at the same addresses as a PlatformIO upload. It does not request a full flash erase. The selected partition table may differ from the board's factory layout, which has not been verified; back up any data that matters before first use. CI builds use default settings and no private Wi-Fi credentials.
+
+The publishing workflow builds every firmware environment on pushes and pull requests, runs native tests, and deploys the packaged site on successful `main` builds. To activate hosting in this repository, select **Settings → Pages → Build and deployment → GitHub Actions** once. For a local preview after building all environments, run:
+
+```bash
+python3 scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
+python3 -m http.server 8000 --directory /tmp/fnk0104b-pages
+```
+
+Open `http://localhost:8000/` in a browser with Web Serial support. GitHub Pages serves the same generated files over HTTPS.
+
 ## Serial monitor
 
 ```bash

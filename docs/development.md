@@ -17,7 +17,7 @@ This repository uses PlatformIO Core CLI. No Arduino IDE is required.
 
 Install PlatformIO Core using the [official CLI installation guide](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html) or `python3 -m pip install --user 'platformio==6.2.0'` in an environment that permits user installs. Confirm with `pio --version`. The WSL installation already has Core 6.2.0; do not install a second copy merely to run this repository.
 
-Build with `pio run` or `pio run -e <app>`. Run `pio test -e native` for host tests. The GitHub Actions workflow builds each named firmware target and runs native tests; it never uploads to a board. The platform pin fixes the version used by local builds and CI. Review [PlatformIO's Espressif32 releases](https://github.com/platformio/platform-espressif32/releases) and rebuild before changing it.
+Build with `pio run` or `pio run -e <app>`. Run `pio test -e native` for host tests. The GitHub Actions workflow builds each named firmware target, runs native tests, and packages firmware images for the GitHub Pages browser flasher; it never uploads to a board. The platform pin fixes the version used by local builds and CI. Review [PlatformIO's Espressif32 releases](https://github.com/platformio/platform-espressif32/releases) and rebuild before changing it.
 
 The official PlatformIO 7.0.1 release includes ESP-IDF 6.0.1 as an *alternative framework*. These applications still use Arduino 2.0.17, which is based on ESP-IDF 4.4.7. Shared low-level code can be migrated deliberately when an ESP-IDF application is introduced.
 

@@ -1,4 +1,4 @@
-name: Build and native tests
+name: Build firmware and publish flasher
 
 on:
   push:
@@ -11,11 +11,13 @@ permissions:
 jobs:
   platformio:
     runs-on: ubuntu-latest
+    env:
+      PLATFORMIO_SETTING_ENABLE_TELEMETRY: 'No'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.12'
       - uses: actions/cache@v6
         with:
           path: |
@@ -26,6 +28,33 @@ jobs:
       - name: Install PlatformIO Core
         run: python -m pip install 'platformio==6.2.0'
       - name: Build firmware apps
-        run: pio run -e hello -e hello-debug -e display -e touch -e wifi -e nvs -e sd -e mqtt -e ota -e codex-monitor
+        run: python scripts/build_firmware.py
       - name: Run host tests
         run: pio test -e native
+      - name: Package flasher and firmware
+        run: python scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: /tmp/fnk0104b-pages
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: platformio
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
