@@ -1,0 +1,11 @@
+{
+  "name": "fnk0104b-board-support",
+  "version": "0.1.0",
+  "description": "Shared board support for the Freenove FNK0104B ESP32-S3 Display",
+  "keywords": ["esp32-s3", "freenove", "fnk0104b", "board-support"],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "includeDir": "src"
+  }
+}

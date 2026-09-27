@@ -1,0 +1,3 @@
+# FNK0104B ESP32-S3 built-in USB JTAG, verified as 303a:1001 on this board.
+# Permit members of Ubuntu's plugdev group to open the raw USB node.
+SUBSYSTEM=="usb", ATTR{idVendor}=="303a", ATTR{idProduct}=="1001", MODE="0660", GROUP="plugdev"
