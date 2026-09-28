@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <ESPmDNS.h>
 #include <Wire.h>
 #include <lvgl.h>
@@ -590,14 +591,25 @@ void speechWorker(void*) {
 }
 
 void startWiFi() {
+  WiFi.onEvent([](arduino_event_t* event) {
+    if (event->event_id == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+      Serial.printf("wifi_disconnected_reason=%u\n",
+                    event->event_info.wifi_sta_disconnected.reason);
+    } else if (event->event_id == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+      Serial.println("wifi_status=connected");
+    }
+  });
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   if (strlen(LOCALLINK_WIFI_SSID) > 0) {
     Serial.println("wifi_credentials=configured_in_firmware");
     WiFi.begin(LOCALLINK_WIFI_SSID, LOCALLINK_WIFI_PASSWORD);
   } else {
+    wifi_config_t config = {};
+    const esp_err_t config_result = esp_wifi_get_config(WIFI_IF_STA, &config);
     Serial.printf("wifi_credentials=%s\n",
-                  WiFi.SSID().length() ? "saved_in_nvs" : "missing");
+                  config_result != ESP_OK ? "read_failed"
+                  : config.sta.ssid[0] ? "saved_in_nvs" : "missing");
     WiFi.begin();  // Reuse credentials previously saved in device NVS.
   }
 }
