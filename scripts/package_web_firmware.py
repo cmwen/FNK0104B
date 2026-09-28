@@ -26,6 +26,7 @@ PARTS = (
 NAMES = {
     "hello": ("Hello", "USB serial diagnostic. Reports the chip, flash, PSRAM, and free heap; it does not initialize the display."),
     "display": ("Display", "Cycles red, green, blue, white, and black screens to check the display panel."),
+    "avatar-diag": ("Avatar animation", "Shows four generated pixel avatars with animated agent states and reports rendering speed over USB serial."),
     "touch": ("Touch", "Reads screen taps and prints their coordinates over USB serial."),
     "calculator": ("Calculator", "Touchscreen calculator with decimal input, sign toggle, backspace, clear, and chained basic arithmetic."),
     "wifi": ("Wi-Fi", "Shows a setup QR code for Espressif's phone app to provision 2.4 GHz Wi-Fi. Credentials are saved on the board."),

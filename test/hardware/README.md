@@ -7,6 +7,7 @@ Run each diagnostic on a real FNK0104B and record board revision, firmware commi
 | NVS | Write a namespaced value, reboot, read it back, then erase only that test key. |
 | Wi-Fi | Join a local test access point using untracked credentials; report association and IP without logging secrets. |
 | Display | Run `pio run -e display -t upload`; verify dimensions, backlight, solid colors, and text. |
+| Avatar animation | After display passes, run `pio run -e avatar-diag -t upload`; check four distinct upright portraits, all four animated states and badges, matching red/green/blue chip pairs, and absence of flicker or trails. Read the 115200-baud timing report. |
 | Touch | Run `pio run -e touch -t upload`; tap the panel and verify orientation and screen edges in serial output. |
 | Screen timeout | After display and touch checks pass, run `pio run -e screen-timeout -t upload`; verify the backlight turns off after 60 seconds and returns on touch. |
 | Calculator | After both diagnostics, run `pio run -e calculator -t upload`; exercise digits, operations, clear, delete, sign toggle, and divide-by-zero recovery. |

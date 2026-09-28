@@ -29,3 +29,12 @@ Facts below are from Freenove's model-specific documentation, its official 2.8-i
 - The physical PCB revision and fitted component markings have not been independently inspected. The WSL serial path and USB descriptor can vary with enumeration state.
 
 Do not treat a value as device-verified until the board is connected and the relevant diagnostic has run. See `pins.md` and `references.md` for source detail.
+
+## Device-verified display behavior
+
+On the connected FNK0104B, the avatar diagnostic's red, green, and blue test
+chips appeared as cyan, magenta, and yellow with ILI9341 `INVOFF`. A
+user-supplied photo after `invertDisplay(true)` (`INVON`) showed the intended
+red, green, and blue colors, a dark background and faceplate, and matching
+direct-draw and buffered chip pairs. This panel-specific behavior was verified
+on 2026-09-28; `lib/fnk0104b` now selects `INVON` during display setup.

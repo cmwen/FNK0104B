@@ -3,6 +3,37 @@
 #include <string.h>
 
 #include <locallink/protocol.hpp>
+#include <ui/avatar_assets.hpp>
+
+void test_avatar_rgb565_channel_order() {
+  TEST_ASSERT_EQUAL_HEX16(0xF800, ui::avatar::detail::rgb(255, 0, 0));
+  TEST_ASSERT_EQUAL_HEX16(0x07E0, ui::avatar::detail::rgb(0, 255, 0));
+  TEST_ASSERT_EQUAL_HEX16(0x001F, ui::avatar::detail::rgb(0, 0, 255));
+}
+
+void test_avatar_identity_and_state_are_independent() {
+  const uint32_t ada = ui::avatar::hashId("Ada");
+  TEST_ASSERT_EQUAL_HEX32(0x9ac3a55b, ada);
+
+  ui::avatar::Canvas idle = {};
+  ui::avatar::Canvas thinking = {};
+  ui::avatar::Canvas another = {};
+  ui::avatar::render(idle, ada, ui::avatar::Mood::Idle, 1);
+  ui::avatar::render(thinking, ada, ui::avatar::Mood::Thinking, 1);
+  ui::avatar::render(another, ui::avatar::hashId("Dex"),
+                     ui::avatar::Mood::Idle, 1);
+  TEST_ASSERT_NOT_EQUAL(0, memcmp(idle.pixels, thinking.pixels, sizeof(idle.pixels)));
+  TEST_ASSERT_NOT_EQUAL(0, memcmp(idle.pixels, another.pixels, sizeof(idle.pixels)));
+}
+
+void test_avatar_animation_changes_frame() {
+  ui::avatar::Canvas first = {};
+  ui::avatar::Canvas moved = {};
+  const uint32_t id = ui::avatar::hashId("Ada");
+  ui::avatar::render(first, id, ui::avatar::Mood::Thinking, 1);
+  ui::avatar::render(moved, id, ui::avatar::Mood::Thinking, 5);
+  TEST_ASSERT_NOT_EQUAL(0, memcmp(first.pixels, moved.pixels, sizeof(first.pixels)));
+}
 
 void test_native_runner_smoke() {
   TEST_ASSERT_EQUAL_INT(42, 6 * 7);
@@ -119,6 +150,9 @@ void test_multipart_uses_file_field_and_closing_boundary() {
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_avatar_rgb565_channel_order);
+  RUN_TEST(test_avatar_identity_and_state_are_independent);
+  RUN_TEST(test_avatar_animation_changes_frame);
   RUN_TEST(test_native_runner_smoke);
   RUN_TEST(test_selects_matching_dns_sd_service_and_txt_path);
   RUN_TEST(test_endpoint_falls_back_only_when_configured);

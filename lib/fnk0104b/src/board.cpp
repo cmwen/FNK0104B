@@ -66,6 +66,9 @@ void DisplaySupport::begin(uint8_t rotation) {
   pinMode(pins::display::backlight, OUTPUT);
   setBacklight(true);
   tft.init();
+  // Board photos show cyan/magenta/yellow when red/green/blue are sent, even
+  // after INVOFF. This fitted panel needs INVON for normal-looking colors.
+  tft.invertDisplay(true);
   tft.setRotation(rotation);
 }
 
