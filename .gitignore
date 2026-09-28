@@ -1,5 +1,7 @@
 # PlatformIO build products and local settings
 .pio/
+web-flasher/node_modules/
+web-flasher/ble-client.bundle.js
 .pioenvs/
 .piolibdeps/
 .clangd/

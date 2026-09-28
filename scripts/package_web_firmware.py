@@ -30,6 +30,7 @@ NAMES = {
     "touch": ("Touch", "Reads screen taps and prints their coordinates over USB serial."),
     "calculator": ("Calculator", "Touchscreen calculator with decimal input, sign toggle, backspace, clear, and chained basic arithmetic."),
     "wifi": ("Wi-Fi", "Shows a setup QR code for Espressif's phone app to provision 2.4 GHz Wi-Fi. Credentials are saved on the board."),
+    "wifi-ble": ("Wi-Fi over BLE", "Use this page and the code shown on the board to securely set up 2.4 GHz Wi-Fi over Bluetooth."),
     "connectivity": ("Connectivity", "Touchscreen tools to scan for and join Wi-Fi networks, scan BLE devices, or advertise a BLE diagnostic device."),
     "nvs": ("NVS", "Placeholder only: reports startup information but does not test nonvolatile storage yet."),
     "sd": ("SD card", "Placeholder only: does not read from or write to an SD card yet."),
@@ -58,11 +59,20 @@ def firmware_environments():
 
 
 def package(output: Path, version: str):
+    if not (SITE / "ble-client.bundle.js").is_file():
+        raise FileNotFoundError("Build the BLE setup page with npm ci and npm run build in web-flasher before packaging")
     if output.exists():
         if not output.is_dir() or not (output / OUTPUT_MARKER).is_file():
             raise ValueError(f"Refusing to replace a directory not made by this packager: {output}")
         shutil.rmtree(output)
-    shutil.copytree(SITE, output, ignore=shutil.ignore_patterns("firmware"))
+    shutil.copytree(
+        SITE,
+        output,
+        ignore=shutil.ignore_patterns(
+            "firmware", "node_modules", "package.json", "package-lock.json",
+            "ble-client.js",
+        ),
+    )
     (output / OUTPUT_MARKER).touch()
     (output / ".nojekyll").touch()
     firmware_root = output / "firmware"

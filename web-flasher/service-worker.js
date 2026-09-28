@@ -1,5 +1,5 @@
-const CACHE_NAME = "fnk0104b-flasher-shell-v2";
-const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
+const CACHE_NAME = "fnk0104b-flasher-shell-v3";
+const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./ble-client.bundle.js", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));

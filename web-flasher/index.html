@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101715">
-    <meta name="description" content="Install firmware built for the Freenove FNK0104B ESP32-S3 display board over USB.">
+    <meta name="description" content="Install FNK0104B firmware over USB and set up Wi-Fi over Bluetooth.">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
@@ -24,7 +24,7 @@
         <div class="hero-copy">
           <p class="eyebrow">Firmware · direct from this repository</p>
           <h1 id="page-title">Put your display<br><em>back to work.</em></h1>
-          <p class="lede">Install the latest FNK0104B firmware straight to your board. No IDE or command line required.</p>
+          <p class="lede">Install FNK0104B firmware over USB, then set up the board's Wi-Fi through Bluetooth. No IDE or command line required.</p>
         </div>
         <div class="board-art" role="img" aria-label="Illustration of an ESP32 display board">
           <div class="board-screen"><span>FNK<span class="accent">·</span>0104B</span><small>ESP32-S3</small><i></i></div>
@@ -67,12 +67,34 @@
         <p class="data-note"><span aria-hidden="true">ⓘ</span> Installing firmware writes the board’s boot and application data. Keep the USB cable connected during installation.</p>
       </section>
 
+      <section class="installer ble-setup" aria-labelledby="ble-heading">
+        <p class="eyebrow">After installing Wi-Fi over BLE firmware</p>
+        <h2 id="ble-heading">Set up Wi-Fi</h2>
+        <p class="ble-intro">Choose <strong>Wi-Fi over BLE</strong> above and install it. Read the 12-character setup code on the board's screen, then connect from this page.</p>
+        <div id="ble-support" class="notice" role="status"></div>
+        <div class="ble-fields">
+          <label for="ble-pop">Code shown on board</label>
+          <input id="ble-pop" type="text" maxlength="12" minlength="12" pattern="[A-Fa-f0-9]{12}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="12-character code">
+          <button id="ble-connect" class="cta" type="button">Connect to board</button>
+        </div>
+        <form id="ble-wifi-form" class="ble-fields" autocomplete="off">
+          <label for="ble-ssid">2.4 GHz Wi-Fi name (SSID)</label>
+          <input id="ble-ssid" type="text" required autocomplete="off" disabled>
+          <label for="ble-password">Wi-Fi password</label>
+          <input id="ble-password" type="password" autocomplete="new-password" disabled>
+          <button id="ble-send" class="cta" type="submit" disabled>Save Wi-Fi on board</button>
+        </form>
+        <div id="ble-status" class="flash-status" role="status" aria-live="polite" hidden></div>
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the LocalLink speech firmware.</p>
+      </section>
+
       <footer>
         <span>Built for the FNK0104B · ESP32-S3</span>
-        <a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a>
+        <div class="footer-links"><a href="THIRD_PARTY_LICENSES.txt">Third-party licenses</a><a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a></div>
       </footer>
     </main>
     <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
     <script type="module" src="app.js"></script>
+    <script type="module" src="ble-client.bundle.js"></script>
   </body>
 </html>

@@ -33,9 +33,20 @@ The [GitHub Pages flasher](https://cmwen.github.io/FNK0104B/) offers the firmwar
 
 The page installs the PlatformIO bootloader, selected partition table, OTA metadata image, and selected application at the same addresses as a PlatformIO upload. It does not request a full flash erase. The selected partition table may differ from the board's factory layout, which has not been verified; back up any data that matters before first use. CI builds use default settings and no private Wi-Fi credentials.
 
+To set up a new board's Wi-Fi from the same page, install **Wi-Fi over BLE**,
+enter the code shown on the board, choose its Bluetooth device, and send a
+2.4 GHz network name and password. The browser communicates directly with the
+board using Espressif Security 1; the site does not store the password. Once
+the board reports **Wi-Fi connected**, install the desired firmware. Web
+Bluetooth needs a compatible browser such as Chrome or Edge, HTTPS or
+localhost, and Bluetooth enabled. See `apps/15-wifi-ble/README.md` for the
+standalone firmware behavior.
+
 The publishing workflow builds every firmware environment on pushes and pull requests, runs native tests, and deploys the packaged site on successful `main` builds. To activate hosting in this repository, select **Settings → Pages → Build and deployment → GitHub Actions** once. For a local preview after building all environments, run:
 
 ```bash
+npm ci --prefix web-flasher
+npm run build --prefix web-flasher
 python3 scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
 python3 -m http.server 8000 --directory /tmp/fnk0104b-pages
 ```
