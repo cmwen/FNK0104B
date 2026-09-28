@@ -121,21 +121,37 @@ bool MicrophoneSupport::capture(int16_t* samples, size_t requested_samples,
                                 size_t& captured_samples,
                                 uint32_t timeout_ms,
                                 MicrophoneStopCheck should_stop,
-                                void* stop_context) {
+                                void* stop_context,
+                                MicrophonePeakCallback on_peak,
+                                void* peak_context) {
   captured_samples = 0;
   if (!ready_ || samples == nullptr || requested_samples == 0) return false;
 
   const uint32_t started = millis();
+  constexpr size_t kCaptureChunkSamples = 1024;
   while (captured_samples < requested_samples &&
          static_cast<uint32_t>(millis() - started) < timeout_ms &&
          (should_stop == nullptr || !should_stop(stop_context))) {
     size_t bytes_read = 0;
-    const size_t remaining_bytes =
-        (requested_samples - captured_samples) * sizeof(int16_t);
+    const size_t remaining_samples = requested_samples - captured_samples;
+    const size_t chunk_samples = remaining_samples < kCaptureChunkSamples
+                                     ? remaining_samples
+                                     : kCaptureChunkSamples;
+    const size_t chunk_bytes = chunk_samples * sizeof(int16_t);
     const esp_err_t error = i2s_read(
-        kI2sPort, samples + captured_samples, remaining_bytes, &bytes_read,
+        kI2sPort, samples + captured_samples, chunk_bytes, &bytes_read,
         pdMS_TO_TICKS(100));
     if (error != ESP_OK) return false;
+    if (on_peak != nullptr && bytes_read > 0) {
+      int32_t peak = 0;
+      const size_t chunk_count = bytes_read / sizeof(int16_t);
+      for (size_t i = 0; i < chunk_count; ++i) {
+        const int32_t sample = samples[captured_samples + i];
+        const int32_t magnitude = sample < 0 ? -sample : sample;
+        if (magnitude > peak) peak = magnitude;
+      }
+      on_peak(peak, peak_context);
+    }
     captured_samples += bytes_read / sizeof(int16_t);
   }
   return captured_samples > 0;

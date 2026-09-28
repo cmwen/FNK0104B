@@ -6,7 +6,7 @@ reports only the captured sample count and whether a signal was detected; it
 does not print or save microphone samples.
 
 The target uses the verified defaults in `lib/fnk0104b/src/fnk0104b/pins.hpp`:
-MCLK/BCLK/WS on GPIO 4/5/7, ESP32 data out/in on GPIO 6/8, ES8311 over I²C on
+MCLK/BCLK/WS on GPIO 4/5/7, ESP32 data out/in on GPIO 8/6, ES8311 over I²C on
 SDA/SCL 16/15 at address `0x18`. No external microphone wiring is needed.
 
 Build and flash with PlatformIO Core:

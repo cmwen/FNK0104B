@@ -4,8 +4,10 @@ This firmware records English speech from the FNK0104B's onboard microphone,
 discovers the Speech Recognition service over DNS-SD, and shows the response's
 JSON `text` field on the LVGL display. Recording stops after 20 seconds by
 default, or earlier when the user taps **STOP**. It sends one WAV file as
-multipart field `file`. It does not call `/health`; the aggregate endpoint can
-be unhealthy when optional language or synthesis models are absent.
+multipart field `file`. A live **MIC** meter shows the captured signal while
+recording, so you can move closer if the bar barely moves. It does not call
+`/health`; the aggregate endpoint can be unhealthy when optional language or
+synthesis models are absent.
 
 ## Hardware and wiring
 
@@ -17,14 +19,14 @@ needed. Verified defaults are in `lib/fnk0104b/src/fnk0104b/pins.hpp`:
 |---|---:|
 | ES8311 I²C SDA / SCL | 16 / 15 |
 | I²S MCLK / BCLK / WS | 4 / 5 / 7 |
-| ESP32 I²S data out / data in | 6 / 8 |
+| ESP32 I²S data out / data in | 8 / 6 |
 | ES8311 I²C address | `0x18` |
 
 The mic capture format is mono, signed 16-bit PCM at 16 kHz, wrapped in a PCM
 WAV header. The ES8311 clock uses 6.144 MHz MCLK (384 × 16 kHz). Those audio
 settings follow the model-specific Freenove Echo example and Espressif's
-ES8311 driver configuration. They have not been checked on this physical board
-in this task.
+ES8311 driver configuration. The `audio-diag` firmware detected spoken peaks
+on this physical board with the GPIO6 microphone input.
 
 ## Configuration
 
@@ -61,8 +63,9 @@ the HTTP `Host` header still uses the discovered name. The ESP32 does not need
 Tailscale; the service and board must share a LAN that carries mDNS multicast.
 DNS-SD and HTTP calls run in a worker task. DNS-SD and mDNS host lookup each
 wait at most 1.8 seconds, TCP connect at most 5 seconds, and HTTP response reads
-use a 9-second timeout. Wi-Fi association is asynchronous and uses
-auto-reconnect. Error states can be retried with the **RECORD** button.
+use a 45-second timeout to allow speech inference to finish. Wi-Fi association
+is asynchronous and uses auto-reconnect. Error states can be retried with the
+**RECORD** button.
 
 ## Build and flash
 
@@ -91,8 +94,9 @@ flash, partition, USB CDC, and PSRAM configuration. No Arduino IDE is required.
    and device status, never microphone samples, transcripts, or Wi-Fi
    credentials.
 6. If it fails, use the displayed status and 115200-baud serial discovery lines
-   (`dns_sd_query`, `dns_sd_instance`, and `dns_sd_endpoint`) to check Wi-Fi,
-   DNS-SD service visibility, the service TXT path, and HTTP status. The
+   (`dns_sd_query`, `dns_sd_instance`, and `dns_sd_endpoint`), along with
+   `audio_capture`, `http_request`, and `http_result`, to check microphone signal,
+   Wi-Fi, DNS-SD service visibility, the service TXT path, and HTTP status. The
    app does not treat aggregate `/health` as a transcription gate.
 
 The firmware build and host-side protocol tests do not replace a microphone,

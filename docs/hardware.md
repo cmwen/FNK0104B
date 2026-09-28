@@ -38,3 +38,10 @@ user-supplied photo after `invertDisplay(true)` (`INVON`) showed the intended
 red, green, and blue colors, a dark background and faceplate, and matching
 direct-draw and buffered chip pairs. This panel-specific behavior was verified
 on 2026-09-28; `lib/fnk0104b` now selects `INVON` during display setup.
+
+## Device-verified microphone behavior
+
+The Freenove Echo example assigns GPIO6 to I²S data input and GPIO8 to data
+output. The audio diagnostic on this board returned a peak of 1 with the two
+directions reversed. With GPIO6 as input, it detected spoken peaks above 1000
+on 2026-09-29. The shared pin map now follows that verified direction.

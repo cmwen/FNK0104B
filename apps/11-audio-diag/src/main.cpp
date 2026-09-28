@@ -49,10 +49,10 @@ void loop() {
     const int32_t magnitude = value < 0 ? -value : value;
     if (magnitude > peak) peak = magnitude;
   }
-  Serial.printf("microphone_capture=%s samples=%u signal=%s\n",
+  Serial.printf("microphone_capture=%s samples=%u signal=%s peak=%ld\n",
                 captured && samples_captured == kCaptureSamples ? "complete"
                                                                 : "timeout",
                 static_cast<unsigned>(samples_captured),
-                peak > 64 ? "detected" : "quiet");
+                peak > 64 ? "detected" : "quiet", static_cast<long>(peak));
   delay(1000);
 }

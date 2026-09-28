@@ -23,12 +23,12 @@
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.2.1";
+constexpr char kFirmwareVersion[] = "0.2.4";
 constexpr char kBoundary[] = "----FNK0104BLocalLink7MA4YWxkTrZu0gW";
 constexpr uint32_t kSampleRate = 16000;
 constexpr uint32_t kDiscoveryTimeoutMs = 1800;
 constexpr uint32_t kConnectTimeoutMs = 5000;
-constexpr uint16_t kResponseTimeoutMs = 9000;
+constexpr uint16_t kResponseTimeoutMs = 45000;
 constexpr size_t kMaxServiceResults = 20;
 constexpr size_t kMaxResponseBytes = 8192;
 constexpr size_t kTranscriptionCapacity = 640;
@@ -70,15 +70,16 @@ char ui_error[kErrorCapacity] = {};
 TaskHandle_t speech_worker = nullptr;
 bool mdns_started = false;
 bool microphone_ready = false;
-bool previous_touch = false;
 fnk0104b::TouchPoint touch_point{0, 0, false};
 std::atomic<bool> capture_stop_requested{false};
+std::atomic<uint8_t> microphone_level{0};
 
 lv_display_t* lv_display = nullptr;
 lv_indev_t* lv_touch = nullptr;
 lv_obj_t* status_label = nullptr;
 lv_obj_t* wifi_label = nullptr;
 lv_obj_t* result_label = nullptr;
+lv_obj_t* microphone_bar = nullptr;
 lv_obj_t* record_button = nullptr;
 lv_obj_t* record_button_label = nullptr;
 
@@ -124,11 +125,9 @@ void flushDisplay(lv_display_t* display, const lv_area_t* area,
 
 void readTouch(lv_indev_t*, lv_indev_data_t* data) {
   if (!fnk0104b::touch.read(touch_point)) {
-    data->state = previous_touch ? LV_INDEV_STATE_PRESSED
-                                 : LV_INDEV_STATE_RELEASED;
+    data->state = LV_INDEV_STATE_RELEASED;
     return;
   }
-  previous_touch = touch_point.pressed;
   data->state = touch_point.pressed ? LV_INDEV_STATE_PRESSED
                                     : LV_INDEV_STATE_RELEASED;
   data->point.x = touch_point.x;
@@ -153,6 +152,7 @@ void onRecordClicked(lv_event_t*) {
   const UiSnapshot snapshot = getSnapshot();
   if (snapshot.state == UiState::kRecording) {
     capture_stop_requested.store(true, std::memory_order_relaxed);
+    Serial.println("speech_button=stop");
     return;
   }
   if (WiFi.status() != WL_CONNECTED ||
@@ -161,11 +161,21 @@ void onRecordClicked(lv_event_t*) {
     return;
   }
   capture_stop_requested.store(false, std::memory_order_relaxed);
+  Serial.println("speech_button=record");
   xTaskNotifyGive(speech_worker);
 }
 
 bool shouldStopAudioCapture(void*) {
   return capture_stop_requested.load(std::memory_order_relaxed);
+}
+
+void updateMicrophoneLevel(int32_t peak, void*) {
+  const int32_t scaled = peak <= 64 ? 0 : (peak - 64) * 100 / 2048;
+  const uint8_t level = static_cast<uint8_t>(constrain(scaled, 0, 100));
+  const uint8_t previous = microphone_level.load(std::memory_order_relaxed);
+  microphone_level.store(level > previous ? level
+                                          : (previous * 3 + level) / 4,
+                         std::memory_order_relaxed);
 }
 
 void initializeLvgl() {
@@ -186,7 +196,7 @@ void initializeLvgl() {
   lv_touch = lv_indev_create();
   lv_indev_set_type(lv_touch, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(lv_touch, readTouch);
-  lv_timer_set_period(lv_indev_get_read_timer(lv_touch), 45);
+  lv_timer_set_period(lv_indev_get_read_timer(lv_touch), 25);
 
   lv_obj_t* screen = lv_screen_active();
   lv_obj_set_style_bg_color(screen, lv_color_hex(kBackground), LV_PART_MAIN);
@@ -202,19 +212,29 @@ void initializeLvgl() {
                            &lv_font_montserrat_14, kAccent);
 
   record_button = lv_button_create(screen);
-  lv_obj_set_pos(record_button, 224, 6);
-  lv_obj_set_size(record_button, 86, 38);
+  lv_obj_set_pos(record_button, 198, 4);
+  lv_obj_set_size(record_button, 112, 48);
   lv_obj_set_style_bg_color(record_button, lv_color_hex(kGreen), LV_PART_MAIN);
   lv_obj_set_style_border_width(record_button, 0, LV_PART_MAIN);
   lv_obj_set_style_radius(record_button, 6, LV_PART_MAIN);
   record_button_label = lv_label_create(record_button);
   lv_label_set_text(record_button_label, "RECORD");
   lv_obj_center(record_button_label);
-  lv_obj_add_event_cb(record_button, onRecordClicked, LV_EVENT_CLICKED, nullptr);
+  lv_obj_add_event_cb(record_button, onRecordClicked, LV_EVENT_PRESSED, nullptr);
+
+  makeLabel(screen, "MIC", 10, 85, 38, 19, &lv_font_montserrat_12, kMuted);
+  microphone_bar = lv_bar_create(screen);
+  lv_obj_set_pos(microphone_bar, 51, 88);
+  lv_obj_set_size(microphone_bar, 259, 12);
+  lv_bar_set_range(microphone_bar, 0, 100);
+  lv_bar_set_value(microphone_bar, 0, LV_ANIM_OFF);
+  lv_obj_set_style_bg_color(microphone_bar, lv_color_hex(kPanel), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(microphone_bar, lv_color_hex(kGreen),
+                            LV_PART_INDICATOR);
 
   lv_obj_t* result_panel = lv_obj_create(screen);
-  lv_obj_set_pos(result_panel, 8, 84);
-  lv_obj_set_size(result_panel, 304, 145);
+  lv_obj_set_pos(result_panel, 8, 110);
+  lv_obj_set_size(result_panel, 304, 119);
   lv_obj_set_style_bg_color(result_panel, lv_color_hex(kPanel), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(result_panel, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_border_width(result_panel, 0, LV_PART_MAIN);
@@ -233,6 +253,24 @@ void initializeLvgl() {
 void updateUi() {
   const UiSnapshot snapshot = getSnapshot();
   const bool connected = WiFi.status() == WL_CONNECTED;
+  const uint8_t level = microphone_level.load(std::memory_order_relaxed);
+  static uint8_t last_level = 255;
+  if (level != last_level) {
+    lv_bar_set_value(microphone_bar, level, LV_ANIM_OFF);
+    last_level = level;
+  }
+  static UiSnapshot last_snapshot{};
+  static bool last_connected = false;
+  static bool initialized = false;
+  if (initialized && connected == last_connected &&
+      snapshot.state == last_snapshot.state &&
+      strcmp(snapshot.transcription, last_snapshot.transcription) == 0 &&
+      strcmp(snapshot.error, last_snapshot.error) == 0) {
+    return;
+  }
+  last_snapshot = snapshot;
+  last_connected = connected;
+  initialized = true;
   lv_label_set_text(wifi_label, connected ? "Wi-Fi  connected"
                                           : "Wi-Fi  waiting / reconnecting");
   lv_obj_set_style_text_color(wifi_label,
@@ -419,9 +457,19 @@ bool recordMultipartBody(uint8_t*& body, size_t& body_size) {
   const uint32_t capture_timeout = LOCALLINK_RECORD_SECONDS * 1000U + 3000U;
   const bool captured = fnk0104b::microphone.capture(
       pcm, requested_samples, captured_samples, capture_timeout,
-      shouldStopAudioCapture, nullptr);
+      shouldStopAudioCapture, nullptr, updateMicrophoneLevel, nullptr);
   const bool stopped_early =
       capture_stop_requested.load(std::memory_order_relaxed);
+  int32_t peak = 0;
+  for (size_t i = 0; i < captured_samples; ++i) {
+    const int32_t sample = pcm[i];
+    const int32_t magnitude = sample < 0 ? -sample : sample;
+    if (magnitude > peak) peak = magnitude;
+  }
+  Serial.printf("audio_capture=%s samples=%u stopped=%s peak=%ld\n",
+                captured ? "complete" : "failed",
+                static_cast<unsigned>(captured_samples),
+                stopped_early ? "yes" : "no", static_cast<long>(peak));
   if (!captured || (!stopped_early && captured_samples != requested_samples)) {
     free(pcm);
     return false;
@@ -483,7 +531,13 @@ bool postForTranscription(const locallink::Endpoint& endpoint,
            "multipart/form-data; boundary=%s", kBoundary);
   http.addHeader("Content-Type", content_type);
   http.addHeader("Accept", "application/json");
+  Serial.printf("http_request=starting ip=%s port=%u bytes=%u\n",
+                resolved_address.toString().c_str(), endpoint.port,
+                static_cast<unsigned>(request_size));
+  const uint32_t request_started_at = millis();
   const int status_code = http.POST(request_body, request_size);
+  Serial.printf("http_result=%d elapsed_ms=%lu\n", status_code,
+                static_cast<unsigned long>(millis() - request_started_at));
   if (status_code != HTTP_CODE_OK) {
     snprintf(error, error_capacity,
              status_code > 0 ? "HTTP response %d" : "HTTP request failed (%d)",
@@ -521,6 +575,11 @@ bool postForTranscription(const locallink::Endpoint& endpoint,
     strlcpy(error, "Response has no text field", error_capacity);
     return false;
   }
+  if (text[0] == '\0') {
+    strlcpy(error, "No speech recognized; speak closer to the mic",
+            error_capacity);
+    return false;
+  }
   strlcpy(result, text, result_capacity);
   return true;
 }
@@ -538,10 +597,13 @@ void speechWorker(void*) {
     }
 
     capture_stop_requested.store(false, std::memory_order_relaxed);
+    microphone_level.store(0, std::memory_order_relaxed);
     setState(UiState::kRecording);
     uint8_t* request_body = nullptr;
     size_t request_size = 0;
-    if (!recordMultipartBody(request_body, request_size)) {
+    const bool recorded = recordMultipartBody(request_body, request_size);
+    microphone_level.store(0, std::memory_order_relaxed);
+    if (!recorded) {
       setError("Microphone capture failed or timed out");
       continue;
     }

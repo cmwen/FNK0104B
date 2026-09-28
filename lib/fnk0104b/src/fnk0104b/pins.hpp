@@ -55,13 +55,13 @@ constexpr int amplifier_enable = 1;
 #define FNK0104B_AUDIO_I2S_BCLK 5
 #endif
 #ifndef FNK0104B_AUDIO_I2S_DATA_OUT
-#define FNK0104B_AUDIO_I2S_DATA_OUT 6
+#define FNK0104B_AUDIO_I2S_DATA_OUT 8
 #endif
 #ifndef FNK0104B_AUDIO_I2S_WS
 #define FNK0104B_AUDIO_I2S_WS 7
 #endif
 #ifndef FNK0104B_AUDIO_I2S_DATA_IN
-#define FNK0104B_AUDIO_I2S_DATA_IN 8
+#define FNK0104B_AUDIO_I2S_DATA_IN 6
 #endif
 constexpr int i2c_sda = FNK0104B_AUDIO_I2C_SDA;
 constexpr int i2c_scl = FNK0104B_AUDIO_I2C_SCL;

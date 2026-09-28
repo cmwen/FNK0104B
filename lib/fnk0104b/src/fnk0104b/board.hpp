@@ -58,6 +58,7 @@ struct MicrophoneConfig {
 };
 
 using MicrophoneStopCheck = bool (*)(void* context);
+using MicrophonePeakCallback = void (*)(int32_t peak, void* context);
 
 class MicrophoneSupport {
  public:
@@ -65,7 +66,9 @@ class MicrophoneSupport {
   bool capture(int16_t* samples, size_t requested_samples,
                size_t& captured_samples, uint32_t timeout_ms,
                MicrophoneStopCheck should_stop = nullptr,
-               void* stop_context = nullptr);
+               void* stop_context = nullptr,
+               MicrophonePeakCallback on_peak = nullptr,
+               void* peak_context = nullptr);
   bool ready() const;
 
  private:
