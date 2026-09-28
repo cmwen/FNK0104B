@@ -64,9 +64,13 @@ DisplaySupport display;
 
 void DisplaySupport::begin(uint8_t rotation) {
   pinMode(pins::display::backlight, OUTPUT);
-  digitalWrite(pins::display::backlight, HIGH);
+  setBacklight(true);
   tft.init();
   tft.setRotation(rotation);
+}
+
+void DisplaySupport::setBacklight(bool on) {
+  digitalWrite(pins::display::backlight, on ? HIGH : LOW);
 }
 
 TFT_eSPI& DisplaySupport::driver() { return tft; }

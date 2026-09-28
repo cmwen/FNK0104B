@@ -8,6 +8,7 @@ Run each diagnostic on a real FNK0104B and record board revision, firmware commi
 | Wi-Fi | Join a local test access point using untracked credentials; report association and IP without logging secrets. |
 | Display | Run `pio run -e display -t upload`; verify dimensions, backlight, solid colors, and text. |
 | Touch | Run `pio run -e touch -t upload`; tap the panel and verify orientation and screen edges in serial output. |
+| Screen timeout | After display and touch checks pass, run `pio run -e screen-timeout -t upload`; verify the backlight turns off after 60 seconds and returns on touch. |
 | Calculator | After both diagnostics, run `pio run -e calculator -t upload`; exercise digits, operations, clear, delete, sign toggle, and divide-by-zero recovery. |
 | SD | Mount with the verified four-bit SDIO pins, report card capacity, and perform a temporary file write/read/remove. |
 | MQTT | Connect to a test broker, publish and subscribe to a unique test topic, then disconnect cleanly. |
