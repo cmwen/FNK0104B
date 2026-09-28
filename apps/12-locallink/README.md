@@ -31,8 +31,10 @@ in this task.
 - **Wi-Fi:** copy `include/locallink_secrets.example.h` to
   `include/locallink_secrets.h` and set your SSID and password. That local file
   is ignored by Git. Leave both values empty to reconnect to Wi-Fi credentials
-  already saved in the board's NVS, for example by the `connectivity` app.
-- **DNS-SD instance:** the default exact instance name is `Speech Recognition`.
+  already saved in the board's NVS, for example by the `connectivity` app. At
+  startup, serial prints `wifi_credentials=missing` when neither source is
+  available; the board cannot start DNS-SD discovery until Wi-Fi connects.
+- **DNS-SD instance:** the default exact instance name is `LocalLink Speech Recognition`.
   Override `LOCALLINK_SERVICE_INSTANCE` in `include/locallink_config.h` when the
   speech backend advertises a different name. This is separate from LocalLink,
   the app used to manage local services.
@@ -52,7 +54,7 @@ in this task.
   for the fallback host; a `.local` name still requires mDNS. The current service
   TXT record advertises the path `/v1/audio/transcriptions`.
 
-The device searches for the exact instance **Speech Recognition** under
+The device searches for the exact instance **LocalLink Speech Recognition** under
 `_http._tcp.local`, then uses that record's SRV host and port and its TXT
 `path`. It resolves the discovered SRV host over mDNS before connecting by IP;
 the HTTP `Host` header still uses the discovered name. The ESP32 does not need
@@ -77,7 +79,7 @@ flash, partition, USB CDC, and PSRAM configuration. No Arduino IDE is required.
 
 ## On-device transcription check
 
-1. Ensure the service advertises **Speech Recognition** on the same
+1. Ensure the service advertises **LocalLink Speech Recognition** on the same
    LAN under `_http._tcp.local`, with a reachable SRV host/port and a TXT `path`.
 2. Flash `audio-diag` first and confirm the serial monitor reports
    `microphone_capture=complete ... signal=detected` while you speak.
@@ -88,8 +90,9 @@ flash, partition, USB CDC, and PSRAM configuration. No Arduino IDE is required.
    recognized text appears in the panel; serial output contains only startup
    and device status, never microphone samples, transcripts, or Wi-Fi
    credentials.
-6. If it fails, use the displayed status and 115200-baud serial status to check
-   Wi-Fi, DNS-SD service visibility, the service TXT path, and HTTP status. The
+6. If it fails, use the displayed status and 115200-baud serial discovery lines
+   (`dns_sd_query`, `dns_sd_instance`, and `dns_sd_endpoint`) to check Wi-Fi,
+   DNS-SD service visibility, the service TXT path, and HTTP status. The
    app does not treat aggregate `/health` as a transcription gate.
 
 The firmware build and host-side protocol tests do not replace a microphone,

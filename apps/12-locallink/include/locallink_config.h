@@ -16,7 +16,7 @@
 // DNS-SD instance name advertised by the speech backend. This service name is
 // independent of LocalLink, the app used to manage local services.
 #ifndef LOCALLINK_SERVICE_INSTANCE
-#define LOCALLINK_SERVICE_INSTANCE "Speech Recognition"
+#define LOCALLINK_SERVICE_INSTANCE "LocalLink Speech Recognition"
 #endif
 
 // The fallback is disabled until all three values are configured.

@@ -22,7 +22,7 @@
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.2.0";
+constexpr char kFirmwareVersion[] = "0.2.1";
 constexpr char kBoundary[] = "----FNK0104BLocalLink7MA4YWxkTrZu0gW";
 constexpr uint32_t kSampleRate = 16000;
 constexpr uint32_t kDiscoveryTimeoutMs = 1800;
@@ -344,16 +344,32 @@ bool discoverEndpoint(locallink::Endpoint& endpoint) {
         ++discovered_count;
       }
     }
+    Serial.printf("dns_sd_query=%d records=%u expected=\"%s\"\n",
+                  static_cast<int>(query_result),
+                  static_cast<unsigned>(discovered_count),
+                  LOCALLINK_SERVICE_INSTANCE);
+    for (size_t i = 0; i < discovered_count; ++i) {
+      Serial.printf("dns_sd_instance=\"%s\" host=\"%s\" port=%u path=\"%s\"\n",
+                    discovered[i].instance, discovered[i].host,
+                    static_cast<unsigned>(discovered[i].port),
+                    discovered[i].path);
+    }
     if (results != nullptr) mdns_query_results_free(results);
+  } else {
+    Serial.println("dns_sd_start=failed");
   }
 
   locallink::ServiceRecord fallback{};
   copyText(fallback.host, sizeof(fallback.host), LOCALLINK_FALLBACK_HOST);
   copyText(fallback.path, sizeof(fallback.path), LOCALLINK_FALLBACK_PATH);
   fallback.port = static_cast<uint16_t>(LOCALLINK_FALLBACK_PORT);
-  return locallink::selectEndpoint(discovered, discovered_count,
-                                   LOCALLINK_SERVICE_INSTANCE, fallback,
-                                   endpoint);
+  const bool selected = locallink::selectEndpoint(
+      discovered, discovered_count, LOCALLINK_SERVICE_INSTANCE, fallback,
+      endpoint);
+  Serial.printf("dns_sd_endpoint=%s\n",
+                selected ? (endpoint.from_fallback ? "fallback" : "discovered")
+                         : "none");
+  return selected;
 }
 
 bool resolveServiceHost(const locallink::Endpoint& endpoint,
@@ -577,8 +593,11 @@ void startWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   if (strlen(LOCALLINK_WIFI_SSID) > 0) {
+    Serial.println("wifi_credentials=configured_in_firmware");
     WiFi.begin(LOCALLINK_WIFI_SSID, LOCALLINK_WIFI_PASSWORD);
   } else {
+    Serial.printf("wifi_credentials=%s\n",
+                  WiFi.SSID().length() ? "saved_in_nvs" : "missing");
     WiFi.begin();  // Reuse credentials previously saved in device NVS.
   }
 }

@@ -41,11 +41,11 @@ void test_native_runner_smoke() {
 
 void test_selects_matching_dns_sd_service_and_txt_path() {
   locallink::ServiceRecord records[2] = {};
-  strcpy(records[0].instance, "LocalLink Speech Recognition");
+  strcpy(records[0].instance, "Other Speech Recognition");
   strcpy(records[0].host, "other.local.");
   strcpy(records[0].path, "/wrong");
   records[0].port = 8080;
-  strcpy(records[1].instance, "Speech Recognition");
+  strcpy(records[1].instance, "LocalLink Speech Recognition");
   strcpy(records[1].host, "speech-locallink.local.");
   strcpy(records[1].path, "/v1/audio/transcriptions");
   records[1].port = 8081;
@@ -53,7 +53,7 @@ void test_selects_matching_dns_sd_service_and_txt_path() {
   locallink::ServiceRecord fallback = {};
   locallink::Endpoint selected = {};
   TEST_ASSERT_TRUE(locallink::selectEndpoint(
-      records, 2, "Speech Recognition", fallback, selected));
+      records, 2, "LocalLink Speech Recognition", fallback, selected));
   TEST_ASSERT_EQUAL_STRING("speech-locallink.local", selected.host);
   TEST_ASSERT_EQUAL_STRING("/v1/audio/transcriptions", selected.path);
   TEST_ASSERT_EQUAL_UINT16(8081, selected.port);
@@ -67,7 +67,7 @@ void test_endpoint_falls_back_only_when_configured() {
   fallback.port = 8081;
   locallink::Endpoint selected = {};
   TEST_ASSERT_TRUE(locallink::selectEndpoint(
-      nullptr, 0, "Speech Recognition", fallback, selected));
+      nullptr, 0, "LocalLink Speech Recognition", fallback, selected));
   TEST_ASSERT_TRUE(selected.from_fallback);
   TEST_ASSERT_EQUAL_STRING("192.168.1.32", selected.host);
   TEST_ASSERT_EQUAL_STRING("/v1/audio/transcriptions", selected.path);
@@ -75,7 +75,7 @@ void test_endpoint_falls_back_only_when_configured() {
 
   memset(&fallback, 0, sizeof(fallback));
   TEST_ASSERT_FALSE(locallink::selectEndpoint(
-      nullptr, 0, "Speech Recognition", fallback, selected));
+      nullptr, 0, "LocalLink Speech Recognition", fallback, selected));
 }
 
 void test_service_instance_match_is_exact_and_configured() {
