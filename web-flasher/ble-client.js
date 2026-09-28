@@ -1,6 +1,7 @@
 import { ESPProvisioner, Security1 } from "esp-ble-prov";
 
-const SERVICE_UUID = "b4df5a1c-3f6b-f4bf-ea4a-820304901a02";
+// WiFiProv's UUID byte array is least-significant-byte first on the BLE wire.
+const SERVICE_UUID = "021a9004-0382-4aea-bff4-6b3f1c5adfb4";
 const encoder = new TextEncoder();
 const support = document.querySelector("#ble-support");
 const popInput = document.querySelector("#ble-pop");
