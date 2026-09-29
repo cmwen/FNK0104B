@@ -3,8 +3,10 @@
 This app demonstrates a user-confirmed HTTPS firmware update from a public
 GitHub Release. It reuses Wi-Fi credentials already saved in the board's NVS,
 checks the latest release after connecting, and reports the installed and
-available versions in the 115200-baud serial monitor. Send `y` to install or
-`n` to skip. It prints download progress and reboots into the new image.
+available versions on the touchscreen. Tap **INSTALL** to update or **LATER**
+to skip. The display shows download progress and the device reboots into the
+new image. Serial commands remain available for diagnosis: `c` checks, `y`
+installs, and `n` skips.
 
 The URL is the latest non-draft GitHub Release asset named `ota.bin`:
 
@@ -29,12 +31,17 @@ firmware remains available in the other slot during the download.
    pio run -e ota -t upload
    ```
 
-3. Open `pio device monitor -b 115200` and wait for the latest release check.
-   If a newer tag is available, the monitor prints both versions and asks for
-   confirmation. Send `y` followed by Enter to install or `n` to skip. Send `c`
-   to check again later.
-4. Watch the clock sync, download progress, and result messages. A successful
-   update reboots automatically and prints its firmware version on startup.
+3. The screen shows the installed and latest versions. Tap **INSTALL** to
+   update, **LATER** to skip, or **CHECK AGAIN** to retry a release check.
+4. Open `pio device monitor -b 115200` for Wi-Fi, touch-coordinate, and OTA
+   status messages. A successful update reboots and prints its version there.
+
+The OTA environment uses the shared FNK0104B ILI9341 setup from
+`lib/fnk0104b/src/tft_setup.h` and `fnk0104b::display.begin(1)`: landscape
+320×240 orientation, verified board pins, active-high backlight, and the
+panel's verified `INVON` color setting. Touch coordinates use the matching
+landscape transform in the shared board support. On first hardware check,
+confirm `touch=ready` and tap each button while watching the serial output.
 
 TLS certificate verification is enabled with the Mozilla root bundle included
 in the pinned ESP32 framework, so the app can validate GitHub's HTTPS API and
@@ -54,9 +61,8 @@ and a release tag gives each build a human-readable version. The current CI
 builds firmware and deploys the USB browser flasher; it does not create GitHub
 Releases or attach OTA assets. Publishing a release is a separate manual step.
 
-The current confirmation prompt is serial-based. The repository has a separate
-touch diagnostic; after touch is verified on the physical board, the prompt
-could move onto the display. This demo trusts GitHub's TLS certificates and
+The repository also has a standalone touch diagnostic for checking the panel
+before using this combined app. This demo trusts GitHub's TLS certificates and
 downloads the latest release asset. It does not yet verify a firmware signing
 key or provide a release selection screen. Do not use it as a production
 updater for devices that need signed firmware policy or staged rollout

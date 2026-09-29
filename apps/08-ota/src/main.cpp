@@ -12,21 +12,102 @@
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.2.0";
+constexpr char kFirmwareVersion[] = "0.3.0";
 constexpr char kReleaseApiUrl[] =
     "https://api.github.com/repos/cmwen/FNK0104B/releases/latest";
 constexpr time_t kValidClockStart = 1700000000;
+constexpr uint32_t kTouchPollMs = 25;
 
 // Use the framework's compact Mozilla root CA bundle for GitHub TLS.
 extern const uint8_t kRootCertificateBundle[]
     asm("_binary_x509_crt_bundle_start");
 
+struct Button {
+  int16_t x;
+  int16_t y;
+  int16_t width;
+  int16_t height;
+};
+
 String availableVersion;
 String availableFirmwareUrl;
+String screenMessage = "Starting";
 bool updateAvailable = false;
-bool releaseChecked = false;
 bool checkRequested = false;
+bool checking = false;
+bool installing = false;
+bool touchReady = false;
 int lastReportedPercent = -5;
+uint32_t lastTouchPollAt = 0;
+uint32_t lastTouchErrorAt = 0;
+bool previousTouch = false;
+fnk0104b::TouchPoint touchPoint{0, 0, false};
+
+TFT_eSPI& tft() { return fnk0104b::display.driver(); }
+
+Button checkButton() {
+  const int16_t width = tft().width() - 40;
+  return {20, static_cast<int16_t>(tft().height() - 58), width, 42};
+}
+
+Button installButton() {
+  const int16_t width = (tft().width() - 54) / 2;
+  return {18, static_cast<int16_t>(tft().height() - 58), width, 42};
+}
+
+Button skipButton() {
+  const int16_t width = (tft().width() - 54) / 2;
+  return {static_cast<int16_t>(36 + width),
+          static_cast<int16_t>(tft().height() - 58), width, 42};
+}
+
+bool contains(const Button& button, int16_t x, int16_t y) {
+  return x >= button.x && x < button.x + button.width && y >= button.y &&
+         y < button.y + button.height;
+}
+
+void drawButton(const Button& button, const char* label, uint16_t color) {
+  tft().fillRoundRect(button.x, button.y, button.width, button.height, 7,
+                      color);
+  tft().drawRoundRect(button.x, button.y, button.width, button.height, 7,
+                      TFT_WHITE);
+  tft().setTextDatum(MC_DATUM);
+  tft().setTextColor(TFT_WHITE, color);
+  tft().drawString(label, button.x + button.width / 2,
+                   button.y + button.height / 2, 2);
+}
+
+void drawScreen() {
+  tft().fillScreen(TFT_BLACK);
+  tft().setTextDatum(TL_DATUM);
+  tft().setTextColor(TFT_CYAN, TFT_BLACK);
+  tft().drawString("FNK0104B OTA", 16, 12, 4);
+
+  tft().setTextColor(TFT_WHITE, TFT_BLACK);
+  tft().drawString(String("Wi-Fi: ") +
+                       (WiFi.status() == WL_CONNECTED ? "connected" : "waiting"),
+                   18, 50, 2);
+  tft().drawString(String("Installed: ") + kFirmwareVersion, 18, 78, 2);
+  if (!availableVersion.isEmpty()) {
+    tft().drawString(String("Latest: ") + availableVersion, 18, 102, 2);
+  }
+
+  tft().setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft().drawString(screenMessage, 18, 135, 2);
+
+  if (installing) {
+    tft().drawRect(18, 174, tft().width() - 36, 15, TFT_WHITE);
+    return;
+  }
+  if (checking) return;
+
+  if (updateAvailable) {
+    drawButton(installButton(), "INSTALL", TFT_DARKGREEN);
+    drawButton(skipButton(), "LATER", TFT_DARKGREY);
+  } else {
+    drawButton(checkButton(), "CHECK AGAIN", TFT_DARKCYAN);
+  }
+}
 
 String normalizedVersion(const String& version) {
   return version.startsWith("v") ? version.substring(1) : version;
@@ -97,32 +178,51 @@ bool fetchLatestRelease(String& version, String& firmwareUrl) {
 }
 
 void checkForUpdate() {
+  checking = true;
+  updateAvailable = false;
+  screenMessage = "Checking GitHub";
+  drawScreen();
+
   if (WiFi.status() != WL_CONNECTED) {
+    screenMessage = "Waiting for Wi-Fi";
+    checking = false;
     Serial.println("ota_check=waiting_for_wifi");
+    drawScreen();
     return;
   }
   if (!syncClock()) {
+    screenMessage = "Clock unavailable; see serial";
+    checking = false;
     Serial.println("ota_check=failed reason=tls_clock_unavailable");
+    drawScreen();
     return;
   }
 
   String releaseVersion;
   String firmwareUrl;
-  if (!fetchLatestRelease(releaseVersion, firmwareUrl)) return;
+  if (!fetchLatestRelease(releaseVersion, firmwareUrl)) {
+    screenMessage = "Check failed; see serial";
+    checking = false;
+    drawScreen();
+    return;
+  }
 
-  releaseChecked = true;
   availableVersion = releaseVersion;
   availableFirmwareUrl = firmwareUrl;
   updateAvailable =
       normalizedVersion(availableVersion) != String(kFirmwareVersion);
+  checking = false;
   Serial.printf("ota_current_version=%s\n", kFirmwareVersion);
   Serial.printf("ota_latest_version=%s\n", availableVersion.c_str());
   if (updateAvailable) {
+    screenMessage = "New version available";
     Serial.println("ota_update_available=yes");
-    Serial.println("ota_prompt=send_y_to_install_or_n_to_skip");
+    Serial.println("ota_prompt=press_install_or_later");
   } else {
+    screenMessage = "Already up to date";
     Serial.println("ota_status=up_to_date");
   }
+  drawScreen();
 }
 
 void printUpdateProgress(int current, int total) {
@@ -131,6 +231,10 @@ void printUpdateProgress(int current, int total) {
   if (percent >= lastReportedPercent + 5 || percent == 100) {
     Serial.printf("ota_progress=%d%% bytes=%d/%d\n", percent, current, total);
     lastReportedPercent = percent;
+    const int16_t barWidth = static_cast<int16_t>(tft().width() - 40);
+    const int16_t filled = static_cast<int16_t>((barWidth * percent) / 100);
+    tft().fillRect(20, 176, filled, 11, TFT_GREEN);
+    tft().fillRect(20 + filled, 176, barWidth - filled, 11, TFT_BLACK);
   }
 }
 
@@ -139,6 +243,9 @@ void installAvailableUpdate() {
     Serial.println("ota_result=failed reason=no_update_selected");
     return;
   }
+  installing = true;
+  screenMessage = String("Installing ") + availableVersion;
+  drawScreen();
 
   WiFiClientSecure client;
   client.setCACertBundle(kRootCertificateBundle);
@@ -165,17 +272,56 @@ void installAvailableUpdate() {
   if (result == HTTP_UPDATE_OK) {
     Serial.println("ota_result=installed rebooting=1");
   } else if (result == HTTP_UPDATE_NO_UPDATES) {
+    installing = false;
+    screenMessage = "Already up to date";
     Serial.println("ota_result=no_update");
+    drawScreen();
   } else {
+    installing = false;
+    screenMessage = "Install failed; see serial";
     Serial.printf("ota_result=failed code=%d message=%s\n",
                   httpUpdate.getLastError(),
                   httpUpdate.getLastErrorString().c_str());
+    drawScreen();
   }
 }
 
 void printInstructions() {
-  Serial.println("ota_instructions=send_c_to_check_releases");
-  Serial.println("ota_instructions=send_y_to_install_or_n_to_skip");
+  Serial.println("ota_instructions=touch_check_install_later");
+  Serial.println("ota_instructions=serial_c_check_y_install_n_skip");
+}
+
+void handleTouch() {
+  const uint32_t now = millis();
+  if (!touchReady || now - lastTouchPollAt < kTouchPollMs) return;
+  lastTouchPollAt = now;
+
+  if (!fnk0104b::touch.read(touchPoint)) {
+    if (now - lastTouchErrorAt >= 1000) {
+      Serial.println("touch_read=error");
+      lastTouchErrorAt = now;
+    }
+    previousTouch = false;
+    return;
+  }
+
+  if (touchPoint.pressed && !previousTouch) {
+    Serial.printf("touch_x=%d touch_y=%d\n", touchPoint.x, touchPoint.y);
+    if (updateAvailable && contains(installButton(), touchPoint.x,
+                                    touchPoint.y)) {
+      installAvailableUpdate();
+    } else if (updateAvailable &&
+               contains(skipButton(), touchPoint.x, touchPoint.y)) {
+      updateAvailable = false;
+      screenMessage = "Update skipped";
+      Serial.println("ota_update=skipped");
+      drawScreen();
+    } else if (!checking && !installing &&
+               contains(checkButton(), touchPoint.x, touchPoint.y)) {
+      checkRequested = true;
+    }
+  }
+  previousTouch = touchPoint.pressed;
 }
 
 }  // namespace
@@ -186,6 +332,12 @@ void setup() {
   const esp_err_t validation = esp_ota_mark_app_valid_cancel_rollback();
   Serial.printf("ota_boot_validation=%s code=%d\n",
                 validation == ESP_OK ? "accepted" : "error", validation);
+
+  fnk0104b::display.begin(1);
+  touchReady = fnk0104b::touch.begin();
+  Serial.printf("touch=%s\n", touchReady ? "ready" : "not_ready");
+  screenMessage = "Connecting to Wi-Fi";
+  drawScreen();
   printInstructions();
 
   WiFi.mode(WIFI_STA);
@@ -210,7 +362,9 @@ void loop() {
       installAvailableUpdate();
     } else if (command == 'n' || command == 'N') {
       updateAvailable = false;
+      screenMessage = "Update skipped";
       Serial.println("ota_update=skipped");
+      drawScreen();
     }
   }
 
@@ -227,9 +381,6 @@ void loop() {
     checkRequested = false;
     checkForUpdate();
   }
-  if (!releaseChecked && WiFi.status() != WL_CONNECTED) {
-    delay(20);
-    return;
-  }
-  delay(20);
+  handleTouch();
+  delay(1);
 }
