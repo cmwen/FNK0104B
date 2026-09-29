@@ -45,3 +45,13 @@ The Freenove Echo example assigns GPIO6 to I²S data input and GPIO8 to data
 output. The audio diagnostic on this board returned a peak of 1 with the two
 directions reversed. With GPIO6 as input, it detected spoken peaks above 1000
 on 2026-09-29. The shared pin map now follows that verified direction.
+
+## Device-verified OTA behavior
+
+On 2026-09-29, the connected board was flashed over USB with the OTA demo
+version 0.1.0. After publishing release v0.2.0 with an `ota.bin` asset, the
+board connected to Wi-Fi, found the newer version, and waited for serial
+confirmation. After confirmation, it downloaded all 972,128 bytes over HTTPS,
+rebooted into version 0.2.0, reported `ota_boot_validation=accepted`, and then
+reported `ota_status=up_to_date`. The OTA image was written to the alternate
+app slot; no erase-all operation was used.
