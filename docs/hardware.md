@@ -15,7 +15,7 @@ Facts below are from Freenove's model-specific documentation, its official 2.8-i
 | SD card | MicroSD slot wired for 4-bit SDIO. The FNK0104B example uses `SD_MMC`; its six signals are in `pins.md`. The online preface calls the connector SPI, which conflicts with the schematic, module specification, and model-specific example. Use SDIO/SD_MMC as the verified wiring. |
 | USB | Type-C connector connects to the ESP32-S3 internal USB bus and supports programming and USB serial. Use USB CDC on boot for `Serial` over this connection. It enumerated as Espressif `303a:1001` at `/dev/ttyACM0` and was successfully used to flash this project. |
 | RGB indicator | One WS2812-family addressable RGB LED, data on GPIO42. |
-| Audio | ES8311 codec, MEMS microphone, onboard speaker amplifier, and 1.25 mm speaker connector. Freenove's model-specific Echo example configures the microphone as 16 kHz mono, 16-bit I²S. The amplifier part number is unresolved: the schematic and included vendor datasheet list do not agree. |
+| Audio | ES8311 codec, MEMS microphone, onboard speaker amplifier, and PH1.25 speaker connector. A speaker must be connected there to hear playback. Freenove's model-specific Echo example configures the microphone as 16 kHz mono, 16-bit I²S. The amplifier part number is unresolved: the schematic and included vendor datasheet list do not agree. |
 | Power and buttons | USB power; optional 3.7–4.2 V battery connector with charging circuit; BOOT and RESET buttons. |
 | Other connections | 4-pin UART0 connector and an expansion header. Their verified signal pins are listed in `pins.md`. |
 

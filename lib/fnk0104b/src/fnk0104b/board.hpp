@@ -77,4 +77,20 @@ class MicrophoneSupport {
 
 extern MicrophoneSupport microphone;
 
+class SpeakerSupport {
+ public:
+  bool begin();
+  bool setTone(uint16_t frequency_hz);
+  bool setVolume(uint8_t percent);
+  bool ready() const;
+
+ private:
+  static void outputTaskEntry(void* context);
+  void outputTask();
+  bool ready_ = false;
+  volatile uint16_t tone_frequency_hz_ = 0;
+};
+
+extern SpeakerSupport speaker;
+
 }  // namespace fnk0104b
