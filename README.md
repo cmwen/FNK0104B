@@ -25,6 +25,7 @@ pio run -e locallink
 pio run -e ota
 pio run -e sd
 pio run -e file-manager
+pio run -e button-diag
 
 # Run host-side tests without a board
 pio test -e native

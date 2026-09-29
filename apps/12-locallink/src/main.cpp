@@ -12,6 +12,7 @@
 #include <mdns.h>
 
 #include <fnk0104b/board.hpp>
+#include <fnk0104b/pins.hpp>
 #include <locallink/protocol.hpp>
 
 #include <stdio.h>
@@ -23,7 +24,7 @@
 
 namespace {
 
-constexpr char kFirmwareVersion[] = "0.2.4";
+constexpr char kFirmwareVersion[] = "0.2.5";
 constexpr char kBoundary[] = "----FNK0104BLocalLink7MA4YWxkTrZu0gW";
 constexpr uint32_t kSampleRate = 16000;
 constexpr uint32_t kDiscoveryTimeoutMs = 1800;
@@ -34,6 +35,7 @@ constexpr size_t kMaxResponseBytes = 8192;
 constexpr size_t kTranscriptionCapacity = 640;
 constexpr size_t kErrorCapacity = 96;
 constexpr int32_t kScreenWidth = 320;
+constexpr uint32_t kRecordButtonDebounceMs = 30;
 
 static_assert(LOCALLINK_RECORD_SECONDS >= 1 && LOCALLINK_RECORD_SECONDS <= 20,
               "Recording duration must be between 1 and 20 seconds");
@@ -72,7 +74,13 @@ bool mdns_started = false;
 bool microphone_ready = false;
 fnk0104b::TouchPoint touch_point{0, 0, false};
 std::atomic<bool> capture_stop_requested{false};
+std::atomic<bool> gpio_record_button_held{false};
+std::atomic<bool> gpio_record_start_pending{false};
+std::atomic<bool> gpio_record_capture_active{false};
 std::atomic<uint8_t> microphone_level{0};
+bool gpio_record_button_stable_pressed = false;
+bool gpio_record_button_last_reading_pressed = false;
+uint32_t gpio_record_button_last_change_ms = 0;
 
 lv_display_t* lv_display = nullptr;
 lv_indev_t* lv_touch = nullptr;
@@ -161,8 +169,56 @@ void onRecordClicked(lv_event_t*) {
     return;
   }
   capture_stop_requested.store(false, std::memory_order_relaxed);
+  gpio_record_start_pending.store(false, std::memory_order_relaxed);
   Serial.println("speech_button=record");
   xTaskNotifyGive(speech_worker);
+}
+
+void onRecordButtonPressed() {
+  gpio_record_button_held.store(true, std::memory_order_relaxed);
+  if (speech_worker == nullptr || !microphone_ready ||
+      WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  const UiState state = getSnapshot().state;
+  if (state == UiState::kStarting || state == UiState::kRecording ||
+      state == UiState::kDiscovering || state == UiState::kUploading) {
+    return;
+  }
+
+  capture_stop_requested.store(false, std::memory_order_relaxed);
+  gpio_record_start_pending.store(true, std::memory_order_relaxed);
+  Serial.println("speech_gpio_button=pressed; recording=started");
+  xTaskNotifyGive(speech_worker);
+}
+
+void onRecordButtonReleased() {
+  gpio_record_button_held.store(false, std::memory_order_relaxed);
+  if (gpio_record_start_pending.load(std::memory_order_relaxed) ||
+      gpio_record_capture_active.load(std::memory_order_relaxed)) {
+    capture_stop_requested.store(true, std::memory_order_relaxed);
+    Serial.println("speech_gpio_button=released; recording=stop_requested");
+  }
+}
+
+void pollRecordButton() {
+  const bool reading_pressed =
+      digitalRead(fnk0104b::pins::expansion::gpio_14) == LOW;
+  const uint32_t now = millis();
+  if (reading_pressed != gpio_record_button_last_reading_pressed) {
+    gpio_record_button_last_reading_pressed = reading_pressed;
+    gpio_record_button_last_change_ms = now;
+  }
+  if (reading_pressed != gpio_record_button_stable_pressed &&
+      now - gpio_record_button_last_change_ms >= kRecordButtonDebounceMs) {
+    gpio_record_button_stable_pressed = reading_pressed;
+    if (reading_pressed) {
+      onRecordButtonPressed();
+    } else {
+      onRecordButtonReleased();
+    }
+  }
 }
 
 bool shouldStopAudioCapture(void*) {
@@ -287,12 +343,12 @@ void updateUi() {
       busy = true;
       break;
     case UiState::kReady:
-      status = connected ? "Ready - tap RECORD and speak English"
+      status = connected ? "Ready - hold GPIO button or tap RECORD"
                          : "Waiting for Wi-Fi connection";
       busy = false;
       break;
     case UiState::kRecording:
-      status = "Recording... tap STOP to send";
+      status = "Recording... release button or tap STOP";
       busy = true;
       break;
     case UiState::kDiscovering:
@@ -587,6 +643,8 @@ bool postForTranscription(const locallink::Endpoint& endpoint,
 void speechWorker(void*) {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    const bool gpio_button_recording =
+        gpio_record_start_pending.exchange(false, std::memory_order_relaxed);
     if (!microphone_ready) {
       setError("Microphone is not ready");
       continue;
@@ -596,12 +654,18 @@ void speechWorker(void*) {
       continue;
     }
 
-    capture_stop_requested.store(false, std::memory_order_relaxed);
+    gpio_record_capture_active.store(gpio_button_recording,
+                                     std::memory_order_relaxed);
+    capture_stop_requested.store(
+        gpio_button_recording &&
+            !gpio_record_button_held.load(std::memory_order_relaxed),
+        std::memory_order_relaxed);
     microphone_level.store(0, std::memory_order_relaxed);
     setState(UiState::kRecording);
     uint8_t* request_body = nullptr;
     size_t request_size = 0;
     const bool recorded = recordMultipartBody(request_body, request_size);
+    gpio_record_capture_active.store(false, std::memory_order_relaxed);
     microphone_level.store(0, std::memory_order_relaxed);
     if (!recorded) {
       setError("Microphone capture failed or timed out");
@@ -694,6 +758,12 @@ fnk0104b::MicrophoneConfig microphoneConfig() {
 void setup() {
   fnk0104b::board.begin();
   fnk0104b::board.printStartupInfo("locallink-speech", kFirmwareVersion);
+  pinMode(fnk0104b::pins::expansion::gpio_14, INPUT_PULLUP);
+  gpio_record_button_last_reading_pressed =
+      digitalRead(fnk0104b::pins::expansion::gpio_14) == LOW;
+  gpio_record_button_stable_pressed = gpio_record_button_last_reading_pressed;
+  Serial.printf("speech_button_gpio=%d mode=hold_to_record\n",
+                fnk0104b::pins::expansion::gpio_14);
   fnk0104b::display.begin(1);
   const bool touch_ready = fnk0104b::touch.begin();
   Serial.printf("touch=%s\n", touch_ready ? "ready" : "not_found");
@@ -718,6 +788,7 @@ void setup() {
 }
 
 void loop() {
+  pollRecordButton();
   updateUi();
   lv_timer_handler();
   delay(5);

@@ -82,4 +82,11 @@ constexpr int uart0_tx = 43;
 constexpr int uart0_rx = 44;
 }  // namespace system
 
+namespace expansion {
+constexpr int gpio_2 = 2;
+constexpr int gpio_3 = 3;
+constexpr int gpio_14 = 14;
+constexpr int gpio_21 = 21;
+}  // namespace expansion
+
 }  // namespace fnk0104b::pins

@@ -2,8 +2,10 @@
 
 This firmware records English speech from the FNK0104B's onboard microphone,
 discovers the Speech Recognition service over DNS-SD, and shows the response's
-JSON `text` field on the LVGL display. Recording stops after 20 seconds by
-default, or earlier when the user taps **STOP**. It sends one WAV file as
+JSON `text` field on the LVGL display. Hold the external button wired between
+GPIO14 and GND to record; releasing it stops capture and sends the audio. The
+on-screen **RECORD** and **STOP** controls remain available. Recording stops
+after 20 seconds by default if the button stays held. It sends one WAV file as
 multipart field `file`. A live **MIC** meter shows the captured signal while
 recording, so you can move closer if the bar barely moves. It does not call
 `/health`; the aggregate endpoint can be unhealthy when optional language or
@@ -27,6 +29,10 @@ WAV header. The ES8311 clock uses 6.144 MHz MCLK (384 × 16 kHz). Those audio
 settings follow the model-specific Freenove Echo example and Espressif's
 ES8311 driver configuration. The `audio-diag` firmware detected spoken peaks
 on this physical board with the GPIO6 microphone input.
+
+The recording button uses the verified GPIO14 expansion pin with `INPUT_PULLUP`.
+Wire the momentary button between GPIO14 and board GND; no external resistor is
+needed. Press and hold while speaking, then release to submit the recording.
 
 ## Configuration
 
@@ -88,8 +94,9 @@ flash, partition, USB CDC, and PSRAM configuration. No Arduino IDE is required.
    `microphone_capture=complete ... signal=detected` while you speak.
 3. Configure Wi-Fi as above, then flash `locallink`.
 4. Open the display and wait for **Wi-Fi connected** and the ready prompt.
-5. Tap **RECORD**, say an English phrase, then tap **STOP** when finished (or
-   let the 20-second maximum expire). Wait for **Transcription complete**. The
+5. Press and hold the GPIO14 button, say an English phrase, then release to
+   submit (or let the 20-second maximum expire). You can also tap **RECORD** and
+   **STOP** on the display. Wait for **Transcription complete**. The
    recognized text appears in the panel; serial output contains only startup
    and device status, never microphone samples, transcripts, or Wi-Fi
    credentials.
