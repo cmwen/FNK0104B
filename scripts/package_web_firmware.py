@@ -38,6 +38,7 @@ NAMES = {
     "ota": ("OTA", "Placeholder only: does not install updates over the air yet."),
     "codex-monitor": ("Codex monitor", "Placeholder only: the monitor dashboard is not implemented yet."),
     "audio-diag": ("Audio", "Captures one second of onboard microphone audio at a time and reports signal detection; it never prints or saves samples."),
+    "speaker-diag": ("Speaker keyboard", "Plays notes from a touchscreen keyboard with an adjustable speaker volume."),
     "locallink": ("LocalLink", "Records speech with the onboard microphone, discovers a Speech Recognition service on your LAN, and shows the returned transcript. Requires Wi-Fi and a compatible service."),
     "screen-timeout": ("Screen timeout", "Turns the display backlight off after 60 seconds of inactivity and wakes it on touch."),
 }
