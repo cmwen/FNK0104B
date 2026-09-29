@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <FS.h>
 
 #if defined(FNK0104B_ENABLE_DISPLAY)
 #include <TFT_eSPI.h>
@@ -92,5 +93,20 @@ class SpeakerSupport {
 };
 
 extern SpeakerSupport speaker;
+
+class SdCardSupport {
+ public:
+  bool begin();
+  bool ready() const;
+  uint64_t cardBytes() const;
+  uint64_t filesystemBytes() const;
+  uint64_t usedBytes() const;
+  fs::File open(const char* path) const;
+
+ private:
+  bool ready_ = false;
+};
+
+extern SdCardSupport sdcard;
 
 }  // namespace fnk0104b

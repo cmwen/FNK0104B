@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <SD_MMC.h>
 #include <Wire.h>
 #include <esp_system.h>
 
@@ -9,6 +10,7 @@ namespace fnk0104b {
 
 BoardSupport board;
 TouchSupport touch;
+SdCardSupport sdcard;
 namespace {
 #if defined(FNK0104B_ENABLE_DISPLAY)
 TFT_eSPI tft;
@@ -142,6 +144,41 @@ bool TouchSupport::read(TouchPoint& point) {
   y = constrain(y, 0, pins::display::native_width - 1);
   point = {x, y, true};
   return true;
+}
+
+bool SdCardSupport::begin() {
+  if (ready_) return true;
+
+  const bool pins_set = SD_MMC.setPins(
+      pins::sd::clock, pins::sd::command, pins::sd::data0, pins::sd::data1,
+      pins::sd::data2, pins::sd::data3);
+  Serial.printf("sd_pins=%s mode=4-bit\n", pins_set ? "configured" : "failed");
+  if (!pins_set) return false;
+
+  // Mount without automatic formatting so an unsupported card cannot be
+  // erased as a side effect of initialization.
+  ready_ = SD_MMC.begin("/sdcard", false, false, SDMMC_FREQ_DEFAULT, 8);
+  Serial.printf("sd_status=%s\n", ready_ ? "mounted" : "mount_failed");
+  return ready_;
+}
+
+bool SdCardSupport::ready() const { return ready_; }
+
+uint64_t SdCardSupport::cardBytes() const {
+  return ready_ ? SD_MMC.cardSize() : 0;
+}
+
+uint64_t SdCardSupport::filesystemBytes() const {
+  return ready_ ? SD_MMC.totalBytes() : 0;
+}
+
+uint64_t SdCardSupport::usedBytes() const {
+  return ready_ ? SD_MMC.usedBytes() : 0;
+}
+
+fs::File SdCardSupport::open(const char* path) const {
+  if (!ready_ || path == nullptr) return fs::File();
+  return SD_MMC.open(path, FILE_READ);
 }
 
 }  // namespace fnk0104b
