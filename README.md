@@ -22,6 +22,7 @@ pio run -e codex-monitor
 pio run -e audio-diag
 pio run -e speaker-diag
 pio run -e locallink
+pio run -e ota
 pio run -e sd
 pio run -e file-manager
 
@@ -40,6 +41,7 @@ pio debug -e hello-debug
 
 `hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the verified display and touch support. See `apps/09-calculator/README.md` for its controls.
 `wifi-ble` pairs with the GitHub Pages flasher to save Wi-Fi credentials over a secure Bluetooth session. See `apps/15-wifi-ble/README.md`. `audio-diag` checks the onboard ES8311 microphone path by reporting signal presence without printing samples. `speaker-diag` plays notes through the PH1.25 speaker connector and provides a touchscreen volume slider. `locallink` combines mic capture, Wi-Fi/DNS-SD, HTTP transcription, and an LVGL touchscreen UI; configure private Wi-Fi values and see `apps/12-locallink/README.md` before flashing.
+`ota` is a serial-triggered HTTPS update demo that downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
 `sd` is the serial-only SDIO diagnostic. `file-manager` combines the verified SD, display, and touch capabilities to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.

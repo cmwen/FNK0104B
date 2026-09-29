@@ -13,6 +13,6 @@ Run each diagnostic on a real FNK0104B and record board revision, firmware commi
 | Calculator | After both diagnostics, run `pio run -e calculator -t upload`; exercise digits, operations, clear, delete, sign toggle, and divide-by-zero recovery. |
 | SD | Mount with the verified four-bit SDIO pins, report card capacity, and perform a temporary file write/read/remove. |
 | MQTT | Connect to a test broker, publish and subscribe to a unique test topic, then disconnect cleanly. |
-| OTA | After a documented OTA-capable partition layout exists, update from a local test server and verify boot/rollback behavior. |
+| OTA | With the existing 3 MiB dual-slot layout, install `ota` over USB, publish a newer GitHub Release with an `ota.bin` asset, confirm the offered version with `y` in the serial monitor, and verify the new version boots. Test rollback with a deliberately non-booting image only after arranging a recovery path. |
 
 Do not combine these into an automated hardware test runner yet. Preserve the serial log for each run.
