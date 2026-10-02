@@ -8,23 +8,23 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <title>FNK0104B Firmware Installer</title>
+    <title>FNK0104B · Flash &amp; Setup</title>
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
-        <a class="brand" href="./" aria-label="FNK0104B firmware installer home">
+        <a class="brand" href="./" aria-label="FNK0104B home">
           <span class="brand-mark" aria-hidden="true">F</span>
           <span>Freenove <b>FNK0104B</b></span>
         </a>
-        <span class="secure-indicator"><span class="dot"></span> USB installer</span>
+        <span class="secure-indicator"><span class="dot"></span> USB + Bluetooth</span>
       </header>
 
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-copy">
           <p class="eyebrow">Firmware · direct from this repository</p>
           <h1 id="page-title">Put your display<br><em>back to work.</em></h1>
-          <p class="lede">Install FNK0104B firmware over USB, then set up the board's Wi-Fi through Bluetooth. No IDE or command line required.</p>
+          <p class="lede">Flash firmware over USB or configure your powered board over Bluetooth. Choose the task below to get started.</p>
         </div>
         <div class="board-art" role="img" aria-label="Illustration of an ESP32 display board">
           <div class="board-screen"><span>FNK<span class="accent">·</span>0104B</span><small>ESP32-S3</small><i></i></div>
@@ -35,6 +35,12 @@
         </div>
       </section>
 
+      <nav class="task-nav" aria-label="Board tasks">
+        <a id="flash-link" href="#flash" aria-controls="flash-panel">Flash firmware <span>USB installation</span></a>
+        <a id="setup-link" href="#setup" aria-controls="setup-panel">Device setup <span>Bluetooth settings</span></a>
+      </nav>
+
+      <div id="flash-panel" class="task-panel" role="region" aria-labelledby="flash-link">
       <section class="installer" aria-labelledby="install-heading">
         <div class="section-heading">
           <div><p class="eyebrow">One step to install</p><h2 id="install-heading">Connect your board</h2></div>
@@ -67,10 +73,45 @@
         <p class="data-note"><span aria-hidden="true">ⓘ</span> Installing firmware writes the board’s boot and application data. Keep the USB cable connected during installation.</p>
       </section>
 
+      </div>
+
+      <div id="setup-panel" class="task-panel" role="region" aria-labelledby="setup-link">
+      <section class="setup-guide" aria-labelledby="setup-heading">
+        <p class="eyebrow">Configure your powered board</p>
+        <h2 id="setup-heading">Connect through your browser</h2>
+        <p>Use desktop Chrome on macOS, or Chrome / Microsoft Edge on Windows, with Bluetooth enabled. Open this HTTPS page directly in that browser. Safari and Firefox cannot use this page's Web Bluetooth controls.</p>
+        <p>Click the connect button below and choose the board in the browser's device picker. Monitor firmware advertises automatically; there is no pairing button and you do not need to pair it in Windows or macOS Bluetooth settings.</p>
+        <details class="setup-help" id="bluetooth-help">
+          <summary>Can't find the board?</summary>
+          <div class="help-grid">
+            <div>
+              <h3>On Windows 11</h3>
+              <ol>
+                <li>Turn on Bluetooth in Windows Settings and keep the board nearby and powered.</li>
+                <li>Open this page in Windows Chrome or Edge. A site served from WSL can use Windows Bluetooth through that browser.</li>
+                <li>Click <strong>Connect to monitor</strong> and look for <strong>FNK0104B-MONITOR</strong> in the browser picker.</li>
+              </ol>
+            </div>
+            <div>
+              <h3>On macOS</h3>
+              <ol>
+                <li>Use desktop Chrome and turn on Bluetooth.</li>
+                <li>In <strong>System Settings → Privacy &amp; Security → Bluetooth</strong>, allow Google Chrome if it is listed. Accept a Bluetooth permission prompt, then restart Chrome if you changed its permission.</li>
+                <li>Search using this page's connect button. Use the browser picker rather than the macOS Bluetooth settings list.</li>
+              </ol>
+            </div>
+          </div>
+          <p><strong>Switching computers?</strong> Close the connected settings tab on the other computer first. The monitor stops advertising while connected and resumes when it disconnects. If it still does not appear, restart the board, close the picker and open it again.</p>
+          <p><strong>Wrong page or a redirect?</strong> Open <a href="index.html#setup">the direct setup link</a>. If your browser still redirects to another domain, clear site data for cmwen.github.io and cmwen.dev and retry.</p>
+          <p class="help-sources"><a href="https://developer.chrome.com/docs/capabilities/bluetooth">Chrome Bluetooth requirements</a> · <a href="https://support.apple.com/guide/mac-help/mchl211c911f/mac">macOS privacy settings</a></p>
+        </details>
+      </section>
+
       <section class="installer ble-setup" aria-labelledby="monitor-heading">
         <p class="eyebrow">For monitor firmware</p>
         <h2 id="monitor-heading">Monitor settings</h2>
-        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume and idle screen timeout. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. This does not configure Wi-Fi.</p>
+        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume and idle screen timeout. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. Values are saved on the board and persist across reboots.</p>
+        <p class="setup-limit">These controls configure alert volume and idle timeout. Monitor bridge host/key and speech service are configured separately in the local firmware and bridge.</p>
         <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
         <div class="ble-fields">
           <button id="monitor-connect" class="cta" type="button">Connect to monitor</button>
@@ -88,7 +129,7 @@
       <section class="installer ble-setup" aria-labelledby="ble-heading">
         <p class="eyebrow">After installing Wi-Fi over BLE firmware</p>
         <h2 id="ble-heading">Set up Wi-Fi</h2>
-        <p class="ble-intro">Choose <strong>Wi-Fi over BLE</strong> above and install it. Read the 12-character setup code on the board's screen, then connect from this page.</p>
+        <p class="ble-intro">First use <a href="#flash">Flash firmware</a> to install <strong>Wi-Fi over BLE</strong>. Read the 12-character setup code on the board's screen, then connect from this page.</p>
         <div id="ble-support" class="notice" role="status"></div>
         <div class="ble-fields">
           <label for="ble-pop">Code shown on board</label>
@@ -106,12 +147,15 @@
         <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the firmware you want to use.</p>
       </section>
 
+      </div>
+
       <footer>
         <span>Built for the FNK0104B · ESP32-S3</span>
         <div class="footer-links"><a href="THIRD_PARTY_LICENSES.txt">Third-party licenses</a><a href="https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN.html">Freenove documentation <span aria-hidden="true">↗</span></a><a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a></div>
       </footer>
     </main>
     <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+    <script type="module" src="navigation.js"></script>
     <script type="module" src="app.js"></script>
     <script type="module" src="ble-client.bundle.js"></script>
   </body>

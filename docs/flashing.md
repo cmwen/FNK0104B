@@ -29,6 +29,12 @@ PlatformIO is configured for 16 MB flash, QIO at 80 MHz with OPI PSRAM, USB CDC 
 
 ## Browser flasher
 
+The page separates **Flash firmware** (USB installation) from **Device setup**
+(Web Bluetooth). Open [setup directly](https://cmwen.github.io/FNK0104B/index.html#setup)
+to configure an already flashed board. Setup includes Windows/macOS Bluetooth
+instructions and a **Can't find the board?** troubleshooting section. Existing
+links to `#monitor-heading` and `#ble-heading` open the setup section.
+
 The [GitHub Pages flasher](https://cmwen.github.io/FNK0104B/) offers the firmware builds from this repository. It uses Web Serial through ESP Web Tools, so use a desktop Chromium browser on an HTTPS origin (or localhost), connect the FNK0104B with a USB data cable, choose the firmware environment, and press **Install**. If the board is not detected, use BOOT and RESET to enter download mode as described below and try again. Close serial monitors and other programs using the port first.
 
 The page installs the PlatformIO bootloader, selected partition table, OTA metadata image, and selected application at the same addresses as a PlatformIO upload. It does not request a full flash erase. The selected partition table may differ from the board's factory layout, which has not been verified; back up any data that matters before first use. CI builds use default settings and no private Wi-Fi credentials.
