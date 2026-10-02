@@ -147,6 +147,31 @@
         <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the firmware you want to use.</p>
       </section>
 
+      <section class="installer ble-setup" aria-labelledby="server-heading">
+        <p class="eyebrow">For the Codex monitor</p>
+        <h2 id="server-heading">Run the local server</h2>
+        <p class="ble-intro">The board polls a Python bridge on your computer over Wi-Fi. This website handles Bluetooth settings; the bridge supplies live Codex status and usage. Keep the board and server on a network where they can reach each other.</p>
+        <ol class="server-steps">
+          <li><strong>Save Wi-Fi on the board.</strong> Use the Wi-Fi setup section above if needed. The monitor reuses those saved credentials.</li>
+          <li><strong>Set the bridge address and key.</strong> Copy <code>apps/codex-monitor/include/monitor_secrets.example.h</code> to <code>monitor_secrets.h</code> in the same directory. Set <code>MONITOR_SERVER_HOST</code> to your computer's LAN IPv4 address, port to <code>8765</code>, and token to a generated private key. The local launcher reads the same file.</li>
+          <li><strong>Start the bridge</strong> from the repository root in the environment with your running, signed-in Codex app-server:
+            <pre><code>MONITOR_HOST=0.0.0.0 MONITOR_LOG_REQUESTS=1 python3 monitor-server/run.py</code></pre>
+            Keep that terminal running. Allow TCP 8765 on your trusted LAN. Optional voice commands require a separately running speech service; the full guide includes its launch settings.</li>
+          <li><strong>Build and flash your configured monitor</strong> from the repository root:
+            <pre><code>pio run -e codex-monitor
+pio run -e codex-monitor -t upload
+pio device monitor -b 115200</code></pre>
+            Look for <code>monitor_status integration=connected</code> and numeric quotas. The bridge should log board requests to <code>/v1/status</code> returning HTTP 200.</li>
+        </ol>
+        <p class="setup-limit">Host/key are compiled into firmware and cannot currently be changed through Web BLE. The public monitor firmware has no private bridge configuration; use your local build to connect to the real server. Changing host/key requires rebuilding and uploading.</p>
+        <details class="setup-help">
+          <summary>Running the server in WSL?</summary>
+          <p>Windows browser Bluetooth access and the board's Wi-Fi access to WSL are separate. In WSL 2 NAT mode, localhost working on Windows does not make the bridge reachable from the board. Configure Windows TCP forwarding to WSL and allow the port through the private-network firewall. Use the Windows LAN address in the board header, not localhost or WSL's NAT address.</p>
+          <p><a href="https://github.com/cmwen/FNK0104B/blob/main/docs/monitor-setup.md#wsl-2-network-access">WSL forwarding commands and verification</a></p>
+        </details>
+        <p class="ble-intro"><a href="https://github.com/cmwen/FNK0104B/blob/main/docs/monitor-setup.md">Full server-to-board setup guide</a> · <a href="https://github.com/cmwen/FNK0104B/blob/main/monitor-server/README.md">Bridge configuration and API</a></p>
+      </section>
+
       </div>
 
       <footer>

@@ -21,6 +21,10 @@ The separate [mock server](../../monitor-server/MOCK.md) provides controllable s
 
 ## Configure and build
 
+Follow [the full server-to-board setup guide](../../docs/monitor-setup.md) for
+server launch commands, WSL networking and connection checks. The public Pages
+firmware has no private bridge host/key; use the configured local build below.
+
 1. Copy `include/monitor_secrets.example.h` to `include/monitor_secrets.h` and set `MONITOR_SERVER_HOST` to the LAN address of the machine running the bridge. Set `MONITOR_SERVER_TOKEN` to the same value as the bridge's `MONITOR_TOKEN`; the copied file is Git-ignored. The board must already have Wi-Fi credentials saved, for example by the `wifi-ble` firmware.
 2. Start the bridge with a LAN bind and configure a trusted `TRANSCRIBE_URL` for speech. Without transcription, status still works and the voice request returns a clear error.
 3. Run `pio run -e codex-monitor`. Build before upload; then use `pio run -e codex-monitor -t upload` and inspect `pio device monitor -b 115200`.

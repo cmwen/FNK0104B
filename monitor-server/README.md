@@ -10,6 +10,11 @@ OpenAI API key. It is a local development service, not a public endpoint.
 
 For controlled board tests without Codex, use the separate [mock server](MOCK.md).
 
+For a complete first-time setup, follow [Connect the monitor to its local server](../docs/monitor-setup.md).
+It covers Wi-Fi, host/key configuration, WSL LAN forwarding, authenticated
+verification, and the local firmware build/upload. Web BLE configures volume
+and idle timeout; it does not currently configure the bridge host/key.
+
 ## Run
 
 From the repository root:
