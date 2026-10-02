@@ -12,6 +12,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from server import serve_status_stream
+
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_JSON_BYTES = 8192
 SCENARIOS = ("idle", "running", "attention", "error", "complete", "overflow", "degraded", "offline")
@@ -25,6 +27,9 @@ class MockError(ValueError):
 class MockState:
     def __init__(self):
         self.lock = threading.RLock()
+        self.activity = threading.Condition(self.lock)
+        self.revision = 0
+        self.started_at = int(time.time())
         self.agents = {}
         self.five_hour = 29
         self.weekly = 51
@@ -62,6 +67,7 @@ class MockState:
                         "id": agent_id, "name": f"Agent {index}",
                         "status": "running", "detail": "Working in the mock scenario.",
                     }
+            self.signal_activity()
         return self.snapshot()
 
     def set_agent(self, data):
@@ -89,6 +95,7 @@ class MockState:
                 self.agents[agent_id] = {
                     "id": agent_id, "name": name, "status": status, "detail": detail,
                 }
+            self.signal_activity()
         return self.snapshot()
 
     def set_usage(self, data):
@@ -100,7 +107,26 @@ class MockState:
         with self.lock:
             self.five_hour = data["five_hour"]
             self.weekly = data["weekly"]
+            self.signal_activity()
         return self.snapshot()
+
+    def signal_activity(self):
+        with self.activity:
+            self.revision += 1
+            self.activity.notify_all()
+
+    def status_events(self, stopped, client=None, heartbeat=60):
+        revision = -1
+        while not stopped.is_set():
+            with self.activity:
+                if self.revision != revision:
+                    revision = self.revision
+                    event = "event: status\ndata: " + json.dumps(self.status(client), separators=(",", ":")) + "\n\n"
+                else:
+                    event = ": heartbeat\n\n"
+            yield event
+            with self.activity:
+                self.activity.wait_for(lambda: self.revision != revision or stopped.is_set(), heartbeat)
 
     def status(self, client=None):
         with self.lock:
@@ -115,9 +141,9 @@ class MockState:
             "integration": "unavailable" if self.offline else self.integration,
             "codex": {"usage": {
                 "five_hour": {"used_percent": self.five_hour,
-                              "resets_at": now + 2 * 3600 if self.five_hour is not None else None},
+                              "resets_at": self.started_at + 2 * 3600 if self.five_hour is not None else None},
                 "weekly": {"used_percent": self.weekly,
-                           "resets_at": now + 4 * 86400 if self.weekly is not None else None},
+                           "resets_at": self.started_at + 4 * 86400 if self.weekly is not None else None},
             }},
             "agents": agents[:8],
             "total_agents": len(agents),
@@ -194,9 +220,13 @@ def make_handler(state, token=None):
         def do_GET(self):
             if not self._authorized():
                 return self._json(401, {"error": {"code": "unauthorized", "message": "Invalid monitor key"}})
-            if self.path == "/v1/status":
+            if urlparse(self.path).path == "/v1/status":
                 payload = state.status(self.client_address[0])
                 return self._json(503 if state.offline else 200, payload)
+            if urlparse(self.path).path == "/v1/events":
+                stopped = threading.Event()
+                return serve_status_stream(self, state.status_events(stopped, self.client_address[0]),
+                                           stopped, state.signal_activity)
             if self.path == "/_mock/state":
                 return self._json(200, state.snapshot())
             return self._json(404, {"error": {"code": "not_found", "message": "Unknown endpoint"}})

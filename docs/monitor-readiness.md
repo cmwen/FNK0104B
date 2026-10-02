@@ -2,6 +2,65 @@
 
 Reviewed 2026-09-29. The integrated monitor has now been uploaded and exercised against a controllable LAN mock. This verifies board polling and status transitions; it does not establish live Codex agent visibility.
 
+## SSE firmware uploaded, 2026-10-03
+
+The `codex-monitor` 0.4.0 firmware now receives an authenticated SSE stream
+instead of polling status every five seconds. Inactivity closes that socket,
+turns the backlight off, and blocks the status task without reconnect attempts.
+Touch consumes the wake gesture, clears old display values and reconnects with
+`refresh=1`. Awake connections block in `select()` between arrivals and use
+5–60-second retry backoff after failures. Wi-Fi association, BLE and touch
+scanning stay enabled. The existing screen timeout (default 30 minutes, BLE
+setting 1–120 minutes) and active-agent/voice keep-awake rules still apply.
+
+All 48 Python tests and 15 native tests passed. PlatformIO Core built and
+uploaded the firmware to `/dev/ttyACM0` with hash verification: RAM 89,844 bytes,
+flash 1,445,161 bytes (45.9% of the existing app slot). No partition-layout
+change or erase-all was performed. Serial at 115200 confirmed stream
+connection, status delivery, and recovery after restarting the bridge.
+
+A 60-second idle observation with the board connected recorded zero Codex
+requests and one 13-byte SSE heartbeat. Codex daemon CPU averaged 0.033%;
+bridge CPU averaged 0.017%. The daemon still reports persisted-only thread
+visibility, so the board correctly shows degraded integration.
+
+During the owner's subsequent short BLE-timeout check, serial confirmed
+quiet-mode entry, stream disconnection with reason `quiet`, touch-wake,
+reconnection and fresh quota delivery. Host logs independently recorded the
+stream closing, reopening and sending a new status frame. No voice capture
+was observed from the wake touch. The exact elapsed timeout was not measured.
+Active/voice keep-awake behavior with SSE and board energy savings remain
+**UNKNOWN**. Host tests verify cancellation of the subscription and fallback
+refreshes when the client closes its socket. See the
+[SSE hardware record](../test/hardware/codex-monitor-sse-2026-10-03.md).
+
+## Earlier quiet-mode build before SSE, 2026-10-03
+
+The `codex-monitor` 0.3.0 build uses the existing idle screen timeout to pause
+status polling when the backlight turns off. Touch wakes the screen, consumes
+the wake gesture, clears stale display status, and requests fresh agents and
+quotas through the authenticated `refresh=1` status query. Active agents and
+voice work retain their existing keep-awake behavior. New-agent alerts wait
+until touch-wake while quiet. Wi-Fi association, BLE and touch scanning remain
+available; no ESP32 deep-sleep configuration was added.
+
+`pio run -e codex-monitor` passed, all 13 native tests passed, and all 39 bridge
+tests passed. The live bridge was restarted and its authenticated refresh
+endpoint returned HTTP 200, cache age zero and a quota observation timestamp.
+The integration remained degraded for the existing persisted-only thread
+visibility reason. `pio device list` returned no serial devices, so no upload
+or physical sleep/wake check was performed. Device behavior and energy savings
+are **UNKNOWN** until tested; that build was not uploaded before the SSE update below.
+
+After uploading through PlatformIO, set the existing **Idle screen timeout** to
+one minute for a short check. With no agents or voice activity, inspect serial
+at 115200 for `monitor_sleep state=quiet polling=paused` and confirm that board
+requests cease after any in-flight request finishes. Touch once and expect
+`monitor_sleep state=awake reason=touch`, a fresh HTTP status request, and
+resumed polling; that touch must not start voice capture. Also exercise active
+agents/voice keeping it awake and network recovery after touch-wake. Restore
+the preferred timeout afterward.
+
 ## Live host service check, 2026-10-02
 
 The real bridge was started on `192.168.1.32:8765` using the host, port and key

@@ -11,11 +11,17 @@
 #include <fnk0104b/board.hpp>
 #include <fnk0104b/pins.hpp>
 #include <locallink/protocol.hpp>
+#include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
 
 #include <atomic>
+#include <errno.h>
+#include <memory>
+#include <new>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,8 +34,8 @@
 #endif
 
 namespace {
-constexpr uint32_t kPollMs = 5000;
 constexpr uint32_t kStatusTimeoutMs = 15000;
+constexpr uint32_t kStreamSilenceMs = 90000;
 constexpr uint32_t kAvatarFrameMs = 100;
 constexpr uint32_t kScreenTimeoutDefault = 30;
 constexpr uint32_t kSampleRate = 16000;
@@ -70,6 +76,8 @@ std::atomic<bool> recording{false};
 std::atomic<bool> voiceBusy{false};
 std::atomic<bool> voicePreparing{false};
 std::atomic<bool> uiDirty{true};
+std::atomic<bool> statusPaused{false};
+std::atomic<bool> refreshOnWake{false};
 bool previousMessageVisible = false;
 bool previousWifiConnected = false;
 std::atomic<bool> pendingAttentionTone{false};
@@ -82,13 +90,15 @@ char transientMessage[48] = "Starting";
 uint32_t messageUntil = 0;
 portMUX_TYPE messageMux = portMUX_INITIALIZER_UNLOCKED;
 TaskHandle_t voiceTask = nullptr;
-TaskHandle_t pollTask = nullptr;
+TaskHandle_t statusTask = nullptr;
 std::atomic<bool> stopCapture{false};
 fnk0104b::TouchPoint touchPoint{0, 0, false};
 ui::avatar::Canvas avatarCanvas;
 uint16_t avatarScaled[96 * 96];
 BLECharacteristic* settingsCharacteristic = nullptr;
 SemaphoreHandle_t peripheralMutex = nullptr;
+SemaphoreHandle_t streamMutex = nullptr;
+int statusSocket = -1;  // Guarded by streamMutex; only the worker closes it.
 
 TFT_eSPI& tft() { return fnk0104b::display.driver(); }
 
@@ -353,63 +363,12 @@ void parseQuota(JsonVariantConst value, Quota& quota) {
   if (resets.is<int64_t>() && resets.as<int64_t>() >= 0) quota.resets = resets.as<int64_t>();
 }
 
-void pollServer() {
-  if (!MONITOR_SERVER_HOST[0] || WiFi.status() != WL_CONNECTED) {
-    markOffline();
-    return;
-  }
-  WiFiClient client; HTTPClient http;
-  String url = String("http://") + MONITOR_SERVER_HOST + ":" + String(MONITOR_SERVER_PORT) + "/v1/status";
-  http.setConnectTimeout(5000);
-  http.setTimeout(kStatusTimeoutMs);
-  if (!http.begin(client, url)) { markOffline(); return; }
-  if (MONITOR_SERVER_TOKEN[0]) http.addHeader("X-Monitor-Key", MONITOR_SERVER_TOKEN);
-  const int code = http.GET();
-  const auto pollFailure = [](const char* reason) {
-    Serial.printf("monitor_poll error=%s\n", reason);
-    markOffline();
-    setMessage(reason, 6000);
-  };
-  if (code != HTTP_CODE_OK || http.getSize() > static_cast<int>(kMaxStatusBytes)) {
-    char reason[48];
-    snprintf(reason, sizeof(reason), "Status HTTP %d", code);
-    http.end(); pollFailure(reason); return;
-  }
-  const int contentLength = http.getSize();
-  if (contentLength > static_cast<int>(kMaxStatusBytes)) { http.end(); markOffline(); return; }
-  uint8_t* body = static_cast<uint8_t*>(malloc(kMaxStatusBytes + 1));
-  if (!body) { http.end(); markOffline(); return; }
-  WiFiClient* stream = http.getStreamPtr();
-  size_t bodyLength = 0;
-  const uint32_t readStarted = millis();
-  while (bodyLength < kMaxStatusBytes && (contentLength < 0 || bodyLength < static_cast<size_t>(contentLength)) &&
-         (stream->available() || (http.connected() && millis() - readStarted < kStatusTimeoutMs))) {
-    const int available = stream->available();
-    if (available > 0) {
-      const size_t wanted = min(static_cast<size_t>(available), kMaxStatusBytes - bodyLength);
-      const size_t got = stream->readBytes(body + bodyLength, wanted);
-      if (!got) break;
-      bodyLength += got;
-    } else delay(1);
-  }
-  const bool tooLong = (contentLength >= 0 && static_cast<size_t>(contentLength) > kMaxStatusBytes) ||
-                       (stream->available() > 0 && bodyLength == kMaxStatusBytes);
-  http.end();
-  if (tooLong || bodyLength == 0 || (contentLength >= 0 && bodyLength != static_cast<size_t>(contentLength))) {
-    char reason[48];
-    snprintf(reason, sizeof(reason), "Status body %u/%d", static_cast<unsigned>(bodyLength), contentLength);
-    free(body); pollFailure(reason); return;
-  }
-  body[bodyLength] = '\0';
+bool applyStatusJson(const char* body, size_t bodyLength) {
   DynamicJsonDocument doc(8192);
-  // A mutable input enables ArduinoJson's zero-copy mode. Copy strings into
-  // the document because the HTTP buffer is released before fields are read.
-  const DeserializationError parseError = deserializeJson(doc, reinterpret_cast<const char*>(body), bodyLength);
-  free(body);
+  const DeserializationError parseError = deserializeJson(doc, body, bodyLength);
   if (parseError || !doc.is<JsonObject>()) {
-    char reason[48];
-    snprintf(reason, sizeof(reason), "Status JSON: %s", parseError.c_str());
-    pollFailure(reason); return;
+    Serial.printf("monitor_stream error=invalid_json detail=%s\n", parseError.c_str());
+    return false;
   }
   MonitorStatus next;
   const char* integration = doc["integration"] | "unavailable";
@@ -463,16 +422,121 @@ void pollServer() {
   }
   memcpy(previousAttentionIds, currentAttentionIds, sizeof(currentAttentionIds));
   previousAttentionCount = currentAttentionCount;
+  return true;
 }
 
-void pollWorker(void*) {
+bool streamStatus() {
+  if (!MONITOR_SERVER_HOST[0] || WiFi.status() != WL_CONNECTED) return false;
+  std::unique_ptr<locallink::StatusEventParser<kMaxStatusBytes>> parser(
+      new (std::nothrow) locallink::StatusEventParser<kMaxStatusBytes>());
+  if (!parser) return false;
+  WiFiClient client;
+  HTTPClient http;
+  String url = String("http://") + MONITOR_SERVER_HOST + ":" + String(MONITOR_SERVER_PORT) + "/v1/events";
+  const bool refresh = refreshOnWake.exchange(false);
+  if (refresh) url += "?refresh=1";
+  http.setConnectTimeout(5000);
+  http.setTimeout(kStatusTimeoutMs);
+  const char* headers[] = {"Content-Type", "Transfer-Encoding"};
+  if (!http.begin(client, url)) { if (refresh) refreshOnWake = true; return false; }
+  http.collectHeaders(headers, 2);
+  http.addHeader("Accept", "text/event-stream");
+  if (MONITOR_SERVER_TOKEN[0]) http.addHeader("X-Monitor-Key", MONITOR_SERVER_TOKEN);
+  const int code = http.GET();
+  if (code != HTTP_CODE_OK || !http.header("Content-Type").startsWith("text/event-stream") ||
+      http.header("Transfer-Encoding").length()) {
+    Serial.printf("monitor_stream error=http code=%d\n", code);
+    if (refresh) refreshOnWake = true;
+    http.end();
+    return false;
+  }
+  xSemaphoreTake(streamMutex, portMAX_DELAY);
+  statusSocket = client.fd();
+  xSemaphoreGive(streamMutex);
+  Serial.println("monitor_stream state=connected");
+  bool receivedStatus = false;
+  uint32_t lastByte = millis();
+  uint8_t bytes[1024];
+  while (!statusPaused.load()) {
+    // HTTP header parsing may have prefetched body bytes into WiFiClient.
+    // Guard calls that can close its descriptor against the UI's shutdown.
+    xSemaphoreTake(streamMutex, portMAX_DELAY);
+    const int available = client.available();
+    const int count = available > 0 ? client.read(bytes, min(available, static_cast<int>(sizeof(bytes)))) : 0;
+    const bool connected = count > 0 || client.connected();
+    const int fd = client.fd();
+    statusSocket = fd;
+    xSemaphoreGive(streamMutex);
+    if (!connected || fd < 0) break;
+    if (count > 0) {
+      lastByte = millis();
+      bool invalid = false;
+      for (int i = 0; i < count && !statusPaused.load(); ++i) {
+        const auto result = parser->feed(static_cast<char>(bytes[i]));
+        if (result == locallink::StatusEventParser<kMaxStatusBytes>::Result::Overflow) {
+          Serial.println("monitor_stream error=event_too_large");
+          invalid = true; break;
+        }
+        if (result == locallink::StatusEventParser<kMaxStatusBytes>::Result::Status) {
+          if (!applyStatusJson(parser->data(), parser->size())) { invalid = true; break; }
+          receivedStatus = true;
+        }
+      }
+      if (invalid) break;
+      continue;
+    }
+    const uint32_t elapsed = millis() - lastByte;
+    if (elapsed >= kStreamSilenceMs) {
+      Serial.println("monitor_stream error=heartbeat_timeout");
+      break;
+    }
+    const uint32_t remaining = kStreamSilenceMs - elapsed;
+    timeval timeout{static_cast<long>(remaining / 1000), static_cast<long>((remaining % 1000) * 1000)};
+    fd_set readable;
+    FD_ZERO(&readable); FD_SET(fd, &readable);
+    // Blocking select sleeps until data, heartbeat, or quiet-mode shutdown.
+    const int ready = select(fd + 1, &readable, nullptr, nullptr, &timeout);
+    if (ready < 0 && errno != EINTR) break;
+  }
+  xSemaphoreTake(streamMutex, portMAX_DELAY);
+  statusSocket = -1;
+  xSemaphoreGive(streamMutex);
+  http.end();
+  Serial.printf("monitor_stream state=disconnected reason=%s\n", statusPaused.load() ? "quiet" : "link");
+  return receivedStatus;
+}
+
+void statusWorker(void*) {
+  uint32_t retryMs = 5000;
   for (;;) {
-    pollServer();
-    vTaskDelay(pdMS_TO_TICKS(kPollMs));
+    while (statusPaused.load()) {
+      retryMs = 5000;
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    }
+    if (streamStatus()) retryMs = 5000;
+    if (statusPaused.load()) continue;
+    markOffline();
+    Serial.printf("monitor_stream state=retry wait_ms=%lu\n", static_cast<unsigned long>(retryMs));
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(retryMs));
+    retryMs = min<uint32_t>(retryMs * 2, 60000);
   }
 }
 
-// Selection and display state stay on the UI task; polling publishes snapshots.
+void pauseStatus() {
+  statusPaused = true;
+  xSemaphoreTake(streamMutex, portMAX_DELAY);
+  if (statusSocket >= 0) shutdown(statusSocket, SHUT_RDWR);
+  xSemaphoreGive(streamMutex);
+  if (statusTask) xTaskNotifyGive(statusTask);
+}
+
+void resumeStatus() {
+  refreshOnWake = true;
+  statusPaused = false;
+  if (statusTask) xTaskNotifyGive(statusTask);
+}
+
+// Selection and display state stay on the UI task; SSE publishes snapshots.
 void refreshSelectedAgent() {
   if (!selectedAgent[0]) return;
   MonitorStatus snapshot;
@@ -630,7 +694,16 @@ void touchLoop() {
   if (!gotTouch) return;
   if (touchPoint.pressed) {
     idleTimer.activity(millis());
-    if (!screenAwake) { screenAwake = true; fnk0104b::display.setBacklight(true); drawScreen(); previousTouch = true; return; }
+    if (!screenAwake) {
+      // Do not show cached quotas as current after an unattended interval.
+      markOffline();
+      screenAwake = true;
+      setMessage("Refreshing status", 6000);
+      fnk0104b::display.setBacklight(true);
+      resumeStatus();
+      Serial.println("monitor_sleep state=awake reason=touch");
+      drawScreen(); previousTouch = true; return;
+    }
     if (previousTouch) return;
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
@@ -661,10 +734,11 @@ void touchLoop() {
 
 void setup() {
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.2.0");
+  fnk0104b::board.printStartupInfo("codex-monitor", "0.4.0");
   fnk0104b::display.begin(1);
   fnk0104b::touch.begin();
   peripheralMutex = xSemaphoreCreateMutex();
+  streamMutex = xSemaphoreCreateMutex();
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
@@ -678,9 +752,9 @@ void setup() {
   if (xTaskCreatePinnedToCore(voiceWorker, "monitor-voice", 8192, nullptr, 1, &voiceTask, 1) != pdPASS) {
     voiceTask = nullptr;
   }
-  if (xTaskCreatePinnedToCore(pollWorker, "monitor-poll", 12288, nullptr, 1, &pollTask, 0) != pdPASS) {
-    pollTask = nullptr;
-    setMessage("Status polling unavailable", 10000);
+  if (!streamMutex || xTaskCreatePinnedToCore(statusWorker, "monitor-status", 12288, nullptr, 1, &statusTask, 0) != pdPASS) {
+    statusTask = nullptr;
+    setMessage("Status stream unavailable", 10000);
   }
   setMessage(MONITOR_SERVER_HOST[0] ? "Connecting to bridge" : "Set monitor server host", 6000);
   drawScreen();
@@ -716,9 +790,14 @@ void loop() {
   if (busy && !screenAwake) {
     screenAwake = true;
     fnk0104b::display.setBacklight(true);
+    resumeStatus();
+    Serial.println("monitor_sleep state=awake reason=agent_or_voice");
     uiDirty = true;
   } else if (screenAwake && idleExpired) {
-    screenAwake = false; fnk0104b::display.setBacklight(false);
+    screenAwake = false;
+    if (streamMutex) pauseStatus();
+    fnk0104b::display.setBacklight(false);
+    Serial.println("monitor_sleep state=quiet stream=closed");
   }
   if (screenAwake && uiDirty.exchange(false)) {
     drawScreen();

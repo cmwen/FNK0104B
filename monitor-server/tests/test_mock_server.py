@@ -60,6 +60,11 @@ class MockServerTests(unittest.TestCase):
         self.assertEqual(code, 503)
         self.assertEqual(offline["integration"], "unavailable")
 
+    def test_touch_wake_refresh_query_is_supported(self):
+        code, status = self.call("/v1/status?refresh=1")
+        self.assertEqual(code, 200)
+        self.assertEqual(status["agents"], [])
+
     def test_agent_and_usage_controls_are_bounded(self):
         self.call("/_mock/agent", {"id": "one", "name": "Work",
                                     "status": "running", "detail": "Building"})

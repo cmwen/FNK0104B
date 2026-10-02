@@ -3,8 +3,53 @@
 #include <string.h>
 
 #include <locallink/protocol.hpp>
+#include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
 #include <ui/idle_timer.hpp>
+
+void test_sse_fragmented_status_comments_and_unknown_events() {
+  locallink::StatusEventParser<256> parser;
+  using Result = decltype(parser)::Result;
+  const char* wire = ": heartbeat\r\n\r\nevent: unknown\ndata: ignore\n\n"
+                     "event: status\r\ndata: {\r\ndata: \"total_agents\":0}\r\n\r\n";
+  unsigned events = 0;
+  for (const char* c = wire; *c; ++c) {
+    const Result result = parser.feed(*c);
+    TEST_ASSERT_TRUE(result != Result::Overflow);
+    if (result == Result::Status) {
+      ++events;
+      TEST_ASSERT_EQUAL_STRING("{\n\"total_agents\":0}", parser.data());
+    }
+  }
+  TEST_ASSERT_EQUAL_UINT32(1, events);
+  // A new event must not contain data from the previous event.
+  const char* next = "event: status\ndata: {}\n\n";
+  for (const char* c = next; *c; ++c)
+    if (parser.feed(*c) == Result::Status) TEST_ASSERT_EQUAL_STRING("{}", parser.data());
+}
+
+void test_sse_never_delivers_incomplete_or_oversized_events() {
+  locallink::StatusEventParser<32> parser;
+  using Result = decltype(parser)::Result;
+  const char* incomplete = "event: status\ndata: {\"x\":";
+  for (const char* c = incomplete; *c; ++c) TEST_ASSERT_TRUE(parser.feed(*c) == Result::None);
+  bool overflow = false;
+  for (unsigned n = 0; n < 40; ++n) {
+    const Result result = parser.feed('x');
+    TEST_ASSERT_TRUE(result != Result::Status);
+    if (result == Result::Overflow) { overflow = true; break; }
+  }
+  TEST_ASSERT_TRUE(overflow);
+  locallink::StatusEventParser<32> multiline;
+  const char* wire = "event: status\ndata: 12345678901234567890\ndata: 12345678901234567890\n\n";
+  overflow = false;
+  for (const char* c = wire; *c; ++c) {
+    const Result result = multiline.feed(*c);
+    if (result == Result::Overflow) { overflow = true; break; }
+    TEST_ASSERT_TRUE(result != Result::Status);
+  }
+  TEST_ASSERT_TRUE(overflow);
+}
 
 void test_monitor_timeout_starts_after_active_work_finishes() {
   ui::IdleTimer timer;
@@ -180,6 +225,8 @@ void test_multipart_uses_file_field_and_closing_boundary() {
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_sse_fragmented_status_comments_and_unknown_events);
+  RUN_TEST(test_sse_never_delivers_incomplete_or_oversized_events);
   RUN_TEST(test_monitor_timeout_starts_after_active_work_finishes);
   RUN_TEST(test_monitor_touch_and_timeout_setting);
   RUN_TEST(test_monitor_timeout_across_millis_wrap);

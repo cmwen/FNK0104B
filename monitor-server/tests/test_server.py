@@ -13,8 +13,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import server
 
 
-class FakeAppServer:
+class FakeAppServer(server.AppServer):
     def __init__(self, responses):
+        super().__init__(transport="unix")
         self.responses = list(responses)
         self.calls = []
         self.pending_inputs = {}
@@ -57,6 +58,7 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(status["codex"]["usage"]["five_hour"], {"used_percent": 41, "resets_at": 1234})
         self.assertEqual(status["codex"]["usage"]["weekly"], {"used_percent": 73, "resets_at": 5678})
         self.assertEqual(app.calls[0][1]["sourceKinds"], ["cli", "vscode", "appServer", "subAgent", "subAgentThreadSpawn"])
+        self.assertTrue(app.calls[0][1]["useStateDbOnly"])
 
     def test_usage_unavailable_is_null_and_degraded(self):
         app = FakeAppServer([{"data": []}, {"data": []}, server.BridgeError("usage unavailable")])

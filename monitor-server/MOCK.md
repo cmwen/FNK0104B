@@ -1,6 +1,13 @@
 # Monitor mock server
 
-The mock implements the board-facing endpoints in [the monitor contract](../docs/monitor-contract.md) without a Codex app-server or speech service. It lets a physical board poll controlled idle, agent, quota, and connection states. No mock command starts or replies to a Codex agent.
+The mock implements the board-facing endpoints in [the monitor contract](../docs/monitor-contract.md) without a Codex app-server or speech service. It lets a physical board receive controlled idle, agent, quota, and connection states. No mock command starts or replies to a Codex agent.
+
+Firmware 0.4.0 subscribes to `/v1/events`: an initial SSE status frame is
+followed by changed state and a 60-second comment heartbeat. Scenario, agent
+and quota controls push updates on that connection. Offline state is sent as
+`integration: unavailable` within an HTTP 200 stream. Client disconnection
+stops that stream. Older firmware can continue using `/v1/status` snapshots;
+both endpoints accept `refresh=1` and require the same monitor key.
 
 ## Start
 
@@ -43,6 +50,6 @@ python3 monitor-server/mock_control.py agent demo needs_attention --name "Build 
 python3 monitor-server/mock_control.py agent demo complete
 ```
 
-`state` shows the current payload, board poll count and client IP, and metadata for the last voice or text request. The mock accepts `POST /v1/voice` only to check WAV transport; it returns `action: mock_received` with an empty transcript and does not transcribe. This does not change the real bridge's unconfigured voice behavior.
+`state` shows the current payload, snapshot count (including SSE status frames) and client IP, and metadata for the last voice or text request. The mock accepts `POST /v1/voice` only to check WAV transport; it returns `action: mock_received` with an empty transcript and does not transcribe. This does not change the real bridge's unconfigured voice behavior.
 
 Run host tests with `python3 -m unittest discover -s monitor-server/tests`.

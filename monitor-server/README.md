@@ -209,6 +209,56 @@ targets that thread, and use `thread/list`,
 `turn/steer`. It relies on app-server's active status/flags for attention and
 uses the active turn ID as `turn/steer.expectedTurnId`.
 
+The bridge keeps a blocking reader on the existing Codex transport to receive
+push events while idle. `thread/*`, `turn/*`, attention requests, and relevant
+item events invalidate its status cache. `account/rateLimits/updated` updates
+cached quota values without a query. It does not create or resume threads merely
+to subscribe to them. Push visibility is limited to what this connection
+receives; it does not establish visibility into separately running clients.
+
+Board status requests share a cache. With no visible agents, the bridge refreshes
+at most once every 300 seconds unless an event or command invalidates the cache.
+With visible agents it checks at most every 15 seconds as a fallback; pushed
+changes are pushed to SSE subscribers, coalesced to one check per second. Quota queries are limited to
+once per idle-refresh interval unless authentication or transport changes.
+Set `MONITOR_IDLE_REFRESH_SECONDS` and `MONITOR_ACTIVE_REFRESH_SECONDS` to
+positive finite seconds to change these defaults. Longer idle intervals reduce
+work but delay detection of changes for which this connection gets no events.
+Connection loss invalidates cached status, and failed requests have a 30-second
+retry delay. Concurrent HTTP requests share one refresh.
+
+Refreshes use `thread/list` with `useStateDbOnly: true`, avoiding the default
+scan and repair of JSONL history. `updated_at` remains the timestamp of the
+agent snapshot; `cache_age_seconds` reports its age, and `quota_updated_at`
+reports the last quota query or received quota event. Cached replies do not
+claim that every board poll made a fresh Codex query.
+
+`GET /v1/events` is an authenticated SSE subscription using the same
+`X-Monitor-Key` header as snapshots. It sends an initial `event: status` JSON
+frame, pushes changed values, and sends a comment heartbeat after 60 seconds
+without a frame. Timestamp-only changes do not send a status frame. Headers
+include `Content-Type: text/event-stream`, `Cache-Control: no-cache`, and
+`Connection: close`; no Content-Length or transfer encoding is used.
+`GET /v1/events?refresh=1` bypasses caches and retry delays on touch-wake;
+`GET /v1/status?refresh=1` retains the same behavior for diagnostic tools.
+
+Fallback refreshes and retries run only while serving a request or SSE
+subscriber. Client disconnect cancels that subscription's producer promptly,
+including its fallback timer. With no subscribers or snapshot requests, the
+bridge keeps only its blocking Codex transport reader; it does not issue
+queries or reconnect on a timer. Other Codex clients can still cause daemon
+activity independently.
+
+The `codex-monitor` 0.4.0 firmware receives SSE while awake, blocks between
+incoming data, and reconnects with 5–60-second backoff after errors. After the
+configured inactivity timeout, it closes the stream, turns the backlight off,
+and suspends reconnect attempts. Touch wakes it and requests a fresh snapshot.
+Wi-Fi association, BLE, and touch handling remain available. An in-flight
+connection setup may finish before closing during quiet-mode entry. New-agent
+alerts wait for touch while quiet. Powering off the board also closes its
+stream; USB disconnection alone does not if another power source remains.
+Firmware before 0.4.0 uses snapshot polling instead of SSE.
+
 Run the host-side tests with:
 
 ```sh
