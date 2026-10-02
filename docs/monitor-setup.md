@@ -80,6 +80,12 @@ does not install or start it. Substitute your service's URL. Without speech
 configuration, status/usage still work and voice returns
 `transcription_unconfigured`. See [bridge options](../monitor-server/README.md).
 
+For a managed process, follow [the LocalLink service setup](../monitor-server/README.md#manage-with-locallink).
+It uses the app-owned startup wrapper and blueprint, keeps the key in the same
+ignored header, and exposes Start/Stop/Restart in the LocalLink dashboard. Save
+the PM2 workspace list and start LocalLink after a Windows/WSL restart to restore
+it; merely restarting the board does not require restarting the server.
+
 ### WSL 2 network access
 
 In default NAT mode, Windows localhost access does not establish LAN access for

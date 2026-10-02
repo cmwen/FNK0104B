@@ -1,0 +1,10 @@
+# Static runtime contract for the native LocalLink PM2 service.
+FROM python:3.12-slim
+WORKDIR /workspace
+ENV FNK_MONITOR_BIND_HOST= \
+    FNK_MONITOR_PORT= \
+    FNK_MONITOR_LOG_REQUESTS=1 \
+    FNK_MONITOR_TRANSCRIBE_URL= \
+    FNK_MONITOR_TRANSCRIBE_MODE=multipart
+EXPOSE 8765
+CMD ["bash", "monitor-server/start-locallink.sh"]

@@ -85,6 +85,55 @@ daemon's sessions. Socket, authentication, and request errors are surfaced as
 unavailable/degraded integration responses; missing integration is never
 reported as connected.
 
+## Manage with LocalLink
+
+The native process can be managed by LocalLink/PM2 using the app-owned
+`Dockerfile.locallink` blueprint and `monitor-server/start-locallink.sh`.
+The wrapper reads the existing shared key from the ignored firmware header;
+there is no need to duplicate the key in the LocalLink workspace.
+
+Set these values in the LocalLink workspace's local `.env`:
+
+```dotenv
+FNK_MONITOR_BIND_HOST=0.0.0.0
+FNK_MONITOR_PORT=8765
+FNK_MONITOR_LOG_REQUESTS=1
+FNK_MONITOR_TRANSCRIBE_URL=http://127.0.0.1:8790/v1/audio/transcriptions
+FNK_MONITOR_TRANSCRIBE_MODE=multipart
+```
+
+Leave the transcription URL empty if voice is not configured. Declare a native
+service in `locallink.services.yml` (adjust `cwd` for your checkout):
+
+```yaml
+services:
+  - name: fnk-codex-monitor
+    group: pm2
+    runtime: pm2
+    runtimeName: fnk-codex-monitor
+    cwd: ../FNK0104B
+    blueprint: Dockerfile.locallink
+    portEnv: FNK_MONITOR_PORT
+    envVars:
+      - FNK_MONITOR_BIND_HOST
+      - FNK_MONITOR_PORT
+      - FNK_MONITOR_LOG_REQUESTS
+      - FNK_MONITOR_TRANSCRIBE_URL
+      - FNK_MONITOR_TRANSCRIBE_MODE
+```
+
+Add the entry to the existing `services` list, rather than replacing other
+services. In LocalLink, use the **fnk-codex-monitor** card's Start, Stop, Restart
+and logs controls. Stop a manually launched bridge before starting this service
+so that only one process owns port 8765. Save the workspace PM2 list after adding
+the service. PM2 restarts crashed processes; after a computer/WSL restart,
+LocalLink still needs to be started so it can restore that saved list. This
+configuration does not install an operating-system startup service.
+
+For a manual launch with the same wrapper, export the settings above from the
+repository root and run `bash monitor-server/start-locallink.sh`. For a simple
+foreground launch without LocalLink, use the commands in **Run** above.
+
 ## HTTP contract
 
 ### `GET /v1/status`
