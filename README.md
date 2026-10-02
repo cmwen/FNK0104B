@@ -3,7 +3,7 @@
 PlatformIO Core CLI repository for small, independently buildable firmware apps targeting the Freenove FNK0104B (2.8-inch ILI9341 touch) board. Arduino is the starting framework. Board-specific GPIO facts and the initial board support API live in `lib/fnk0104b`; applications do not carry their own pin maps.
 
 Read `docs/hardware.md`, `docs/pins.md`, and `docs/flashing.md` before hardware work. Verified facts and unresolved vendor-source conflicts are recorded there.
-See `docs/development.md` for the pinned toolchain, CI setup, and current WSL debugging status.
+See `docs/development.md` for the pinned toolchain, CI setup, and current WSL debugging status. [Monitor readiness](docs/monitor-readiness.md) separates implemented targets from device-verified behavior and lists the open integration decisions.
 
 ## Commands
 
@@ -40,10 +40,12 @@ pio device monitor -b 115200
 pio debug -e hello-debug
 ```
 
-`hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the verified display and touch support. See `apps/09-calculator/README.md` for its controls.
+`hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the shared display and touch support. See `apps/09-calculator/README.md` for its controls.
 `wifi-ble` pairs with the GitHub Pages flasher to save Wi-Fi credentials over a secure Bluetooth session. See `apps/15-wifi-ble/README.md`. `audio-diag` checks the onboard ES8311 microphone path by reporting signal presence without printing samples. `speaker-diag` plays notes through the PH1.25 speaker connector and provides a touchscreen volume slider. `locallink` combines mic capture, Wi-Fi/DNS-SD, HTTP transcription, and an LVGL touchscreen UI; configure private Wi-Fi values and see `apps/12-locallink/README.md` before flashing.
-`ota` is a serial-triggered HTTPS update demo that downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
-`sd` is the serial-only SDIO diagnostic. `file-manager` combines the verified SD, display, and touch capabilities to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
+`ota` is a user-confirmed HTTPS update demo with touchscreen and serial controls. It downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
+`sd` is the serial-only SDIO diagnostic. `file-manager` combines the shared SD, display, and touch support to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
+`button-diag` reads a momentary button on GPIO14 and reports debounced press/release events over USB serial. See `apps/18-button-diag/README.md`.
+`nvs` and `mqtt` remain buildable placeholders. `codex-monitor` now has a status dashboard, voice capture, attention alerts, and BLE settings. It needs a local bridge and host transcription service; the integrated board run remains open. See [monitor setup](apps/codex-monitor/README.md) and [the bridge](monitor-server/README.md).
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.
 
@@ -53,8 +55,8 @@ On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or anoth
 - `lib/fnk0104b/` — shared board support and verified pin map.
 - `lib/network/`, `storage/`, `mqtt/`, `ota/`, `ui/` — reserved shared-library boundaries.
 - `test/test_native/` — runnable host-side Unity test suite (`test/native/` explains PlatformIO's suite naming rule).
-- `test/hardware/` — proposed hardware integration test plan.
-- `docs/` — board facts, pins, memory, flashing, and sources.
+- `test/hardware/` — hardware checks and evidence status.
+- `docs/` — board facts, pins, memory, flashing, monitor readiness, and sources.
 
 ## PlatformIO board target
 

@@ -4,6 +4,36 @@
 
 #include <locallink/protocol.hpp>
 #include <ui/avatar_assets.hpp>
+#include <ui/idle_timer.hpp>
+
+void test_monitor_timeout_starts_after_active_work_finishes() {
+  ui::IdleTimer timer;
+  timer.activity(100);
+  TEST_ASSERT_FALSE(timer.expired(60100, 60000, true));
+  TEST_ASSERT_FALSE(timer.expired(180100, 60000, true));
+  TEST_ASSERT_FALSE(timer.expired(240099, 60000, false));
+  TEST_ASSERT_TRUE(timer.expired(240100, 60000, false));
+  // Work arriving after sleep keeps the display awake and starts a fresh interval.
+  TEST_ASSERT_FALSE(timer.expired(300100, 60000, true));
+  TEST_ASSERT_FALSE(timer.expired(360099, 60000, false));
+}
+
+void test_monitor_touch_and_timeout_setting() {
+  ui::IdleTimer timer;
+  timer.activity(100);
+  TEST_ASSERT_TRUE(timer.expired(60100, 60000, false));
+  timer.activity(60100);
+  TEST_ASSERT_FALSE(timer.expired(120099, 60000, false));
+  TEST_ASSERT_TRUE(timer.expired(120100, 60000, false));
+  TEST_ASSERT_FALSE(timer.expired(120100, 120000, false));
+}
+
+void test_monitor_timeout_across_millis_wrap() {
+  ui::IdleTimer timer;
+  timer.activity(UINT32_MAX - 29999);
+  TEST_ASSERT_FALSE(timer.expired(29999, 60000, false));
+  TEST_ASSERT_TRUE(timer.expired(30000, 60000, false));
+}
 
 void test_avatar_rgb565_channel_order() {
   TEST_ASSERT_EQUAL_HEX16(0xF800, ui::avatar::detail::rgb(255, 0, 0));
@@ -150,6 +180,9 @@ void test_multipart_uses_file_field_and_closing_boundary() {
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_monitor_timeout_starts_after_active_work_finishes);
+  RUN_TEST(test_monitor_touch_and_timeout_setting);
+  RUN_TEST(test_monitor_timeout_across_millis_wrap);
   RUN_TEST(test_avatar_rgb565_channel_order);
   RUN_TEST(test_avatar_identity_and_state_are_independent);
   RUN_TEST(test_avatar_animation_changes_frame);

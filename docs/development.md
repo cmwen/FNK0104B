@@ -6,20 +6,19 @@ This repository uses PlatformIO Core CLI. No Arduino IDE is required.
 
 | Layer | Version / policy | Reason |
 |---|---|---|
-| PlatformIO Core | 6.2.0 locally and in CI | Current release checked on 2026-09-27; install in a user environment, without `sudo`. |
-| Espressif32 platform | `platformio/espressif32@7.0.1` in `platformio.ini` | Current official stable platform release checked on 2026-09-27. |
+| PlatformIO Core | 6.2.0 locally and in CI | Pinned and checked locally on 2026-09-29; install in a user environment, without `sudo`. |
+| Espressif32 platform | `platformio/espressif32@7.0.1` in `platformio.ini` | Pinned platform; keep the local and CI builds on the same version. |
 | Arduino-ESP32 framework | 2.0.17, selected by the official PlatformIO platform | The platform still packages this version. Moving to Arduino 3 needs a separate compatibility migration. |
-| Native platform | `platformio/native@1.2.1` | Current official native release checked on 2026-09-27. |
-| Host Python | 3.14 in CI | Explicit CI interpreter; PlatformIO Core manages build packages. |
-| WSL Python | 3.14.7 | Matches Python.org's current Python 3 release checked on 2026-09-27. |
-| WSL Git | 2.55.0 | Matches git-scm.com's current source release checked on 2026-09-27. |
-| Codex CLI | 0.157.1 on this host | Matches the latest entry in the official Codex changelog checked on 2026-09-27; optional for building firmware. |
+| Native platform | `platformio/native@1.2.1` | Pinned for host tests. |
+| Host Python | 3.12 in CI | Explicit setting in `.github/workflows/`; PlatformIO Core manages build packages. |
+| Host Node.js | 24 in CI | Builds the optional browser flasher. |
+| WSL Python / Git / Codex CLI | Host-dependent | None is a firmware target version. Check installed versions locally when diagnosing a host issue. |
 
 Install PlatformIO Core using the [official CLI installation guide](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html) or `python3 -m pip install --user 'platformio==6.2.0'` in an environment that permits user installs. Confirm with `pio --version`. The WSL installation already has Core 6.2.0; do not install a second copy merely to run this repository.
 
 Build with `pio run` or `pio run -e <app>`. Run `pio test -e native` for host tests. The GitHub Actions workflow builds each named firmware target, runs native tests, and packages firmware images for the GitHub Pages browser flasher; it never uploads to a board. The platform pin fixes the version used by local builds and CI. Review [PlatformIO's Espressif32 releases](https://github.com/platformio/platform-espressif32/releases) and rebuild before changing it.
 
-The official PlatformIO 7.0.1 release includes ESP-IDF 6.0.1 as an *alternative framework*. These applications still use Arduino 2.0.17, which is based on ESP-IDF 4.4.7. Shared low-level code can be migrated deliberately when an ESP-IDF application is introduced.
+The official PlatformIO 7.0.1 release includes ESP-IDF 6.0.1 as an *alternative framework*. These applications still use Arduino 2.0.17, which is based on ESP-IDF 4.4.7. Shared low-level code can be migrated deliberately when an ESP-IDF application is introduced. This is a pin, not a claim that newer releases should automatically replace it.
 
 ## USB and debugging on this WSL host
 
@@ -44,6 +43,3 @@ Then detach and reattach the board through `usbipd` (or unplug/replug it), verif
 - [PlatformIO Native releases](https://github.com/platformio/platform-native/releases)
 - [Arduino-ESP32 releases](https://github.com/espressif/arduino-esp32/releases)
 - [PlatformIO GitHub Actions guide](https://docs.platformio.org/en/latest/integration/ci/github-actions.html)
-- [Official Codex changelog](https://learn.chatgpt.com/docs/changelog)
-- [Python source releases](https://www.python.org/getit/source/)
-- [Git releases](https://git-scm.com/install/)

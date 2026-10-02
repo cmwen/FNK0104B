@@ -1,5 +1,6 @@
 # PlatformIO build products and local settings
 .pio/
+.pio-mcp-workspace/
 web-flasher/node_modules/
 web-flasher/ble-client.bundle.js
 .pioenvs/

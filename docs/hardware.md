@@ -19,14 +19,16 @@ Facts below are from Freenove's model-specific documentation, its official 2.8-i
 | Power and buttons | USB power; optional 3.7–4.2 V battery connector with charging circuit; BOOT and RESET buttons. |
 | Other connections | 4-pin UART0 connector and an expansion header. Their verified signal pins are listed in `pins.md`. |
 
-## Unresolved details
+## Unresolved hardware and device checks
 
 - Touch controller suffix/marking: FT6336G in the module specification versus FT6336U in the Freenove code and packaged driver name.
 - Exact fitted audio amplifier part number.
-- Exact factory partition table. PlatformIO uses the 16 MB / 3 MB app / 9.9 MB FATFS profile shown in Freenove's tutorial, but the factory table has not been read from a physical board.
+- Exact factory partition table. PlatformIO uses the 16 MB / 3 MB app / 9.9 MB FATFS profile shown in Freenove's tutorial and has already uploaded that table to the connected board, but the original factory table was not saved before the upload.
 - Esptool identified the connected chip as ESP32-S3 QFN56 revision v0.2 and reported embedded 8 MB PSRAM. A partial firmware startup capture reported `psram_bytes=8386295` and `free_heap_bytes=371116`, followed by repeated `status=running`. The banner prefix and complete flash-size line were lost when USB detached during reset, so they are not recorded as runtime-verified values.
 - The `cmwen` login is in `dialout`; use a fresh login session if serial access again fails with permission denied.
-- The physical PCB revision and fitted component markings have not been independently inspected. The WSL serial path and USB descriptor can vary with enumeration state.
+- The physical PCB revision and fitted component markings have not been independently inspected. The WSL ACM number can vary with enumeration state.
+
+These unresolved markings and the original factory table do not block a display/Wi-Fi monitor using the existing board support. The missing device evidence for the combined monitor path is tracked in [monitor readiness](monitor-readiness.md).
 
 Do not treat a value as device-verified until the board is connected and the relevant diagnostic has run. See `pins.md` and `references.md` for source detail.
 

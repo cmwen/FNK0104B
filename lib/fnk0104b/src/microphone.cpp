@@ -74,7 +74,7 @@ bool initializeEs8311(uint8_t address) {
 MicrophoneSupport microphone;
 
 bool MicrophoneSupport::begin(const MicrophoneConfig& config) {
-  ready_ = false;
+  end();
 
   if (!Wire.begin(config.i2c_sda_pin, config.i2c_scl_pin, kI2cClockHz)) {
     return false;
@@ -98,6 +98,7 @@ bool MicrophoneSupport::begin(const MicrophoneConfig& config) {
   if (i2s_driver_install(kI2sPort, &i2s_config, 0, nullptr) != ESP_OK) {
     return false;
   }
+  i2s_installed_ = true;
 
   const i2s_pin_config_t i2s_pins = {
       config.mclk_pin,
@@ -108,7 +109,7 @@ bool MicrophoneSupport::begin(const MicrophoneConfig& config) {
   };
   if (i2s_set_pin(kI2sPort, &i2s_pins) != ESP_OK ||
       !initializeEs8311(config.codec_i2c_address)) {
-    i2s_driver_uninstall(kI2sPort);
+    end();
     return false;
   }
 
@@ -141,7 +142,10 @@ bool MicrophoneSupport::capture(int16_t* samples, size_t requested_samples,
     const esp_err_t error = i2s_read(
         kI2sPort, samples + captured_samples, chunk_bytes, &bytes_read,
         pdMS_TO_TICKS(100));
-    if (error != ESP_OK) return false;
+    if (error != ESP_OK) {
+      end();
+      return false;
+    }
     if (on_peak != nullptr && bytes_read > 0) {
       int32_t peak = 0;
       const size_t chunk_count = bytes_read / sizeof(int16_t);
@@ -158,5 +162,14 @@ bool MicrophoneSupport::capture(int16_t* samples, size_t requested_samples,
 }
 
 bool MicrophoneSupport::ready() const { return ready_; }
+
+void MicrophoneSupport::end() {
+  ready_ = false;
+  if (i2s_installed_) {
+    i2s_stop(kI2sPort);
+    i2s_driver_uninstall(kI2sPort);
+    i2s_installed_ = false;
+  }
+}
 
 }  // namespace fnk0104b

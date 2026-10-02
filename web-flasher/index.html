@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101715">
-    <meta name="description" content="Install FNK0104B firmware over USB and set up Wi-Fi over Bluetooth.">
+    <meta name="description" content="Install FNK0104B firmware over USB, set up Wi-Fi over Bluetooth, and adjust monitor settings.">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
@@ -67,6 +67,24 @@
         <p class="data-note"><span aria-hidden="true">ⓘ</span> Installing firmware writes the board’s boot and application data. Keep the USB cable connected during installation.</p>
       </section>
 
+      <section class="installer ble-setup" aria-labelledby="monitor-heading">
+        <p class="eyebrow">For monitor firmware</p>
+        <h2 id="monitor-heading">Monitor settings</h2>
+        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume and idle screen timeout. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. This does not configure Wi-Fi.</p>
+        <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
+        <div class="ble-fields">
+          <button id="monitor-connect" class="cta" type="button">Connect to monitor</button>
+        </div>
+        <form id="monitor-settings-form" class="ble-fields" autocomplete="off">
+          <label for="monitor-volume">Volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
+          <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
+          <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
+          <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
+          <button id="monitor-save" class="cta" type="submit" disabled>Save settings</button>
+        </form>
+        <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>
+      </section>
+
       <section class="installer ble-setup" aria-labelledby="ble-heading">
         <p class="eyebrow">After installing Wi-Fi over BLE firmware</p>
         <h2 id="ble-heading">Set up Wi-Fi</h2>
@@ -85,12 +103,12 @@
           <button id="ble-send" class="cta" type="submit" disabled>Save Wi-Fi on board</button>
         </form>
         <div id="ble-status" class="flash-status" role="status" aria-live="polite" hidden></div>
-        <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the LocalLink speech firmware.</p>
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the firmware you want to use.</p>
       </section>
 
       <footer>
         <span>Built for the FNK0104B · ESP32-S3</span>
-        <div class="footer-links"><a href="THIRD_PARTY_LICENSES.txt">Third-party licenses</a><a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a></div>
+        <div class="footer-links"><a href="THIRD_PARTY_LICENSES.txt">Third-party licenses</a><a href="https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN.html">Freenove documentation <span aria-hidden="true">↗</span></a><a href="https://github.com/cmwen/FNK0104B">View source <span aria-hidden="true">↗</span></a></div>
       </footer>
     </main>
     <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>

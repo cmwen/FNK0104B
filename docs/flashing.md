@@ -5,7 +5,7 @@
 ```bash
 pio run                  # default hello firmware
 pio run -e hello
-pio run -e display       # current placeholder, for example
+pio run -e display       # display diagnostic
 pio test -e native       # host test; no board required
 ```
 
@@ -25,7 +25,7 @@ To select a port explicitly:
 pio run -e hello -t upload --upload-port /dev/ttyACM0
 ```
 
-PlatformIO is configured for 16 MB flash, QIO at 80 MHz with OPI PSRAM, USB CDC on boot, and 460800 baud upload. The partition profile matches the 16 MB / 3 MB app / 9.9 MB FATFS setting shown in Freenove's tutorial and reserves two OTA app slots. The factory partition table has not been read from this physical board. Upload writes the selected table along with bootloader/application files; review `docs/memory.md` before the first upload if existing on-flash data must be preserved. The configuration does not request an erase-all operation.
+PlatformIO is configured for 16 MB flash, QIO at 80 MHz with OPI PSRAM, USB CDC on boot, and 460800 baud upload. The partition profile matches the 16 MB / 3 MB app / 9.9 MB FATFS setting shown in Freenove's tutorial and reserves two OTA app slots. The original factory partition table was not saved from the connected board before this project's first upload. Upload writes the selected table along with bootloader/application files; review `docs/memory.md` before the first upload to another board if existing on-flash data must be preserved. The configuration does not request an erase-all operation.
 
 ## Browser flasher
 
@@ -41,6 +41,16 @@ the board reports **Wi-Fi connected**, install the desired firmware. Web
 Bluetooth needs a compatible browser such as Chrome or Edge, HTTPS or
 localhost, and Bluetooth enabled. See `apps/15-wifi-ble/README.md` for the
 standalone firmware behavior.
+
+For a board already running **Codex monitor**, open the page's **Monitor settings**
+section and click **Connect to monitor**. Choose **FNK0104B-MONITOR** in the
+Bluetooth picker. The page reads the stored settings; adjust **Volume** and
+**Idle screen timeout (minutes)**, then click **Save settings**. The timeout
+accepts 1–120 minutes and persists across reboots. Active agents and voice work
+keep the screen on; touch or new agent activity wakes it. This settings flow
+uses Bluetooth and does not require another firmware installation or a USB
+serial connection. Monitor server host/key and speech-service configuration
+remain in the local firmware/bridge configuration, outside this BLE packet.
 
 The publishing workflow builds every firmware environment on pushes and pull requests, runs native tests, and deploys the packaged site on successful `main` builds. To activate hosting in this repository, select **Settings → Pages → Build and deployment → GitHub Actions** once. For a local preview after building all environments, run:
 
@@ -86,7 +96,7 @@ ls -l /dev/serial/by-id/
 sg dialout -c 'pio device monitor -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B8:1F:3F:C3:9F:94-if00 -b 115200'
 ```
 
-That link currently points to `/dev/ttyACM1`. It is specific to the connected board's USB serial number; use `pio device list` or `ls -l /dev/serial/by-id/` if another board is attached. PlatformIO can open the link and has received repeated hello heartbeats through it. If the firmware resets and auto-attach restores the device under a new ACM number, a monitor using the link has a consistent path to retry.
+The ACM number is transient (`/dev/ttyACM0` was observed again on 2026-09-29). The by-id link is specific to this board's USB serial number; use `pio device list` or `ls -l /dev/serial/by-id/` if another board is attached. PlatformIO can open the link and has received repeated hello heartbeats through it. If the firmware resets and auto-attach restores the device under a new ACM number, a monitor using the link has a consistent path to retry.
 
 On this machine, grant the login account serial-port group access from WSL:
 
@@ -122,6 +132,6 @@ find /dev -maxdepth 1 \( -name 'ttyACM*' -o -name 'ttyUSB*' \) -print
 
 If an application does not boot, use the board's BOOT and RESET buttons to force the ROM download mode. Freenove's module guide describes either holding BOOT while powering the board, or holding BOOT, pressing and releasing RESET, then releasing BOOT. Reconnect/check the serial port and retry the normal PlatformIO upload. This procedure does not require eFuse or security-setting changes.
 
-## Future hardware tests
+## Hardware checks
 
-The staged device checks are listed in `test/hardware/README.md`. Keep one capability per diagnostic app and capture the serial log after every upload.
+Recorded results and remaining device checks are listed in `test/hardware/README.md`. Keep one capability per diagnostic app and capture the serial log after every upload.

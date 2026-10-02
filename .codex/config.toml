@@ -1,0 +1,3 @@
+# Repository-only MCP configuration; Codex loads this for trusted projects.
+[mcp_servers.espressif-docs]
+url = "https://mcp.espressif.com/docs"

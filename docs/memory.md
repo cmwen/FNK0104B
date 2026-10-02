@@ -12,7 +12,7 @@ The FNK0104B specification lists 8 MB OPI PSRAM. The PlatformIO build enables th
 
 The board specification lists 16 MB external SPI flash. Flash holds the bootloader, partition table, firmware, NVS, and any configured on-flash filesystem. PlatformIO uses the generic ESP32-S3 DevKitC-1 board definition because there is no exact FNK0104B board ID; the project overrides flash capacity and OPI PSRAM mode from the vendor specification.
 
-PlatformIO explicitly selects its built-in `app3M_fat9M_16MB.csv`, matching the “16M Flash (3MB APP/9.9MB FATFS)” profile shown in Freenove's Arduino tutorial. It provides two 3 MiB OTA app slots, an approximately 9.9 MB FATFS partition, NVS, OTA metadata, and a coredump partition. The shipped factory partition table has not been read from a physical board, so exact factory equivalence is unknown. A PlatformIO upload writes the selected partition table; decide whether existing on-flash data matters before the first upload. The 3 MiB limit applies to each firmware image, so check image size as features grow.
+PlatformIO explicitly selects its built-in `app3M_fat9M_16MB.csv`, matching the “16M Flash (3MB APP/9.9MB FATFS)” profile shown in Freenove's Arduino tutorial. It provides two 3 MiB OTA app slots, an approximately 9.9 MB FATFS partition, NVS, OTA metadata, and a coredump partition. The original factory partition table was not saved before this project uploaded its selected table to the connected board; exact factory equivalence is unknown. A PlatformIO upload writes the selected table. Back up data that matters before uploading to another board. The 3 MiB limit applies to each firmware image, so check image size as features grow.
 
 ## NVS
 

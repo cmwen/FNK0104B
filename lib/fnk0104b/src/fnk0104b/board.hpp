@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <FS.h>
+#include <atomic>
+#include <freertos/FreeRTOS.h>
 
 #if defined(FNK0104B_ENABLE_DISPLAY)
 #include <TFT_eSPI.h>
@@ -70,10 +72,12 @@ class MicrophoneSupport {
                void* stop_context = nullptr,
                MicrophonePeakCallback on_peak = nullptr,
                void* peak_context = nullptr);
+  void end();
   bool ready() const;
 
  private:
   bool ready_ = false;
+  bool i2s_installed_ = false;
 };
 
 extern MicrophoneSupport microphone;
@@ -81,6 +85,7 @@ extern MicrophoneSupport microphone;
 class SpeakerSupport {
  public:
   bool begin();
+  void end();
   bool setTone(uint16_t frequency_hz);
   bool setVolume(uint8_t percent);
   bool ready() const;
@@ -89,6 +94,9 @@ class SpeakerSupport {
   static void outputTaskEntry(void* context);
   void outputTask();
   bool ready_ = false;
+  bool i2s_installed_ = false;
+  std::atomic<bool> stopping_{false};
+  std::atomic<TaskHandle_t> output_task_{nullptr};
   volatile uint16_t tone_frequency_hz_ = 0;
 };
 

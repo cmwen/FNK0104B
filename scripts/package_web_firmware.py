@@ -36,12 +36,13 @@ NAMES = {
     "sd": ("SD card diagnostic", "Lists files from the FNK0104B four-bit SDIO card over serial without formatting it."),
     "file-manager": ("SD file manager", "Touchscreen SD browser with storage capacity and read-only text and hex file viewing."),
     "mqtt": ("MQTT", "Placeholder only: does not connect to an MQTT broker yet."),
-    "ota": ("OTA", "Placeholder only: does not install updates over the air yet."),
-    "codex-monitor": ("Codex monitor", "Placeholder only: the monitor dashboard is not implemented yet."),
+    "ota": ("OTA", "User-confirmed HTTPS firmware update from a GitHub Release, with touchscreen and serial controls."),
+    "codex-monitor": ("Codex monitor", "Shows Codex limits and active agent avatars, accepts voice commands through a local bridge, and offers BLE settings."),
     "audio-diag": ("Audio", "Captures one second of onboard microphone audio at a time and reports signal detection; it never prints or saves samples."),
     "speaker-diag": ("Speaker keyboard", "Plays notes from a touchscreen keyboard with an adjustable speaker volume."),
     "locallink": ("LocalLink", "Records speech with the onboard microphone, discovers a Speech Recognition service on your LAN, and shows the returned transcript. Requires Wi-Fi and a compatible service."),
     "screen-timeout": ("Screen timeout", "Turns the display backlight off after 60 seconds of inactivity and wakes it on touch."),
+    "button-diag": ("Button", "Checks the verified expansion GPIO14 button input over USB serial."),
 }
 
 

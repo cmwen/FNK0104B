@@ -1,0 +1,143 @@
+schema_version: 1
+board:
+  manufacturer: Freenove
+  model: FNK0104B
+  variant: 2.8-inch capacitive touch
+  mcu: ESP32-S3R8
+  flash_bytes: 16777216
+  psram_bytes: 8388608
+  pcb_revision: UNKNOWN
+  sources: [F1, F2, F3]
+verified_on: '2026-10-02'
+evidence_scope: official wiring plus current source inspection; not a new device test
+pin_source: lib/fnk0104b/src/fnk0104b/pins.hpp
+tft_source: lib/fnk0104b/src/tft_setup.h
+sources_index: knowledge/references.md
+allocation_policy:
+  unknown_means_available: false
+  idle_onboard_peripheral_means_available: false
+  voltage_tolerance: consult ESP32-S3 datasheet E2 before connecting a peripheral
+  attached_expansion_hardware: UNKNOWN
+  safe_candidates_conditional: [2, 21]
+  candidate_conditions: verify connector orientation, voltage, load, external pulls and attached hardware
+  conditionally_reusable: [3, 14, 43, 44]
+  strapping: [0, 3, 45, 46]
+  flash_psram_reserved: [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]
+  nonexistent: [22, 23, 24, 25]
+  device_efuse_overrides: UNKNOWN
+peripherals:
+  display:
+    driver_family: ILI9341
+    specification_driver: ILI9341V
+    fitted_marking: UNKNOWN
+    resolution_px: [240, 320]
+    bus: SPI
+    pins: {cs: 10, dc: 46, sck: 12, mosi: 11, miso: 13, backlight: 45}
+    reset_net: CHIP_PU
+    reset_gpio: null
+    backlight_active_level: high
+    firmware_setup: ILI9341_DRIVER; USE_FSPI_PORT; TFT_RST=-1; INVON
+    sources: [F1, F2, F3, R1, R2]
+  touch:
+    driver_family: FT6336
+    fitted_suffix: UNKNOWN
+    suffix_conflict: module specification FT6336G; Freenove example FT6336U
+    bus: shared_i2c
+    address: '0x38'
+    pins: {sda: 16, scl: 15, reset: 18, interrupt: 17}
+    reset_active_level: low
+    interrupt_active_level: low
+    sources: [F2, F3, F4, R1]
+  audio:
+    codec: ES8311
+    codec_address: '0x18'
+    amplifier_part: UNKNOWN
+    microphone: MEMS
+    pins: {sda: 16, scl: 15, amplifier_enable: 1, mclk: 4, bclk: 5, ws: 7, esp32_din: 6, esp32_dout: 8}
+    amplifier_enable_active_level: low
+    audio_direction_reference: ESP32 perspective; Echo code and prior microphone device test
+    firmware_pin_overrides: FNK0104B_AUDIO_* macros; inspect build_flags and app config before use
+    sources: [F2, F3, F5, R1, R2]
+  micro_sd:
+    bus: SD_MMC
+    bus_width_bits: 4
+    pins: {clk: 38, cmd: 40, dat0: 39, dat1: 41, dat2: 48, dat3: 47}
+    source_conflict: overview prose says SPI; schematic and FNK0104B example use SDIO
+    sources: [F2, F3, F6, R1]
+  rgb:
+    type: WS2812-family
+    count: 1
+    pins: {data: 42}
+    sources: [F2, F3, R1]
+  shared_i2c:
+    pins: {sda: 16, scl: 15}
+    consumers: [touch, ES8311, expansion_i2c_connector]
+    occupied_addresses: ['0x38', '0x18']
+    restriction: coordinate bus initialization and avoid address collisions
+    sources: [F2, F3, F5, R1]
+  usb:
+    type: native ESP32-S3 USB through Type-C
+    pins: {d_minus: 19, d_plus: 20}
+    firmware: ARDUINO_USB_CDC_ON_BOOT=1
+    serial_baud: 115200
+    prior_device_vid_pid: '303a:1001'
+    prior_device_port: /dev/ttyACM0
+    current_port: UNKNOWN
+    sources: [F2, F3, R1, R2]
+  uart0:
+    pins: {tx: 43, rx: 44}
+    connector: four-pin UART0
+    restriction: reserve for UART; reuse only if UART functionality is explicitly relinquished
+    sources: [F2, F3, E1]
+  expansion_gpio:
+    gpios: [2, 3, 14, 21]
+    connector_orientation: consult schematic F2 before wiring
+    sources: [F2, F3]
+# Each entry describes physical allocation. Firmware use is capability-specific,
+# not a claim that every named environment initializes every peripheral.
+gpios:
+  0: {signal: boot_button, allocation: reserved, firmware_use: hardware_boot, restriction: boot_strap, sources: [F2, F3, E3]}
+  1: {signal: amplifier_enable, allocation: onboard, firmware_use: speaker, sources: [F2, F3, R1]}
+  2: {signal: expansion, allocation: candidate_conditional, firmware_use: none_found, sources: [F2, F3, R1]}
+  3: {signal: expansion, allocation: conditional, firmware_use: none_found, restriction: JTAG_source_strap, sources: [F2, F3, E3, R1]}
+  4: {signal: audio_mclk, allocation: onboard, firmware_use: audio, sources: [F2, F3, R1]}
+  5: {signal: audio_bclk, allocation: onboard, firmware_use: audio, sources: [F2, F3, R1]}
+  6: {signal: audio_esp32_din, allocation: onboard, firmware_use: microphone, sources: [F5, R1, R2]}
+  7: {signal: audio_ws, allocation: onboard, firmware_use: audio, sources: [F2, F3, R1]}
+  8: {signal: audio_esp32_dout, allocation: onboard, firmware_use: speaker, sources: [F5, R1, R2]}
+  9: {signal: battery_adc, allocation: onboard, firmware_use: declared_not_read_in_current_apps, sources: [F2, F3, R1]}
+  10: {signal: display_cs, allocation: onboard, firmware_use: display, sources: [F2, F3, R1]}
+  11: {signal: display_mosi, allocation: onboard, firmware_use: display, sources: [F2, F3, R1]}
+  12: {signal: display_sck, allocation: onboard, firmware_use: display, sources: [F2, F3, R1]}
+  13: {signal: display_miso, allocation: onboard, firmware_use: display, sources: [F2, F3, R1]}
+  14: {signal: expansion_button, allocation: conditional, firmware_use: [button-diag, locallink], restriction: active_low_INPUT_PULLUP_button; do_not_reassign_while_attached_or_used, sources: [F2, F3, R1]}
+  15: {signal: shared_i2c_scl, allocation: shared_onboard, firmware_use: [touch, audio], sources: [F2, F3, R1]}
+  16: {signal: shared_i2c_sda, allocation: shared_onboard, firmware_use: [touch, audio], sources: [F2, F3, R1]}
+  17: {signal: touch_interrupt, allocation: onboard, firmware_use: touch, sources: [F2, F3, R1]}
+  18: {signal: touch_reset, allocation: onboard, firmware_use: touch, sources: [F2, F3, R1]}
+  19: {signal: usb_d_minus, allocation: reserved, firmware_use: native_usb, sources: [F2, F3, E1, R1]}
+  20: {signal: usb_d_plus, allocation: reserved, firmware_use: native_usb, sources: [F2, F3, E1, R1]}
+  21: {signal: expansion, allocation: candidate_conditional, firmware_use: none_found, sources: [F2, F3, R1]}
+  26: {signal: psram_cs, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  27: {signal: memory_data3, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  28: {signal: memory_data2, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  29: {signal: flash_cs, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  30: {signal: memory_clk, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  31: {signal: memory_data1, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  32: {signal: memory_data0, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  33: {signal: psram_data4, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  34: {signal: psram_data5, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  35: {signal: psram_data6, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  36: {signal: psram_data7, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  37: {signal: psram_dqs, allocation: reserved, firmware_use: memory, sources: [F3, E1]}
+  38: {signal: sd_clk, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}
+  39: {signal: sd_dat0, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}
+  40: {signal: sd_cmd, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}
+  41: {signal: sd_dat1, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}
+  42: {signal: rgb_data, allocation: onboard, firmware_use: declared_not_initialized_in_current_apps, sources: [F2, F3, R1]}
+  43: {signal: uart0_tx, allocation: conditional, firmware_use: hardware_uart0, restriction: UART0_connector, sources: [F2, F3, E1]}
+  44: {signal: uart0_rx, allocation: conditional, firmware_use: hardware_uart0, restriction: UART0_connector, sources: [F2, F3, E1]}
+  45: {signal: display_backlight, allocation: onboard, firmware_use: display, restriction: VDD_SPI_voltage_strap, sources: [F2, F3, E3, R1]}
+  46: {signal: display_dc, allocation: onboard, firmware_use: display, restriction: boot_mode_strap, sources: [F2, F3, E3, R1]}
+  47: {signal: sd_dat3, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}
+  48: {signal: sd_dat2, allocation: onboard, firmware_use: sd, sources: [F2, F3, R1]}

@@ -1,6 +1,6 @@
 # References
 
-Hardware facts were checked on 2026-09-27 against the Freenove-maintained online guide and the resources in Freenove's official `Freenove_ESP32_S3_Display` repository. The official repository states that its source and circuit files use CC BY-NC-SA 3.0; this project links to those materials and does not copy their code or assets.
+Hardware facts were checked against the Freenove-maintained online guide and the resources in Freenove's official `Freenove_ESP32_S3_Display` repository; the model and SDIO pin claims were rechecked on 2026-09-29. The official repository states that its source and circuit files use CC BY-NC-SA 3.0; this project links to those materials and does not copy their code or assets.
 
 ## Official Freenove sources
 
@@ -10,6 +10,7 @@ Hardware facts were checked on 2026-09-27 against the Freenove-maintained online
 - [Serial tutorial](https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN/1_Serial.html) — USB CDC and 115200 baud serial behavior.
 - [Touch tutorial](https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN/11_TFT_Touch.html) — FT6336U driver use and I²C/reset/interrupt GPIO assignments.
 - [SD and music example](https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN/7_Music.html) — FNK0104B SD_MMC and audio example pin definitions.
+- [SD card tutorial](https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN/6_SD_Card.html) — model-specific SD_MMC pin definitions; its prose calls the interface SPI even though the example uses SD_MMC.
 - [Freenove Echo example source](https://github.com/Freenove/Freenove_ESP32_S3_Display/tree/main/Tutorial_With_Touch/Sketches/Sketch_07.2_Echo) — FNK0104B ES8311 microphone path, I²S pins, and 16 kHz mono capture example.
 - [Espressif ES8311 driver](https://github.com/espressif/esp-adf-libs/tree/master/esp_codec_dev/device/es8311) — Apache-2.0 codec register and clock configuration reference.
 - [Freenove board-menu profile image](https://docs.freenove.com/projects/fnk0104/en/latest/_images/Chapter07_09.png) — 16 MB flash, QIO 80 MHz, USB CDC on boot, OPI PSRAM, and “16M Flash (3MB APP/9.9MB FATFS)” partition selection.

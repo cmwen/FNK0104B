@@ -2,6 +2,14 @@
 
 This repository targets the Freenove FNK0104B ESP32-S3 display board. PlatformIO Core CLI is the build and upload interface; do not require Arduino IDE.
 
+## Hardware knowledge and MCP
+
+- Read `knowledge/` before hardware changes; check `knowledge/pins.yaml` before assigning GPIOs.
+- Use Espressif Documentation MCP (`espressif-docs`) for technical ESP32 questions; if unavailable, consult the authoritative links in `knowledge/references.md`.
+- Use the existing PlatformIO Core CLI workflow and named environments for build/flash; MCP must not replace it with ESP-IDF.
+- Use PlatformIO Core CLI directly for device discovery, builds, upload, and serial monitoring. The PlatformIO MCP adapter was removed from this repository's configuration.
+- Do not invent board-specific facts. Mark unverified details `UNKNOWN` and update `knowledge/` when new hardware information is verified.
+
 ## Before changing hardware code
 
 - Read `docs/hardware.md` and `docs/pins.md` first.
@@ -23,4 +31,4 @@ This repository targets the Freenove FNK0104B ESP32-S3 display board. PlatformIO
 
 ## Scope
 
-Do not add LVGL, Wi-Fi, MQTT, OTA, SD-card behavior, or the Codex monitor dashboard until asked. The current stubs only establish independent build targets.
+Do not add LVGL, Wi-Fi, MQTT, OTA, SD-card behavior, or Codex monitor features until asked. Existing apps implement several of these capabilities; `nvs` and `mqtt` remain buildable placeholders. Check `docs/monitor-readiness.md` for current monitor evidence and open checks.

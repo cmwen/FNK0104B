@@ -115,7 +115,11 @@ bool initializeEs8311ForPlayback() {
 SpeakerSupport speaker;
 
 bool SpeakerSupport::begin() {
-  ready_ = false;
+  end();
+  // A previous output task must be gone before this port can be installed
+  // again. Keep the amplifier disabled if teardown did not finish.
+  if (output_task_.load() != nullptr || i2s_installed_) return false;
+  stopping_ = false;
 
   // The verified FNK0104B amplifier enable is active low. Keep it disabled
   // until the codec and I2S output have both initialized successfully.
@@ -145,6 +149,7 @@ bool SpeakerSupport::begin() {
   if (i2s_driver_install(kI2sPort, &i2s_config, 0, nullptr) != ESP_OK) {
     return false;
   }
+  i2s_installed_ = true;
 
   const i2s_pin_config_t i2s_pins = {
       pins::audio::i2s_master_clock,
@@ -155,18 +160,20 @@ bool SpeakerSupport::begin() {
   };
   if (i2s_set_pin(kI2sPort, &i2s_pins) != ESP_OK ||
       !initializeEs8311ForPlayback()) {
-    i2s_driver_uninstall(kI2sPort);
+    end();
     return false;
   }
 
   i2s_zero_dma_buffer(kI2sPort);
   ready_ = true;
+  TaskHandle_t created_task = nullptr;
   if (xTaskCreatePinnedToCore(outputTaskEntry, "speaker-output", 3072, this,
-                              2, nullptr, 0) != pdPASS) {
-    ready_ = false;
-    i2s_driver_uninstall(kI2sPort);
+                              2, &created_task, 0) != pdPASS) {
+    output_task_ = nullptr;
+    end();
     return false;
   }
+  output_task_ = created_task;
   digitalWrite(pins::audio::amplifier_enable, LOW);
   return true;
 }
@@ -175,6 +182,26 @@ bool SpeakerSupport::setTone(uint16_t frequency_hz) {
   if (!ready_ || frequency_hz >= kSampleRate / 2) return false;
   tone_frequency_hz_ = frequency_hz;
   return true;
+}
+
+void SpeakerSupport::end() {
+  pinMode(pins::audio::amplifier_enable, OUTPUT);
+  digitalWrite(pins::audio::amplifier_enable, HIGH);
+  ready_ = false;
+  tone_frequency_hz_ = 0;
+  stopping_ = true;
+
+  // Let the output task finish its bounded I2S write before uninstalling the
+  // driver. The task clears its handle only after its last I2S access.
+  for (uint32_t waited_ms = 0;
+       output_task_.load() != nullptr && waited_ms < 1000; ++waited_ms) {
+    delay(1);
+  }
+  if (output_task_.load() == nullptr && i2s_installed_) {
+    i2s_stop(kI2sPort);
+    i2s_driver_uninstall(kI2sPort);
+    i2s_installed_ = false;
+  }
 }
 
 bool SpeakerSupport::setVolume(uint8_t percent) {
@@ -198,7 +225,7 @@ void SpeakerSupport::outputTask() {
   int16_t samples[kSamplesPerChunk];
   float phase = 0.0f;
   float envelope = 0.0f;
-  while (true) {
+  while (!stopping_) {
     const uint16_t frequency_hz = tone_frequency_hz_;
     const float phase_step =
         2.0f * 3.14159265358979323846f * frequency_hz / kSampleRate;
@@ -220,9 +247,11 @@ void SpeakerSupport::outputTask() {
     }
     size_t bytes_written = 0;
     i2s_write(kI2sPort, samples, sizeof(samples), &bytes_written,
-              pdMS_TO_TICKS(1000));
+              pdMS_TO_TICKS(100));
     if (bytes_written != sizeof(samples)) vTaskDelay(1);
   }
+  output_task_ = nullptr;
+  vTaskDelete(nullptr);
 }
 
 bool SpeakerSupport::ready() const { return ready_; }
