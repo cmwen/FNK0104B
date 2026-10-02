@@ -90,6 +90,27 @@ activity, completion followed by a full idle interval, activity after sleep,
 touch resets, changed timeout values and `millis()` rollover. Real timed sleep,
 automatic wake and a browser BLE write still require physical verification. All 13 native tests, the firmware build and the Web BLE bundle build passed. The update was flashed through PlatformIO Core CLI with upload hash verification; no partition-layout change or erase-all was performed.
 
+## BLE discovery correction, 2026-10-02
+
+After the owner could open the settings page but could not discover the board,
+source inspection found that the pinned BLE library copies the advertised
+128-bit service UUID into its default scan response along with the full device
+name and TX power. That combination exceeds the legacy packet budget. Monitor
+firmware now explicitly puts flags and the full `FNK0104B-MONITOR` name in the
+primary packet, and the service UUID alone in the scan response. No pairing
+mode is required. CLI build/upload passed with hash verification. A normal USB
+reset and startup capture at 115200 baud verified:
+
+```text
+monitor_ble advertising_data status=0
+monitor_ble scan_response status=0
+monitor_ble advertising_started status=0
+```
+
+These statuses verify controller acceptance and advertising start, not reception
+by Windows. Browser discovery, settings read/write and reconnect still require
+the owner's check.
+
 ## Implemented path
 
 ### Reference UI polish, 2026-10-02

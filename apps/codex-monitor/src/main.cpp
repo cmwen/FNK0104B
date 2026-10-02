@@ -300,12 +300,29 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
 };
 
 class ServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer*) override { bleConnected = true; }
-  void onDisconnect(BLEServer*) override { bleConnected = false; BLEDevice::startAdvertising(); }
+  void onConnect(BLEServer*) override {
+    bleConnected = true;
+    Serial.println("monitor_ble connected");
+  }
+  void onDisconnect(BLEServer*) override {
+    bleConnected = false;
+    Serial.println("monitor_ble disconnected restarting_advertising");
+    BLEDevice::startAdvertising();
+  }
 };
+
+void bleGapDiagnostic(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
+  if (event == ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT)
+    Serial.printf("monitor_ble advertising_data status=%d\n", param->adv_data_raw_cmpl.status);
+  else if (event == ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT)
+    Serial.printf("monitor_ble scan_response status=%d\n", param->scan_rsp_data_raw_cmpl.status);
+  else if (event == ESP_GAP_BLE_ADV_START_COMPLETE_EVT)
+    Serial.printf("monitor_ble advertising_started status=%d\n", param->adv_start_cmpl.status);
+}
 
 void startBle() {
   BLEDevice::init("FNK0104B-MONITOR");
+  BLEDevice::setCustomGapHandler(bleGapDiagnostic);
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
   BLEService* service = server->createService(kServiceUuid);
@@ -315,7 +332,16 @@ void startBle() {
   settingsCharacteristic->addDescriptor(new BLE2902());
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
-  advertising->addServiceUUID(kServiceUuid); advertising->setScanResponse(true);
+  // Keep the full name in the primary advertisement for browser name filters.
+  // Name + 128-bit service UUID cannot fit together in a legacy 31-byte packet.
+  BLEAdvertisementData advertisement;
+  advertisement.setFlags(ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT);
+  advertisement.setName("FNK0104B-MONITOR");
+  BLEAdvertisementData response;
+  response.setCompleteServices(BLEUUID(kServiceUuid));
+  advertising->setAdvertisementData(advertisement);
+  advertising->setScanResponseData(response);
+  advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
 }
 
