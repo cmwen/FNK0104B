@@ -57,3 +57,34 @@ confirmation. After confirmation, it downloaded all 972,128 bytes over HTTPS,
 rebooted into version 0.2.0, reported `ota_boot_validation=accepted`, and then
 reported `ota_status=up_to_date`. The OTA image was written to the alternate
 app slot; no erase-all operation was used.
+
+## Device-verified speech diagnostic startup
+
+On 2026-10-03, `speech-diag` 0.1.1 was uploaded through PlatformIO Core CLI
+to the ESP32-S3 at `/dev/ttyACM0`; bootloader, partition table, app and ESP-SR
+model hashes were verified. This replaced the Arduino OTA/FATFS partition
+layout with the documented speech layout. No full-chip erase or eFuse/security
+change was performed. USB serial at 115200 baud showed repeated `state=wake`
+reports, successful microphone captures and approximately 5.6 ms inference
+maxima for 32 ms frames, with stable free heap/PSRAM across two reports.
+The initial firmware emitted `no Conv kernel for packed key 0x0202`; version
+0.1.1 supplements ESP-SR's kernel selection for `wn10_hiesp` and the runtime
+error was absent after reflash. The user subsequently reported the wake/command test works. Recognition
+accuracy has not been measured systematically; JTAG breakpoints remain unverified. See the speech diagnostic README for details.
+
+The visual speech diagnostic 0.2.0 was then built and flashed on 2026-10-03.
+Serial captured a wake and recognition of command ID 2 (“turn off the light”)
+while the display task ran, without observed display-transfer or convolution
+errors. Its new IDF panel path preserves the existing wiring, BGR landscape
+orientation and `INVON`. The on-screen layout fits 320x240 in a host rendering
+check; physical screen appearance awaits user inspection.
+
+Speech diagnostic 0.3.0 was built and flashed on 2026-10-03 with
+`vadnet1_medium` in the verified model upload. At 115200 baud, serial showed
+VAD speech/silence transitions and continuous AFE processing with stable heap
+and PSRAM. No observed fetch, frame-size, convolution or display errors occurred.
+The single-microphone AFE leaves AEC, NS and AGC disabled and forwards continuous
+audio to WakeNet10/MultiNet7. The existing speech partition layout is unchanged.
+The same session recognized a wake and command ID 3 (“start listening”).
+Listening inference reached 31.52 ms per 32 ms frame; sustained performance
+and recognition accuracy have not been measured systematically.

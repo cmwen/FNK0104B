@@ -26,6 +26,7 @@ pio run -e ota
 pio run -e sd
 pio run -e file-manager
 pio run -e button-diag
+pio run -e speech-diag
 
 # Run host-side tests without a board
 pio test -e native
@@ -45,6 +46,7 @@ pio debug -e hello-debug
 `ota` is a user-confirmed HTTPS update demo with touchscreen and serial controls. It downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
 `sd` is the serial-only SDIO diagnostic. `file-manager` combines the shared SD, display, and touch support to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
 `button-diag` reads a momentary button on GPIO14 and reports debounced press/release events over USB serial. See `apps/18-button-diag/README.md`.
+`speech-diag` tests offline WakeNet10 (“Hi ESP”) followed by English MultiNet7 commands with an on-screen guide, listening countdown, last result, microphone meter and VADNet speech/silence indicator. USB serial also reports details. It uses an isolated ESP-IDF environment and a dedicated model partition; read [the speech diagnostic guide](apps/19-speech-diag/README.md) for the flash-layout effect before upload.
 `nvs` and `mqtt` remain buildable placeholders. `codex-monitor` has a status dashboard, voice capture, attention alerts, and BLE settings. It needs a local bridge; voice commands also need a host transcription service. Follow [the server-to-board setup guide](docs/monitor-setup.md), [firmware setup](apps/codex-monitor/README.md), and [the bridge reference](monitor-server/README.md). Recorded verification and open physical checks are in [monitor readiness](docs/monitor-readiness.md).
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.

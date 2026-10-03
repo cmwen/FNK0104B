@@ -23,3 +23,10 @@ Tooling references:
 - [PlatformIO Core CLI](https://docs.platformio.org/en/latest/core/): canonical build/upload/device-monitor workflow.
 
 For additional Freenove tutorials and existing evidence see [docs/references.md](../docs/references.md).
+
+- **E4:** [Espressif built-in USB-JTAG setup](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/jtag-debugging/configure-builtin-jtag.html): native GPIO19/20 USB-JTAG wiring and Linux USB permissions; chip capability, not a completed board debug session.
+- **E5:** [ESP-SR source and component requirements](https://github.com/espressif/esp-sr), [ESP32-S3 benchmarks](https://docs.espressif.com/projects/esp-sr/en/latest/esp32s3/benchmark/README.html): WakeNet10/command recognition support. Speech library requires IDF >=5; Arduino 2.0.17 is based on IDF 4.4.7.
+
+- **E6:** [Espressif ILI9341 component 2.1.0](https://components.espressif.com/components/espressif/esp_lcd_ili9341/versions/2.1.0/readme): ESP-IDF SPI panel driver, initialization and native LCD API; used by the visual speech diagnostic.
+
+- **E7:** [Espressif VADNet](https://docs.espressif.com/projects/esp-sr/en/latest/esp32s3/vadnet/README.html) and [AFE](https://docs.espressif.com/projects/esp-sr/en/latest/esp32s3/audio_front_end/README.html): neural VAD model selection, activity states, minimum speech/silence durations and cached pre-speech audio. Used by speech diagnostic 0.3.0.

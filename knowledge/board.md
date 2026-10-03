@@ -60,3 +60,37 @@ Microphone direction was tested on 2026-09-29. Preserve these recorded results.
 The original factory partition table is **UNKNOWN**. Read `platformio.ini` for
 current per-environment partition/memory settings; do not infer them from generic
 board metadata. [R2]
+
+## Speech diagnostic and USB-JTAG capability (2026-10-03)
+
+Espressif documents built-in USB-JTAG on GPIO19/20, matching the verified
+FNK0104B Type-C wiring. `hello-debug` and `speech-diag` explicitly select
+`esp-builtin`. Host USB permissions, chip security state and an actual breakpoint
+session remain **UNKNOWN** for the current connection. The sandbox initially hid the serial node;
+PlatformIO discovery with device access subsequently found `/dev/ttyACM0`. No eFuse/security setting was changed. [E4]
+
+`speech-diag` uses ESP-SR 2.5.5, WakeNet10 “Hi ESP” and English MultiNet7.
+Its ESP-IDF-only microphone implementation reuses the verified codec settings
+and shared pin definitions. Firmware 0.1.1 was subsequently flashed with hash verification and reported
+repeated `state=wake` at 115200 baud. Capture and inference ran without errors
+after adding the Hi ESP model's missing unbiased convolution kernel through
+ESP-DL's compile-selection API. The user reported that the serial test works; recognition accuracy has not been measured systematically. The environment's dedicated model partition
+replaces the Arduino OTA/FATFS layout on upload; see the diagnostic README. [E5]
+
+`speech-diag` 0.2.0 adds an ESP-IDF ILI9341 display path under `lib/fnk0104b`,
+using Espressif's pinned `esp_lcd_ili9341` 2.1.0 component, existing pin definitions,
+27 MHz SPI, BGR order, landscape `MV` and the board-verified `INVON` setting.
+The on-screen guide and feedback run on core 1 with a PSRAM framebuffer and
+internal DMA stripes. PlatformIO upload hashes were verified; serial showed a
+wake followed by command ID 2 (“turn off the light”) with the display task active
+and no observed display-transfer errors. New screen appearance remains
+**UNKNOWN** until user/physical inspection. [R1, R2, E6]
+
+`speech-diag` 0.3.0 adds single-microphone AFE processing with neural
+`vadnet1_medium` and an on-screen speech/silence indicator. AEC, NS and AGC are
+disabled; continuous audio still reaches the existing standalone recognizers.
+PlatformIO upload hashes were verified on 2026-10-03. Serial reported speech
+then silence, continuous AFE frames and stable memory without observed errors.
+The existing speech partition layout was retained. [E7]
+The VAD-enabled runtime also detected a wake and command ID 3 (“start listening”);
+its observed listening inference maximum was 31.52 ms for a 32 ms frame. [R2]

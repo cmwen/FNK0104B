@@ -1,0 +1,64 @@
+#include "audio_frontend.hpp"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "fnk0104b/idf_microphone.hpp"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+bool AudioFrontEnd::begin(srmodel_list_t* models, char* vad_model) {
+  if (!models || !vad_model) return false;
+  afe_config_t* config = afe_config_init("M", models, AFE_TYPE_SR, AFE_MODE_HIGH_PERF);
+  if (!config) return false;
+  config->aec_init = false;  // No playback reference or speaker output.
+  config->se_init = false;
+  config->ns_init = false;
+  config->agc_init = false;
+  config->wakenet_init = false;  // Retain the existing standalone WakeNet10.
+  config->vad_init = true;
+  config->vad_model_name = vad_model;  // Explicitly require neural VAD, no fallback.
+  config->vad_mode = VAD_MODE_1;
+  config->vad_min_speech_ms = 128;
+  config->vad_min_noise_ms = 1000;
+  config->vad_delay_ms = 128;
+  config->afe_linear_gain = 1.0f;
+  config->afe_perferred_core = 0;
+  config->afe_perferred_priority = 5;
+  config->memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM;
+  iface_ = esp_afe_handle_from_config(config);
+  if (iface_) data_ = iface_->create_from_config(config);
+  afe_config_free(config);
+  if (!iface_ || !data_) return false;
+  feed_samples_ = iface_->get_feed_chunksize(data_);
+  if (feed_samples_ <= 0 || iface_->get_feed_channel_num(data_) != 1 ||
+      iface_->get_fetch_channel_num(data_) != 1 || iface_->get_samp_rate(data_) != 16000) return false;
+  feed_buffer_ = static_cast<int16_t*>(heap_caps_malloc(
+      feed_samples_ * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+  if (!feed_buffer_) return false;
+  ESP_LOGI("speech-afe", "vadnet=%s aec=off ns=off agc=off channels=1 feed_samples=%d fetch_samples=%d",
+           vad_model, feed_samples_, fetchSamples());
+  return xTaskCreatePinnedToCore(feedTask, "speech-feed", 4096, this, 5, nullptr, 0) == pdPASS;
+}
+void AudioFrontEnd::feedTask(void* context) {
+  auto* self = static_cast<AudioFrontEnd*>(context);
+  while (true) {
+    const esp_err_t err = fnk0104b::readIdfMicrophone(self->feed_buffer_, self->feed_samples_);
+    if (err != ESP_OK) {
+      self->error_.store(err);
+      vTaskDelete(nullptr);
+      return;
+    }
+    if (self->iface_->feed(self->data_, self->feed_buffer_) < 0) {
+      self->error_.store(ESP_FAIL);
+      vTaskDelete(nullptr);
+      return;
+    }
+    self->fed_frames_.fetch_add(1);
+    vTaskDelay(1);
+  }
+}
+afe_fetch_result_t* AudioFrontEnd::fetch() {
+  return iface_->fetch_with_delay(data_, pdMS_TO_TICKS(1000));
+}
+int AudioFrontEnd::fetchSamples() const {
+  return iface_->get_fetch_chunksize(data_);
+}

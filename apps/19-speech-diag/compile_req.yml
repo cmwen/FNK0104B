@@ -1,0 +1,7 @@
+# ESP-SR 2.5.5's esp-sr-req.yml includes the biased W8A16 kernel, but
+# wn10_hiesp also uses the unbiased aligned 1x1 kernel (Conv key 0x0202).
+# Register this supplement through ESP-DL's supported compile selection API.
+kernel_abi: 1
+ops: []
+kernels:
+  - dl_tie728_w8a16_conv2d_11cn

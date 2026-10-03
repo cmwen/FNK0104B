@@ -35,3 +35,8 @@ __pycache__/
 *.py[cod]
 .DS_Store
 Thumbs.db
+
+# ESP-IDF diagnostic generated configuration and downloaded components
+managed_components/
+sdkconfig.*
+!sdkconfig.defaults

@@ -43,3 +43,17 @@ Then detach and reattach the board through `usbipd` (or unplug/replug it), verif
 - [PlatformIO Native releases](https://github.com/platformio/platform-native/releases)
 - [Arduino-ESP32 releases](https://github.com/espressif/arduino-esp32/releases)
 - [PlatformIO GitHub Actions guide](https://docs.platformio.org/en/latest/integration/ci/github-actions.html)
+
+## Isolated speech framework
+
+`speech-diag` uses the pinned `platformio/espressif32@7.0.1` platform's
+ESP-IDF 6.0.1 framework with ESP-SR 2.5.5. It is built through PlatformIO Core CLI in
+CI, alongside existing Arduino applications. Root CMake files are used only by
+this IDF target. Its sdkconfig defaults are in `apps/19-speech-diag`; generated
+`sdkconfig.speech-diag` and `managed_components/` are local build products.
+`dependencies.lock` records the exact resolved speech dependencies for CI.
+The model-data image is packed and added to CLI uploads by a post script.
+The browser flasher remains Arduino-only because this firmware has a different
+partition layout and image set. See [speech diagnostic](../apps/19-speech-diag/README.md)
+before upload. `hello-debug` now explicitly selects `esp-builtin`, matching the
+speech target. Breakpoint debugging remains unverified on physical hardware.
