@@ -127,3 +127,20 @@ saved Wi-Fi reconnection and the live SSE stream ran together. The monitor
 reserves its internal feed stack and initializes microphone DMA before models
 to avoid startup heap fragmentation. See the hardware record for evidence and
 remaining command/recording/speaker checks.
+
+### Actual display screenshot
+
+![Actual monitor display](../../docs/images/codex-monitor-screen.png)
+
+This 320 × 240 image was captured from the board's LCD memory, with live status
+at capture time. It is also shown on the GitHub Pages flasher. To capture another
+image after flashing this monitor build, close other serial terminals and run:
+
+```sh
+python3 scripts/capture_monitor_screen.py docs/images/codex-monitor-screen.png --port /dev/ttyACM0
+```
+
+The script uses PlatformIO Core's 115200-baud interactive monitor, sends the
+`screenshot` command, validates all 240 RGB rows, and saves a PNG. Normal speech
+and status processing continue while display updates pause for the capture.
+Screenshot capture is unavailable during Wi-Fi setup or voice submission.

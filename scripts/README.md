@@ -42,3 +42,20 @@ ffmpeg -v error -y -i /tmp/recorder-preview.ppm -frames:v 1 docs/images/recorder
 
 The Pages packager copies `docs/images/` into the deployed site's same path.
 The web app displays this image in its Voice recorder preview section.
+
+## Actual monitor display capture
+
+`capture_monitor_screen.py` captures the physical LCD's display memory through
+the monitor firmware's `screenshot` serial command. It uses PlatformIO Core
+inside a pseudo-terminal, with no direct pyserial device access. The firmware
+reads one RGB row at a time through the shared board display support. The script
+rejects missing/duplicate/malformed rows and writes a PNG using Python's standard
+library. Close other serial terminals before running:
+
+```sh
+python3 scripts/capture_monitor_screen.py docs/images/codex-monitor-screen.png --port /dev/ttyACM0
+```
+
+Unlike `monitor_ui_preview.cpp`, this captures the actual board and current
+values. `docs/images/codex-monitor-screen.png` is copied into the Pages artifact
+and shown in the Codex monitor screenshot section.

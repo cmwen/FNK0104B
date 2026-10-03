@@ -763,6 +763,53 @@ void touchLoop() {
   previousTouch = touchPoint.pressed;
 }
 
+void serialLoop() {
+  static char command[24]{};
+  static size_t length = 0;
+  bool capture = false;
+  while (Serial.available()) {
+    const char c = static_cast<char>(Serial.read());
+    if (c == '\r') continue;
+    if (c == '\n') {
+      command[length] = '\0';
+      capture = strcmp(command, "screenshot") == 0;
+      length = 0;
+      if (capture) break;
+    } else if (length < sizeof(command) - 1) command[length++] = c;
+    else { length = 0; command[0] = '\0'; }
+  }
+  if (!capture) return;
+  if (voiceBusy.load()) { Serial.println("monitor_screenshot error=voice_busy"); return; }
+  // Read the LCD's actual display memory. Freeze UI updates while reading rows;
+  // audio and status tasks continue independently. Allocate in PSRAM.
+  auto* buffer = static_cast<uint8_t*>(ps_malloc(960 + 2048));
+  if (!buffer) { Serial.println("monitor_screenshot error=allocation_failed"); return; }
+  char* line = reinterpret_cast<char*>(buffer + 960);
+  if (!screenAwake) {
+    screenAwake = true; screenManuallyOff = false;
+    fnk0104b::display.setBacklight(true);
+    resumeStatus();
+  }
+  idleTimer.activity(millis());
+  drawScreen();
+  Serial.println("monitor_screenshot begin width=320 height=240 format=rgb888");
+  constexpr char hex[] = "0123456789abcdef";
+  bool ok = true;
+  for (unsigned y = 0; y < 240; ++y) {
+    if (!fnk0104b::display.readRowRgb(y, buffer, 960)) { ok = false; break; }
+    size_t n = snprintf(line, 2048, "monitor_screenshot row=%u data=", y);
+    for (unsigned i = 0; i < 960; ++i) {
+      line[n++] = hex[buffer[i] >> 4]; line[n++] = hex[buffer[i] & 15];
+    }
+    line[n++] = '\n';
+    // One write prevents other tasks' status messages splitting a row.
+    if (Serial.write(reinterpret_cast<uint8_t*>(line), n) != n) { ok = false; break; }
+    delay(1);
+  }
+  free(buffer);
+  Serial.println(ok ? "monitor_screenshot end" : "monitor_screenshot error=read_failed");
+}
+
 }  // namespace
 
 void setup() {
@@ -802,6 +849,7 @@ void setup() {
 
 void loop() {
   if (wifiSetupMode) { monitor_wifi_setup::loop(); return; }
+  serialLoop();
   speechLoop();
   if (previousSpeechReady != monitor_speech::ready()) {
     previousSpeechReady = monitor_speech::ready();

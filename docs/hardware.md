@@ -122,3 +122,12 @@ playback completion and return to wake state. REC/STOP taps then saved
 remaining. This verifies a short touch and
 playback run; perceived responsiveness and long-run display latency still need
 user testing. The controller's fitted G/U suffix remains UNKNOWN.
+
+## Device-verified LCD readback
+
+On 2026-10-03, the monitor read all 320 × 240 LCD pixels using TFT_eSPI 2.5.43's
+`readRectRGB` through the verified GPIO13 display MISO connection. The shared
+`DisplaySupport::readRowRgb` owns this hardware access. A USB serial capture
+produced [the actual monitor screenshot](images/codex-monitor-screen.png);
+orientation, text, borders and live values were visually checked. The capture
+uses the existing ILI9341 pin/controller configuration without new assignments.

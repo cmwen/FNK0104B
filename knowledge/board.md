@@ -109,3 +109,8 @@ task, with repeated START reads of the existing individual registers and
 changed-row display transfers. A flashed short run reported 488–1,294 us
 maximum touch reads and 10,563–32,565 us sampled-event ages for file selection,
 Play and Stop. The fitted controller suffix remains UNKNOWN. [F4, R2]
+
+LCD readback verified on 2026-10-03: the monitor captured a complete 320 × 240 RGB
+image using TFT_eSPI `readRectRGB` and the existing verified GPIO13 MISO mapping.
+See [hardware evidence](../docs/hardware.md#device-verified-lcd-readback) and
+[actual screenshot](../docs/images/codex-monitor-screen.png).

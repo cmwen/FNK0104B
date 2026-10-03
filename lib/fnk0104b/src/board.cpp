@@ -78,6 +78,12 @@ void DisplaySupport::setBacklight(bool on) {
   digitalWrite(pins::display::backlight, on ? HIGH : LOW);
 }
 
+bool DisplaySupport::readRowRgb(uint16_t y, uint8_t* pixels, size_t capacity) {
+  if (!pixels || y >= tft.height() || capacity < static_cast<size_t>(tft.width()) * 3) return false;
+  tft.readRectRGB(0, y, tft.width(), 1, pixels);
+  return true;
+}
+
 TFT_eSPI& DisplaySupport::driver() { return tft; }
 #endif
 

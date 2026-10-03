@@ -26,6 +26,7 @@ class DisplaySupport {
  public:
   void begin(uint8_t rotation = 1);
   void setBacklight(bool on);
+  bool readRowRgb(uint16_t y, uint8_t* pixels, size_t capacity);
   TFT_eSPI& driver();
 };
 
