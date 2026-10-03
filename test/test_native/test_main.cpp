@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <initializer_list>
 
 #include <string.h>
 
@@ -6,6 +7,7 @@
 #include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
 #include <ui/idle_timer.hpp>
+#include <recorder/ogg.hpp>
 
 void test_sse_fragmented_status_comments_and_unknown_events() {
   locallink::StatusEventParser<256> parser;
@@ -223,8 +225,53 @@ void test_multipart_uses_file_field_and_closing_boundary() {
   TEST_ASSERT_EQUAL_STRING("\r\n------unit-test--\r\n", suffix);
 }
 
+
+void test_recorder_ogg_boundaries_and_corruption() {
+  uint8_t packet[recorder::kMaxPacket];
+  for (unsigned i = 0; i < sizeof(packet); ++i) packet[i] = i;
+  uint8_t page[recorder::kMaxPage];
+  for (unsigned size : {1u, 254u, 255u, 256u, 1275u}) {
+    const size_t length = recorder::makePage(page, sizeof(page), packet, size, 123, 7, 123456789012ull, 4);
+    TEST_ASSERT_GREATER_THAN_UINT32(size, length);
+    recorder::Page parsed;
+    TEST_ASSERT_TRUE(recorder::parsePage(page, length, parsed));
+    TEST_ASSERT_EQUAL_UINT32(size, parsed.length);
+    TEST_ASSERT_EQUAL_UINT32(123, parsed.serial);
+    TEST_ASSERT_EQUAL_UINT32(7, parsed.sequence);
+    TEST_ASSERT_EQUAL_UINT64(123456789012ull, parsed.granule);
+    TEST_ASSERT_EQUAL_MEMORY(packet, parsed.packet, size);
+    TEST_ASSERT_FALSE(recorder::parsePage(page, length - 1, parsed));
+    page[length - 1] ^= 1;
+    TEST_ASSERT_FALSE(recorder::parsePage(page, length, parsed));
+  }
+  TEST_ASSERT_EQUAL_UINT32(0, recorder::makePage(page, sizeof(page), packet, 0, 1, 0, 0, 0));
+  TEST_ASSERT_EQUAL_UINT32(0, recorder::makePage(page, sizeof(page), packet, 1276, 1, 0, 0, 0));
+  TEST_ASSERT_EQUAL_UINT32(0, recorder::makePage(page, 28, packet, 255, 1, 0, 0, 0));
+}
+void test_recorder_gate_silence_grace_reset_and_limit() {
+  recorder::RecordingGate gate;
+  TEST_ASSERT_FALSE(gate.feed(true, 512));
+  gate.start();
+  TEST_ASSERT_FALSE(gate.feed(false, 95999));
+  TEST_ASSERT_TRUE(gate.feed(false, 1));
+  gate.start();
+  TEST_ASSERT_FALSE(gate.feed(true, 512));
+  TEST_ASSERT_FALSE(gate.feed(false, 31999));
+  TEST_ASSERT_FALSE(gate.feed(true, 512));
+  TEST_ASSERT_FALSE(gate.feed(false, 31999));
+  TEST_ASSERT_TRUE(gate.feed(false, 1));
+  gate.stop();
+  TEST_ASSERT_FALSE(gate.active());
+  TEST_ASSERT_FALSE(gate.feed(true, 512));
+  gate.start();
+  TEST_ASSERT_FALSE(gate.feed(true, 9599999));
+  TEST_ASSERT_TRUE(gate.feed(true, 1));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_recorder_ogg_boundaries_and_corruption);
+  RUN_TEST(test_recorder_gate_silence_grace_reset_and_limit);
   RUN_TEST(test_sse_fragmented_status_comments_and_unknown_events);
   RUN_TEST(test_sse_never_delivers_incomplete_or_oversized_events);
   RUN_TEST(test_monitor_timeout_starts_after_active_work_finishes);

@@ -7,7 +7,7 @@ from package_web_firmware import firmware_environments
 
 
 if __name__ == "__main__":
-    environments = ["hello-debug", "speech-diag", *firmware_environments()]
+    environments = ["hello-debug", "speech-diag", "recorder", "recorder-io-diag", *firmware_environments()]
     command = ["pio", "run"]
     for environment in environments:
         command.extend(("-e", environment))

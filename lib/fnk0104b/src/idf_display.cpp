@@ -120,10 +120,11 @@ void idfDisplayText(int x, int y, const char* text, uint16_t color, int scale) {
     }
   }
 }
-esp_err_t flushIdfDisplay() {
+esp_err_t flushIdfDisplayRows(int start, int height) {
+  if (start < 0 || height <= 0 || start + height > kIdfDisplayHeight) return ESP_ERR_INVALID_ARG;
   if (!panel || !frame || !stripe) return ESP_ERR_INVALID_STATE;
-  for (int y = 0; y < kIdfDisplayHeight; y += kStripeRows) {
-    const int rows = std::min(kStripeRows, kIdfDisplayHeight - y);
+  for (int y = start; y < start + height; y += kStripeRows) {
+    const int rows = std::min(kStripeRows, start + height - y);
     std::memcpy(stripe, frame + y * kIdfDisplayWidth, rows * kIdfDisplayWidth * sizeof(uint16_t));
     const esp_err_t err = esp_lcd_panel_draw_bitmap(panel, 0, y, kIdfDisplayWidth, y + rows, stripe);
     if (err != ESP_OK) return err;
@@ -131,5 +132,6 @@ esp_err_t flushIdfDisplay() {
   }
   return ESP_OK;
 }
+esp_err_t flushIdfDisplay() { return flushIdfDisplayRows(0, kIdfDisplayHeight); }
 }
 #endif

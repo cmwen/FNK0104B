@@ -88,3 +88,37 @@ audio to WakeNet10/MultiNet7. The existing speech partition layout is unchanged.
 The same session recognized a wake and command ID 3 (“start listening”).
 Listening inference reached 31.52 ms per 32 ms frame; sustained performance
 and recognition accuracy have not been measured systematically.
+
+## Device-verified recorder saves (2026-10-03)
+
+The `recorder` environment was rebuilt and uploaded through PlatformIO Core
+CLI to `/dev/ttyACM0`, with verified image hashes and the existing speech
+partition boundaries. Serial monitoring at 115200 baud confirmed SD mounting
+and continuous WakeNet/VADNet startup. An initial codec-stack corruption panic
+was resolved by increasing the worker stack from 16 KiB to 48 KiB, following
+Espressif's documented approximately 40 KiB encoder requirement. After reflash,
+three recordings were saved as `/recordings/REC00000001.opus` through
+`REC00000003.opus`, with 33,280, 33,792 and 65,024 captured samples. Reports
+showed 28,652 bytes of codec stack remaining and no further observed panic.
+Serial subsequently reported `playback=done file=REC00000003.opus` and
+returned to the wake state, with temporary playback memory recovered.
+This short run verifies SD mount, completed encoded saves and the decoder/I2S
+playback path; exported-file playability, audible speaker output and sustained
+recording remain UNKNOWN.
+No full-chip erase or eFuse/security change was performed.
+
+## Recorder touch responsiveness update (2026-10-03)
+
+After a user report of slow UI response, the recorder separated touch polling
+from rendering/compression, replaced each delayed register read with a repeated
+START transaction, and limited display transfers to changed rows. The verified
+GPIO map, shared I2C bus and landscape coordinate transform were preserved.
+PlatformIO builds of recorder, recorder-io-diag and speech-diag passed; the
+recorder was reflashed with verified hashes. At 115200 baud, touch-read maxima
+were 488–1,294 microseconds. File selection, Play and Stop events reached the
+recorder loop in 10,563–32,565 microseconds from sampling. Serial confirmed
+playback completion and return to wake state. REC/STOP taps then saved
+`REC00000004.opus` with 75,264 samples and 28,620 bytes of codec stack
+remaining. This verifies a short touch and
+playback run; perceived responsiveness and long-run display latency still need
+user testing. The controller's fitted G/U suffix remains UNKNOWN.

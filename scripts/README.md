@@ -27,3 +27,18 @@ two reference images using ImageMagick. Run it with `--status-reference` and
 `--screen-reference` pointing to those originals, and `--output` pointing to
 `lib/ui/src/ui/monitor_icons.hpp`. The crop coordinates are specific to those
 references, which are not bundled in the repository.
+
+## Recorder UI preview
+
+`recorder_ui_preview.py` uses the recorder's actual C++ drawing routine and
+the shared IDF display font. It substitutes a host framebuffer for display
+access and renders sample status and filenames; it does not capture the device
+through USB or photograph the screen. Regenerate the documentation image with:
+
+```sh
+python3 scripts/recorder_ui_preview.py /tmp/recorder-preview.ppm
+ffmpeg -v error -y -i /tmp/recorder-preview.ppm -frames:v 1 docs/images/recorder-ui.png
+```
+
+The Pages packager copies `docs/images/` into the deployed site's same path.
+The web app displays this image in its Voice recorder preview section.

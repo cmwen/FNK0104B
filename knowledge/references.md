@@ -30,3 +30,5 @@ For additional Freenove tutorials and existing evidence see [docs/references.md]
 - **E6:** [Espressif ILI9341 component 2.1.0](https://components.espressif.com/components/espressif/esp_lcd_ili9341/versions/2.1.0/readme): ESP-IDF SPI panel driver, initialization and native LCD API; used by the visual speech diagnostic.
 
 - **E7:** [Espressif VADNet](https://docs.espressif.com/projects/esp-sr/en/latest/esp32s3/vadnet/README.html) and [AFE](https://docs.espressif.com/projects/esp-sr/en/latest/esp32s3/audio_front_end/README.html): neural VAD model selection, activity states, minimum speech/silence durations and cached pre-speech audio. Used by speech diagnostic 0.3.0.
+
+- **E8:** [Espressif audio codec 2.5.0](https://components.espressif.com/components/espressif/esp_audio_codec/versions/2.5.0/readme): Opus encoder/decoder APIs and supported settings, used by the recorder. [Ogg Opus mapping (RFC 7845)](https://www.rfc-editor.org/rfc/rfc7845) specifies container headers, granule positions and trimming. Host container verification and short device recording/playback checks are recorded in the recorder README; audible output and sustained operation remain UNKNOWN.

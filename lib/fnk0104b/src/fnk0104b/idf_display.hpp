@@ -9,5 +9,7 @@ constexpr int kIdfDisplayHeight = 240;
 esp_err_t beginIdfDisplay();
 void idfDisplayFill(int x, int y, int width, int height, uint16_t color);
 void idfDisplayText(int x, int y, const char* text, uint16_t color, int scale = 1);
+// Transfer only changed rows. Calls retain a single rendering-task owner.
+esp_err_t flushIdfDisplayRows(int y, int height);
 esp_err_t flushIdfDisplay();
 }

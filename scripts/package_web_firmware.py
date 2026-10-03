@@ -49,13 +49,13 @@ NAMES = {
 def firmware_environments():
     config = configparser.ConfigParser(interpolation=None)
     config.read(ROOT / "platformio.ini")
-    # speech-diag is built separately in CI: its IDF model image and partition
-    # layout do not match this Arduino-only browser package.
+    # IDF apps are built separately in CI: their model images and partition
+    # layouts do not match this Arduino-only browser package.
     environments = [
         section.removeprefix("env:")
         for section in config.sections()
         if section.startswith("env:")
-        and section not in {"env:native", "env:hello-debug", "env:speech-diag"}
+        and section not in {"env:native", "env:hello-debug", "env:speech-diag", "env:recorder", "env:recorder-io-diag"}
     ]
     unknown = set(environments) - NAMES.keys()
     if unknown:
@@ -78,6 +78,8 @@ def package(output: Path, version: str):
             "ble-client.js",
         ),
     )
+    # Canonical documentation images are also served by the Pages app.
+    shutil.copytree(ROOT / "docs" / "images", output / "docs" / "images")
     (output / OUTPUT_MARKER).touch()
     (output / ".nojekyll").touch()
     firmware_root = output / "firmware"

@@ -1,14 +1,24 @@
-# Only the isolated ESP-IDF diagnostic uses CMake. Arduino apps use SCons.
-idf_component_register(
-    SRCS "19-speech-diag/src/main.cpp"
-         "19-speech-diag/src/screen.cpp"
-         "19-speech-diag/src/audio_frontend.cpp"
-         "../lib/fnk0104b/src/idf_display.cpp"
-         "../lib/fnk0104b/src/idf_microphone.cpp"
-    INCLUDE_DIRS "../lib/fnk0104b/src"
-    REQUIRES esp_lcd espressif__esp_lcd_ili9341 esp_driver_spi esp_driver_i2s esp_driver_i2c esp_driver_gpio esp_timer esp_psram espressif__esp-sr espressif__esp-dl)
-
-# Supplement ESP-SR's kernel list for the selected Hi ESP model.
-idf_component_get_property(espdl_dir espressif__esp-dl COMPONENT_DIR)
-include("${espdl_dir}/cmake/compile_register.cmake")
-esp_dl_compile_add_yml("${CMAKE_CURRENT_LIST_DIR}/19-speech-diag/compile_req.yml")
+idf_build_get_property(FNK_APP FNK_APP)
+# PlatformIO selects the isolated IDF app; Arduino apps continue using SCons.
+set(board_sources "../lib/fnk0104b/src/idf_display.cpp" "../lib/fnk0104b/src/idf_microphone.cpp")
+set(board_requires esp_lcd espressif__esp_lcd_ili9341 esp_driver_spi esp_driver_i2s esp_driver_i2c esp_driver_gpio esp_timer esp_psram)
+if(FNK_APP STREQUAL "speech-diag")
+    set(app_sources "19-speech-diag/src/main.cpp" "19-speech-diag/src/screen.cpp" "../lib/speech/src/audio_frontend.cpp")
+    set(app_requires espressif__esp-sr espressif__esp-dl)
+elseif(FNK_APP STREQUAL "recorder")
+    set(app_sources "20-recorder/src/main.cpp" "20-recorder/src/screen.cpp" "20-recorder/src/storage.cpp" "../lib/speech/src/audio_frontend.cpp" "../lib/fnk0104b/src/idf_storage.cpp")
+    set(app_requires espressif__esp-sr espressif__esp-dl espressif__esp_audio_codec fatfs sdmmc)
+elseif(FNK_APP STREQUAL "recorder-io-diag")
+    set(app_sources "21-recorder-io-diag/src/main.cpp" "../lib/fnk0104b/src/idf_storage.cpp")
+    set(app_requires fatfs sdmmc)
+else()
+    message(FATAL_ERROR "Unknown FNK_APP: ${FNK_APP}")
+endif()
+idf_component_register(SRCS ${app_sources} ${board_sources}
+    INCLUDE_DIRS "../lib/fnk0104b/src" "../lib/speech/src" "../lib/recorder/src"
+    REQUIRES ${board_requires} ${app_requires})
+if(NOT FNK_APP STREQUAL "recorder-io-diag")
+    idf_component_get_property(espdl_dir espressif__esp-dl COMPONENT_DIR)
+    include("${espdl_dir}/cmake/compile_register.cmake")
+    esp_dl_compile_add_yml("${CMAKE_CURRENT_LIST_DIR}/19-speech-diag/compile_req.yml")
+endif()

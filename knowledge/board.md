@@ -94,3 +94,18 @@ then silence, continuous AFE frames and stable memory without observed errors.
 The existing speech partition layout was retained. [E7]
 The VAD-enabled runtime also detected a wake and command ID 3 (“start listening”);
 its observed listening inference maximum was 31.52 ms for a 32 ms frame. [R2]
+
+## Recorder device check (2026-10-03)
+
+The standalone `recorder` firmware was flashed with verified hashes and the
+existing speech partition boundaries. USB serial at 115200 baud showed SD
+mounting and three completed Opus recording saves after increasing the codec
+worker stack to 48 KiB. Serial also confirmed a completed decoder/I2S
+playback cycle and return to the wake state. Audible playback, exported-file checks and sustained
+recording remain UNKNOWN. See the recorder README and hardware evidence. [R2, E8]
+
+Recorder touch handling was subsequently moved to a separate 10 ms polling
+task, with repeated START reads of the existing individual registers and
+changed-row display transfers. A flashed short run reported 488–1,294 us
+maximum touch reads and 10,563–32,565 us sampled-event ages for file selection,
+Play and Stop. The fitted controller suffix remains UNKNOWN. [F4, R2]

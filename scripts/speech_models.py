@@ -21,14 +21,14 @@ offset, size = int(model[3].strip(), 0), int(model[4].strip(), 0)
 def pack_models(source, target, env):
     subprocess.run([
         env.subst("$PYTHONEXE"), str(component / "model" / "movemodel.py"),
-        "-d1", str(project / "sdkconfig.speech-diag"),
+        "-d1", str(project / ("sdkconfig." + env.subst("$PIOENV"))),
         "-d2", str(component), "-d3", str(build),
     ], check=True)
     if not model_file.is_file() or not 0 < model_file.stat().st_size <= size:
         raise RuntimeError("ESP-SR model image missing or larger than model partition")
 
 node = env.Command(str(model_file),
-                   [str(project / "sdkconfig.speech-diag"),
+                   [str(project / ("sdkconfig." + env.subst("$PIOENV"))),
                     str(component / "model" / "movemodel.py"), str(partition_csv)],
                    pack_models)
 env.AlwaysBuild(node)
@@ -39,5 +39,5 @@ env.Append(FLASH_EXTRA_IMAGES=[(hex(offset), str(model_file))])
 # Post scripts run after the platform has expanded FLASH_EXTRA_IMAGES into
 # esptool flags; update both representations so CLI uploads include models.
 if env.get("UPLOAD_PROTOCOL") != "esptool":
-    raise RuntimeError("speech-diag model uploads require upload_protocol = esptool")
+    raise RuntimeError("ESP-SR model uploads require upload_protocol = esptool")
 env.Append(UPLOADERFLAGS=[hex(offset), str(model_file)])
