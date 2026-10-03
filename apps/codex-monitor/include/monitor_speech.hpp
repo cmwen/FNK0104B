@@ -13,6 +13,7 @@ bool poll(Event& event);
 bool ready();
 bool listening();
 bool speech();
+uint8_t level();
 void quietFor(uint32_t milliseconds);
 // Copies continuous AFE output; the feed task remains the only microphone reader.
 bool capture(int16_t* pcm, size_t capacity, size_t& captured, const std::atomic<bool>& stop);

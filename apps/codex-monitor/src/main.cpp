@@ -16,12 +16,15 @@
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
 #include "monitor_speech.hpp"
+#include "monitor_commands.hpp"
+#include "voice_capture_gate.hpp"
 #include "monitor_wifi_setup.hpp"
 
 #include <atomic>
 #include <errno.h>
 #include <memory>
 #include <new>
+#include <esp_timer.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <stdio.h>
@@ -41,7 +44,7 @@ constexpr uint32_t kStreamSilenceMs = 90000;
 constexpr uint32_t kAvatarFrameMs = 100;
 constexpr uint32_t kScreenTimeoutDefault = 30;
 constexpr uint32_t kSampleRate = 16000;
-constexpr uint32_t kRecordSeconds = 9;
+constexpr uint32_t kRecordSeconds = speech::kVoiceMaxSeconds;
 constexpr size_t kRecordSamples = kSampleRate * kRecordSeconds;
 constexpr size_t kMaxStatusBytes = 8192;
 constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
@@ -60,6 +63,7 @@ struct Agent { char id[80]{}; char name[48]{}; char status[20]{}; char detail[12
 struct MonitorStatus {
   char integration[20] = "unavailable";
   Quota five_hour, weekly;
+  int64_t clock_epoch = -1, clock_received_us = 0;
   Agent agents[8];
   uint8_t count = 0;
   uint16_t total_agents = 0;
@@ -71,9 +75,13 @@ Preferences preferences;
 std::atomic<uint8_t> volumePercent{50};
 std::atomic<uint16_t> screenTimeoutMinutes{kScreenTimeoutDefault};
 ui::IdleTimer idleTimer;
-uint32_t lastAvatarFrame = 0;
+uint32_t lastAvatarFrame = 0, lastResetCheck = 0;
+int drawnFiveHourReset = -1, drawnWeeklyReset = -1;
 bool screenAwake = true, previousTouch = false;
 bool screenManuallyOff = false;
+bool showingStatus = false, commandHelpVisible = false;
+uint32_t lastVoiceMeterFrame = 0;
+int drawnVoiceLevel = -1;
 bool bleConnected = false;
 bool wifiSetupMode = false;
 uint32_t wifiHoldStarted = 0;
@@ -159,6 +167,8 @@ bool sameStatus(const MonitorStatus& left, const MonitorStatus& right) {
   if (strcmp(left.integration, right.integration) ||
       left.five_hour.used != right.five_hour.used ||
       left.weekly.used != right.weekly.used ||
+      left.five_hour.resets != right.five_hour.resets ||
+      left.weekly.resets != right.weekly.resets ||
       left.count != right.count || left.total_agents != right.total_agents) return false;
   for (uint8_t index = 0; index < left.count && index < 4; ++index)
     if (!sameAgent(left.agents[index], right.agents[index])) return false;
@@ -217,19 +227,25 @@ void drawAgentTile(const Agent& agent, int x, int y) {
 void drawAnimatedAvatars() {
   MonitorStatus snapshot;
   portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
-  if (!snapshot.count) return;
+  if (!snapshot.count || showingStatus || commandHelpVisible || voiceBusy.load()) return;
   if (selectedAgent[0]) drawAvatar(selectedDetail, 18, 74, 96, false);
   else if (snapshot.count == 1) drawAvatar(snapshot.agents[0], 18, 74, 96, false);
   else for (uint8_t i = 0; i < snapshot.count && i < 4; ++i)
     drawAvatar(snapshot.agents[i], 13 + (i % 2) * 156, 65 + (i / 2) * 64, 48, false);
 }
 
-void drawScreen() {
-  if (!screenAwake) return;
+int64_t statusTime(const MonitorStatus& snapshot) {
+  return snapshot.clock_epoch <= 0 ? -1 : snapshot.clock_epoch +
+      (esp_timer_get_time() - snapshot.clock_received_us) / 1000000;
+}
+
+void drawStatusBar(const MonitorStatus& snapshot) {
   TFT_eSPI& d = tft();
-  MonitorStatus snapshot;
-  portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
-  d.fillScreen(kBg);
+  const int64_t now = statusTime(snapshot);
+  drawnFiveHourReset = ui::monitor::resetPixels(snapshot.five_hour.resets, now, 5 * 3600,
+                                               ui::monitor::kFiveHourResetWidth);
+  drawnWeeklyReset = ui::monitor::resetPixels(snapshot.weekly.resets, now, 7 * 86400,
+                                             ui::monitor::kWeeklyResetWidth);
   bool attention = false, error = false;
   for (uint8_t i = 0; i < snapshot.count; ++i) {
     attention |= !strcmp(snapshot.agents[i].status, "needs_attention");
@@ -238,7 +254,23 @@ void drawScreen() {
   const bool wifi = WiFi.status() == WL_CONNECTED;
   ui::monitor::statusBar(d, wifi, wifi ? WiFi.RSSI() : -127,
       snapshot.integration, snapshot.count > 0, attention, error,
-      ui::monitor::remaining(snapshot.five_hour.used), ui::monitor::remaining(snapshot.weekly.used));
+      ui::monitor::remaining(snapshot.five_hour.used), ui::monitor::remaining(snapshot.weekly.used),
+      drawnFiveHourReset, drawnWeeklyReset);
+}
+
+void drawVoiceControl() {
+  drawnVoiceLevel = monitor_speech::level();
+  ui::monitor::voiceControl(tft(), recording.load(), voicePreparing.load(), voiceBusy.load(),
+      selectedAgent[0] != '\0', commandHelpVisible, drawnVoiceLevel, monitor_speech::ready());
+}
+
+void drawScreen() {
+  if (!screenAwake) return;
+  TFT_eSPI& d = tft();
+  MonitorStatus snapshot;
+  portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
+  d.fillScreen(kBg);
+  drawStatusBar(snapshot);
   char message[sizeof(transientMessage)];
   uint32_t messageExpiry;
   portENTER_CRITICAL(&messageMux);
@@ -249,11 +281,16 @@ void drawScreen() {
   const bool showingSelected = selectedAgent[0] != '\0';
   d.setTextColor(kMuted, kBg);
   if (messageVisible) d.drawString(shortText(message, 48), 10, 45, 1);
+  else if (showingStatus) d.drawString("QUOTA LEFT / TAP CARDS TO RETURN", 10, 45, 1);
   else if (snapshot.count) d.drawString(showingSelected ? "AGENT DETAIL / QUOTA LEFT" : (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "ACTIVE AGENTS / QUOTA LEFT"), 10, 45, 1);
   else d.drawString(!strcmp(snapshot.integration, "connected") ?
       (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "QUOTA LEFT") :
       (monitor_speech::ready() ? "HI ESP: COMMANDS / BRIDGE OFFLINE" : "BRIDGE UNAVAILABLE"), 10, 45, 1);
-  if (snapshot.count == 0) {
+  if (commandHelpVisible) {
+    ui::monitor::commandHelp(d, speech::kMonitorCommands, speech::kMonitorCommandCount);
+  } else if (voiceBusy.load()) {
+    ui::monitor::messagePanel(d, recording.load(), voicePreparing.load(), voiceAgent[0] != '\0');
+  } else if (snapshot.count == 0 || showingStatus) {
     ui::monitor::quotaCard(d, 6, "5H left", ui::monitor::remaining(snapshot.five_hour.used), false);
     ui::monitor::quotaCard(d, 164, "Week left", ui::monitor::remaining(snapshot.weekly.used), true);
   } else if (showingSelected) {
@@ -280,10 +317,8 @@ void drawScreen() {
     d.drawString(agentLabel(agent.status), 128, 96, 1);
     d.setTextColor(kText, kPanel);
     d.drawString(shortText(agent.detail, 28), 128, 122, 1);
-    if (!strcmp(agent.status, "needs_attention")) {
-      d.setTextColor(kMuted, kPanel);
-      d.drawString("Tap avatar for detail", 128, 162, 1);
-    }
+    d.setTextColor(kMuted, kPanel);
+    d.drawString("Tap avatar to message", 128, 162, 1);
   } else {
     for (uint8_t i = 0; i < snapshot.count && i < 4; ++i)
       drawAgentTile(snapshot.agents[i], 8 + (i % 2) * 156, 59 + (i / 2) * 64);
@@ -292,7 +327,7 @@ void drawScreen() {
       d.drawRightString(String("+") + String(snapshot.total_agents - 4) + " more", 310, 45, 1);
     }
   }
-  ui::monitor::voiceControl(d, recording.load(), voicePreparing.load(), voiceBusy.load(), selectedAgent[0] != '\0');
+  drawVoiceControl();
 }
 
 void publishSettings() {
@@ -379,6 +414,12 @@ bool applyStatusJson(const char* body, size_t bodyLength) {
     return false;
   }
   MonitorStatus next;
+  JsonVariantConst updated = doc["updated_at"];
+  const int64_t cacheAge = doc["cache_age_seconds"] | int64_t{0};
+  if (updated.is<int64_t>() && updated.as<int64_t>() > 0 && cacheAge >= 0 && cacheAge <= 7 * 86400) {
+    next.clock_epoch = updated.as<int64_t>() + cacheAge;
+    next.clock_received_us = esp_timer_get_time();
+  }
   const char* integration = doc["integration"] | "unavailable";
   if (strcmp(integration, "connected") && strcmp(integration, "degraded") && strcmp(integration, "unavailable")) integration = "unavailable";
   strlcpy(next.integration, integration, sizeof(next.integration));
@@ -563,7 +604,7 @@ void refreshSelectedAgent() {
 }
 
 void playPendingAttentionTone() {
-  if (!pendingAttentionTone || voiceBusy.load() || !peripheralMutex || !audioMutex) return;
+  if (!pendingAttentionTone || voiceBusy.load() || commandHelpVisible || !peripheralMutex || !audioMutex) return;
   pendingAttentionTone = false;
   monitor_speech::quietFor(1500);
   xSemaphoreTake(audioMutex, portMAX_DELAY);
@@ -596,7 +637,7 @@ void voiceWorker(void*) {
     voicePreparing = false;
     recording = true;
     uiDirty = true;
-    setMessage("Listening: tap to stop", 12000);
+    setMessage("Recording Codex message", (kRecordSeconds + 1) * 1000);
     Serial.println("monitor_voice state=recording source=vadnet");
     pcm = static_cast<int16_t*>(ps_malloc(kRecordSamples * sizeof(int16_t)));
     size_t captured = 0;
@@ -665,6 +706,7 @@ void beginVoice() {
     else setMessage("Sending voice...");
     return;
   }
+  commandHelpVisible = false;
   voiceBusy.store(true);
   voicePreparing.store(true);
   stopCapture.store(false);
@@ -679,7 +721,11 @@ void speechLoop() {
   monitor_speech::Event event;
   while (monitor_speech::poll(event)) {
     using Event = monitor_speech::Event;
-    if (event == Event::Error) { setMessage("Speech unavailable", 10000); continue; }
+    if (event == Event::Error) { commandHelpVisible = false; setMessage("Speech unavailable", 10000); continue; }
+    // A tap takes priority over any local command still queued by recognition.
+    if (voiceBusy.load()) continue;
+    commandHelpVisible = event == Event::Wake;
+    uiDirty = true;
     if (event == Event::Timeout) { setMessage("Say Hi ESP to try again"); continue; }
     idleTimer.activity(millis());
     if (event == Event::ScreenOff) {
@@ -699,10 +745,11 @@ void speechLoop() {
       resumeStatus();
     }
     switch (event) {
-      case Event::Wake: setMessage("Say a command", 6000); break;
+      case Event::Wake: setMessage("Listening for device command", speech::kCommandWindowMs); break;
       case Event::StartListening: beginVoice(); break;
-      case Event::GoBack: selectedAgent[0] = '\0'; setMessage("Showing overview"); break;
+      case Event::GoBack: showingStatus = false; selectedAgent[0] = '\0'; setMessage("Showing agents / overview"); break;
       case Event::ShowStatus:
+        showingStatus = true;
         selectedAgent[0] = '\0';
         if (streamMutex) pauseStatus();
         resumeStatus(); setMessage("Refreshing status"); break;
@@ -741,14 +788,19 @@ void touchLoop() {
     const int x = touchPoint.x;
     const int y = touchPoint.y;
     if (y >= 191 && y <= 237 && x >= 4 && x <= 315) beginVoice();
-    else if (y >= 59 && y < 184 && selectedAgent[0]) {
+    else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load())) {
+      // Hints and recording replace the agent panel; never select hidden agents.
+    } else if (y >= 59 && y < 184 && showingStatus) {
+      showingStatus = false;
+      uiDirty = true;
+    } else if (y >= 59 && y < 184 && selectedAgent[0]) {
       selectedAgent[0] = '\0';
       uiDirty = true;
     } else if (y >= 59 && y < 184 && x >= 8 && x <= 312) {
       MonitorStatus snapshot; portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
       const uint8_t index = snapshot.count == 1 ? 0 :
           static_cast<uint8_t>((y >= 123 ? 2 : 0) + (x >= 164 ? 1 : 0));
-      if (index < snapshot.count && !strcmp(snapshot.agents[index].status, "needs_attention")) {
+      if (index < snapshot.count) {
         strlcpy(selectedAgent, snapshot.agents[index].id, sizeof(selectedAgent));
         selectedDetail = snapshot.agents[index];
         uiDirty = true;
@@ -892,6 +944,27 @@ void loop() {
     if (streamMutex) pauseStatus();
     fnk0104b::display.setBacklight(false);
     Serial.println("monitor_sleep state=quiet stream=closed");
+  }
+  // Refresh only the header when a countdown loses a visible pixel.
+  if (screenAwake && millis() - lastResetCheck >= 1000) {
+    lastResetCheck = millis();
+    MonitorStatus snapshot;
+    portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
+    const int64_t now = statusTime(snapshot);
+    if (drawnFiveHourReset != ui::monitor::resetPixels(snapshot.five_hour.resets, now, 5 * 3600,
+                                                     ui::monitor::kFiveHourResetWidth) ||
+        drawnWeeklyReset != ui::monitor::resetPixels(snapshot.weekly.resets, now, 7 * 86400,
+                                                   ui::monitor::kWeeklyResetWidth))
+      drawStatusBar(snapshot);
+  }
+  // Update only the audio control at 12.5 Hz, leaving the center and header stable.
+  if (screenAwake && (commandHelpVisible || recording.load()) && millis() - lastVoiceMeterFrame >= 80) {
+    lastVoiceMeterFrame = millis();
+    const int level = monitor_speech::level();
+    if (drawnVoiceLevel != level) {
+      drawnVoiceLevel = level;
+      ui::monitor::voiceMeter(tft(), true, level, recording.load() ? kRed : kAmber);
+    }
   }
   if (screenAwake && uiDirty.exchange(false)) {
     drawScreen();

@@ -7,6 +7,7 @@
 #include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
 #include <ui/idle_timer.hpp>
+#include <ui/monitor_theme.hpp>
 #include <recorder/ogg.hpp>
 #include "../../lib/speech/src/voice_capture_gate.hpp"
 
@@ -271,24 +272,50 @@ void test_recorder_gate_silence_grace_reset_and_limit() {
 
 void test_monitor_voice_capture_gate() {
   speech::VoiceCaptureGate quiet;
-  TEST_ASSERT_FALSE(quiet.feed(false, 95999));
+  TEST_ASSERT_FALSE(quiet.feed(false, 159999));
   TEST_ASSERT_TRUE(quiet.feed(false, 1));
   TEST_ASSERT_FALSE(quiet.voiced());
   speech::VoiceCaptureGate resumed;
   TEST_ASSERT_FALSE(resumed.feed(true, 512));
-  TEST_ASSERT_FALSE(resumed.feed(false, 15999));
+  TEST_ASSERT_FALSE(resumed.feed(false, 63999));
   TEST_ASSERT_FALSE(resumed.feed(true, 512));
-  TEST_ASSERT_FALSE(resumed.feed(false, 15999));
+  TEST_ASSERT_FALSE(resumed.feed(false, 63999));
   TEST_ASSERT_TRUE(resumed.feed(false, 1));
   TEST_ASSERT_TRUE(resumed.voiced());
   speech::VoiceCaptureGate limit;
-  TEST_ASSERT_FALSE(limit.feed(true, 143999));
+  TEST_ASSERT_FALSE(limit.feed(true, 479999));
   TEST_ASSERT_TRUE(limit.feed(true, 1));
+}
+
+void test_monitor_reset_countdown() {
+  using ui::monitor::resetPixels;
+  TEST_ASSERT_EQUAL(-1, resetPixels(-1, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(-1, resetPixels(18100, -1, 18000, 16));
+  TEST_ASSERT_EQUAL(16, resetPixels(18100, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(8, resetPixels(9100, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(0, resetPixels(100, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(0, resetPixels(99, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(16, resetPixels(20000, 100, 18000, 16));
+  TEST_ASSERT_EQUAL(12, resetPixels(302500, 100, 604800, 24));
+}
+
+void test_monitor_microphone_level() {
+  const int16_t quiet[] = {0, 0, 0, 0};
+  const int16_t low[] = {128, -128, 128, -128};
+  const int16_t loud[] = {4096, -4096, 4096, -4096};
+  const int16_t clipped[] = {-32768, 32767};
+  TEST_ASSERT_EQUAL(0, speech::microphoneLevel(quiet, 4));
+  TEST_ASSERT_GREATER_THAN(0, speech::microphoneLevel(low, 4));
+  TEST_ASSERT_GREATER_THAN(speech::microphoneLevel(low, 4), speech::microphoneLevel(loud, 4));
+  TEST_ASSERT_LESS_OR_EQUAL(100, speech::microphoneLevel(clipped, 2));
+  TEST_ASSERT_EQUAL(0, speech::microphoneLevel(nullptr, 0));
 }
 
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_monitor_voice_capture_gate);
+  RUN_TEST(test_monitor_microphone_level);
+  RUN_TEST(test_monitor_reset_countdown);
   RUN_TEST(test_recorder_ogg_boundaries_and_corruption);
   RUN_TEST(test_recorder_gate_silence_grace_reset_and_limit);
   RUN_TEST(test_sse_fragmented_status_comments_and_unknown_events);

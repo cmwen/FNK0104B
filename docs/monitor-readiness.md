@@ -269,3 +269,36 @@ Two hardware-only allocation failures were fixed by reserving the monitor feed
 stack statically and allocating microphone DMA before speech models. The
 [hardware record](../test/hardware/codex-monitor-speech-2026-10-03.md) includes
 sanitized evidence and the remaining physical checks; internal heap is tight.
+
+## Voice interaction and reset-bar update, 2026-10-04
+
+Both header reset countdowns now use a five-pixel-high track with visible gray
+for elapsed time and cyan/mint for remaining time. Unknown countdowns retain a
+dash. “Hi ESP” opens a centered guide drawn from the same five phrases registered
+with MultiNet, with an amber listening control and microphone-volume meter.
+The command window is twelve seconds. The separate tap-to-talk message panel
+allows ten seconds to start speaking, approximately five seconds of silence
+before submission (existing one-second VAD debounce plus four seconds), and a
+thirty-second maximum. A tap can stop early or take over from local command
+listening. Recognition remains suspended during recording/submission, and
+attention tones wait until command listening ends.
+
+“Show status” holds the quota view even with active agents; “go back” or a tap
+on the cards returns to the agent overview. All displayed agents can be selected
+explicitly for a message, including running agents, using the bridge's existing
+active-turn steering path. Avatars cannot overwrite command hints or message
+panels, and touches on those panels cannot select hidden agents.
+
+Validation: the final `pio run -e codex-monitor` passed (2,998,605 flash bytes,
+122,188 static RAM bytes); all 20 native and 48 bridge tests passed. Host previews
+checked command hints, silence/volume meter states, recording guidance, idle,
+active, offline and quota endpoints at 320×240. The user subsequently authorized upload. PlatformIO verified all four image
+hashes while retaining the existing partition layout and saved Wi-Fi. Serial
+at 115200 confirmed the configured twelve-second MultiNet timeout, speech
+models ready, continuous AFE frames, live SSE status and one running agent.
+The actual LCD screenshot was refreshed through serial readback. See the
+[device record](../test/hardware/codex-monitor-voice-ui-2026-10-04.md).
+No full-chip erase or security-setting change was performed. Physical meter
+sensitivity, spoken recognition timing/accuracy, pauses during actual recording,
+30-second PSRAM capture and running-agent message interactions remain
+**UNKNOWN** until exercised on the board.

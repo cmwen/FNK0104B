@@ -4,6 +4,7 @@
 #include <cstring>
 #include "audio_frontend.hpp"
 #include "voice_capture_gate.hpp"
+#include "monitor_commands.hpp"
 #include "fnk0104b/board.hpp"
 #include "dl_kernel.hpp"
 #include "esp_wn_models.h"
@@ -15,14 +16,13 @@
 
 namespace monitor_speech {
 namespace {
-constexpr const char* phrases[] = {"start listening", "go back", "show status",
-                                  "turn on the screen", "turn off the screen"};
 AudioFrontEnd frontend;
 SemaphoreHandle_t peripheral, audio_mutex, capture_mutex;
 QueueHandle_t events;
 std::atomic<bool>* busy;
 std::atomic<bool> available{false}, in_window{false}, vad{false};
 std::atomic<uint32_t> quiet_until{0};
+std::atomic<uint8_t> input_level{0};
 int16_t* capture_buffer = nullptr;  // Protected by capture_mutex.
 size_t capture_capacity = 0, capture_count = 0;
 bool capture_finished = false;
@@ -32,6 +32,7 @@ void emit(Event event) { xQueueSend(events, &event, 0); }
 void fail(const char* reason) {
   Serial.printf("monitor_speech state=error reason=%s\n", reason);
   available = false;
+  input_level = 0;
   in_window = false;
   emit(Event::Error);
 }
@@ -65,11 +66,11 @@ void worker(void*) {
   auto* wake = esp_wn_handle_from_name(wn);
   auto* commands = esp_mn_handle_from_name(mn);
   auto* wake_data = wake ? wake->create(wn, DET_MODE_90) : nullptr;
-  auto* command_data = commands ? commands->create(mn, 6000) : nullptr;
+  auto* command_data = commands ? commands->create(mn, speech::kCommandWindowMs) : nullptr;
   if (!wake_data || !command_data) { fail("model_allocation_failed"); vTaskDelete(nullptr); return; }
   if (esp_mn_commands_alloc(commands, command_data) != ESP_OK) { fail("grammar_allocation_failed"); vTaskDelete(nullptr); return; }
-  for (unsigned i = 0; i < 5; ++i)
-    if (esp_mn_commands_add(i + 1, phrases[i]) != ESP_OK) { fail("grammar_add_failed"); vTaskDelete(nullptr); return; }
+  for (unsigned i = 0; i < speech::kMonitorCommandCount; ++i)
+    if (esp_mn_commands_add(i + 1, speech::kMonitorCommands[i]) != ESP_OK) { fail("grammar_add_failed"); vTaskDelete(nullptr); return; }
   if (esp_mn_commands_update()) { fail("grammar_rejected"); vTaskDelete(nullptr); return; }
   if (!frontend.begin(models, vn, readAudio)) { fail("frontend_failed"); vTaskDelete(nullptr); return; }
   const int samples = frontend.fetchSamples();
@@ -90,6 +91,9 @@ void worker(void*) {
         audio->data_size != samples * int(sizeof(int16_t))) {
       fail("audio_fetch_failed"); vTaskDelete(nullptr); return;
     }
+    const uint8_t measured = speech::microphoneLevel(audio->data, samples);
+    const uint8_t previous = input_level.load();
+    input_level = measured >= previous ? measured : (previous * 3 + measured) / 4;
     vad = audio->vad_state == VAD_SPEECH;
     if (vad.load() != previous_vad) {
       previous_vad = vad;
@@ -116,7 +120,7 @@ void worker(void*) {
         if (wake->detect(wake_data, audio->data) == WAKENET_DETECTED) {
           commands->clean(command_data);
           in_window = true;
-          deadline = millis() + 6000;
+          deadline = millis() + speech::kCommandWindowMs;
           emit(Event::Wake);
           Serial.println("monitor_speech state=listening");
         }
@@ -124,7 +128,7 @@ void worker(void*) {
         const auto state = commands->detect(command_data, audio->data);
         if (state == ESP_MN_STATE_DETECTED) {
           const auto* result = commands->get_results(command_data);
-          if (result && result->num && result->command_id[0] >= 1 && result->command_id[0] <= 5) {
+          if (result && result->num && result->command_id[0] >= 1 && result->command_id[0] <= int(speech::kMonitorCommandCount)) {
             emit(static_cast<Event>(result->command_id[0]));
             Serial.printf("monitor_speech command=%d probability=%.3f\n", result->command_id[0], result->prob[0]);
           }
@@ -161,6 +165,7 @@ bool poll(Event& event) { return events && xQueueReceive(events, &event, 0) == p
 bool ready() { return available; }
 bool listening() { return in_window; }
 bool speech() { return vad; }
+uint8_t level() { return input_level; }
 void quietFor(uint32_t milliseconds) {
   const uint32_t deadline = millis() + milliseconds;
   quiet_until = deadline ? deadline : 1;
@@ -177,7 +182,7 @@ bool capture(int16_t* pcm, size_t capacity, size_t& captured, const std::atomic<
   while (!done) {
     delay(10);
     xSemaphoreTake(capture_mutex, portMAX_DELAY);
-    done = capture_finished || stop.load() || !available || millis() - started >= 9600;
+    done = capture_finished || stop.load() || !available || millis() - started >= speech::kVoiceMaxSeconds * 1000 + 1000;
     if (done) { captured = capture_count; voiced = capture_gate.voiced(); capture_buffer = nullptr; }
     xSemaphoreGive(capture_mutex);
   }

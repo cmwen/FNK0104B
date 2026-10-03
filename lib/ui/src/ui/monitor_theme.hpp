@@ -14,6 +14,7 @@ constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) {
 constexpr uint16_t kBackground = rgb(0, 3, 6);
 constexpr uint16_t kPanel = rgb(5, 15, 22);
 constexpr uint16_t kTrack = rgb(17, 40, 50);
+constexpr uint16_t kElapsed = rgb(112, 128, 138);
 constexpr uint16_t kBorder = rgb(16, 78, 90);
 constexpr uint16_t kCyan = rgb(17, 221, 249);
 constexpr uint16_t kMint = rgb(42, 246, 162);
@@ -68,9 +69,27 @@ void segments(Display& d, int x, int y, int w, int h, int percent, uint16_t acce
   }
 }
 
+// Reset countdowns use time, independently of the remaining usage percentage.
+inline int resetPixels(int64_t resets, int64_t now, int64_t window, int width) {
+  if (resets < 0 || now <= 0) return -1;
+  if (resets <= now) return 0;
+  const int64_t seconds = resets - now;
+  if (seconds >= window) return width;
+  return static_cast<int>(seconds * width / window);
+}
+constexpr int kFiveHourResetWidth = 16;
+constexpr int kWeeklyResetWidth = 24;
+
+template<class Display>
+void resetBar(Display& d, int x, int width, int filled, uint16_t accent) {
+  d.fillRect(x, 12, width, 5, filled < 0 ? kTrack : kElapsed);
+  if (filled > 0) d.fillRect(x, 12, filled > width ? width : filled, 5, accent);
+  if (filled < 0) d.drawFastHLine(x + width/2 - 1, 14, 3, kMuted);
+}
+
 template<class Display>
 void statusBar(Display& d, bool wifi, int rssi, const char* integration,
-               bool active, bool attention, bool error, int fiveHour, int weekly) {
+               bool active, bool attention, bool error, int fiveHour, int weekly, int fiveHourReset = -1, int weeklyReset = -1) {
   using namespace monitor_icons;
   frame(d, 4, 4, 312, 36, kCyan);
   for (int x : {80, 160, 232}) d.drawFastVLine(x, 11, 22, kBorder);
@@ -91,10 +110,12 @@ void statusBar(Display& d, bool wifi, int rssi, const char* integration,
   char value[16];
   d.setTextColor(kCyan, kPanel); d.drawString("5H", 167, 10, 1);
   if (fiveHour<0) snprintf(value,sizeof(value),"--%%"); else snprintf(value,sizeof(value),"%d%%",fiveHour);
-  d.drawRightString(value,225,10,1); segments(d,166,24,61,11,fiveHour,kCyan,8);
+  d.drawRightString(value,225,10,1);
+  resetBar(d,182,kFiveHourResetWidth,fiveHourReset,kCyan); segments(d,166,24,61,11,fiveHour,kCyan,8);
   d.setTextColor(kMint, kPanel); d.drawString("WK", 239, 10, 1);
   if (weekly<0) snprintf(value,sizeof(value),"--%%"); else snprintf(value,sizeof(value),"%d%%",weekly);
-  d.drawRightString(value,309,10,1); segments(d,238,24,71,11,weekly,kMint,8);
+  d.drawRightString(value,309,10,1);
+  resetBar(d,254,kWeeklyResetWidth,weeklyReset,kMint); segments(d,238,24,71,11,weekly,kMint,8);
 }
 
 template<class Display>
@@ -112,17 +133,51 @@ void quotaCard(Display& d, int x, const char* title, int percent, bool weekly) {
 }
 
 template<class Display>
-void voiceControl(Display& d, bool recording, bool preparing, bool busy, bool selected) {
+void commandHelp(Display& d, const char* const* phrases, size_t count) {
+  frame(d,8,59,304,123,kAmber);
+  d.setTextColor(kAmber,kPanel); d.drawString("SAY A DEVICE COMMAND",18,66,1);
+  d.setTextColor(kText,kPanel);
+  for (size_t i=0; i<count && i<5; ++i) d.drawString(phrases[i],18,80+i*17,2);
+  d.setTextColor(kMuted,kPanel); d.drawString("Or tap below for a Codex message",18,171,1);
+}
+
+template<class Display>
+void messagePanel(Display& d, bool recording, bool preparing, bool selected) {
+  frame(d,8,59,304,123,recording ? kRed : kCyan);
+  d.setTextColor(kText,kPanel);
+  d.drawString(selected ? "Message to selected agent" : "Message to new Codex chat",18,70,2);
+  d.setTextColor(kMuted,kPanel);
+  if (recording) {
+    d.drawString("Take your time. Pauses are OK.",18,104,1);
+    d.drawString("Stops after ~5 seconds of silence",18,122,1);
+    d.drawString("or 30 seconds. Tap below to send.",18,140,1);
+  } else d.drawString(preparing ? "Preparing microphone..." : "Sending for transcription...",18,104,1);
+}
+
+template<class Display>
+void voiceMeter(Display& d, bool metering, int level, uint16_t accent) {
+  d.fillRect(276,198,28,28,kPanel);
+  const int lengths[7]={4,9,16,25,16,9,4};
+  const int volume = level < 0 ? 0 : (level > 100 ? 100 : level);
+  for(int i=0;i<7;++i) {
+    const int height = metering ? 2 + lengths[i] * volume / 100 : 2;
+    d.drawFastVLine(278+i*4,212-height/2,height,metering ? accent : kMuted);
+  }
+}
+
+template<class Display>
+void voiceControl(Display& d, bool recording, bool preparing, bool busy, bool selected,
+                  bool commands = false, int level = 0, bool ready = true) {
   using namespace monitor_icons;
-  const uint16_t accent=recording ? kRed : (busy ? kCyan : kMint);
-  frame(d,4,191,312,46, kBorder);
+  const uint16_t accent=recording ? kRed : (commands ? kAmber : (busy ? kCyan : (ready ? kMint : kMuted)));
+  frame(d,4,191,312,46, recording || commands ? accent : kBorder);
   d.drawCircle(31,214,19,kBorder);d.drawCircle(31,214,17,accent);
   icon(d,kMicrophone,kMicrophoneWidth,kMicrophoneHeight,22,200,accent);
-  const char* label=recording ? "Stop recording" : (preparing ? "Preparing mic" :
-                    (busy ? "Sending voice" : (selected ? "Reply to agent" : "Voice command")));
+  const char* label=recording ? "Recording message" : (preparing ? "Preparing mic" :
+                    (busy ? "Sending voice" : (commands ? "Command listening" :
+                    (!ready ? "Mic unavailable" : (selected ? "Message to agent" : "New Codex message")))));
   d.setTextColor(kText,kPanel);d.drawString(label,61,199,2);
-  d.setTextColor(accent,kPanel);d.drawString(recording ? "Tap to stop" : (preparing ? "Please wait" : (busy ? "Transcribing..." : "Tap to talk")),62,222,1);
-  const int lengths[7]={4,9,16,25,16,9,4};
-  for(int i=0;i<7;++i) d.drawFastVLine(278+i*4,214-lengths[i]/2,lengths[i],accent);
+  d.setTextColor(accent,kPanel);d.drawString(recording ? "Tap to send / pause to finish" : (preparing ? "Please wait" : (busy ? "Transcribing..." : (commands ? "Say a phrase / tap to talk" : (ready ? "Tap to talk / Hi ESP: commands" : "Speech starting or unavailable")))),62,222,1);
+  voiceMeter(d, recording || commands, level, accent);
 }
 } }  // namespace ui::monitor

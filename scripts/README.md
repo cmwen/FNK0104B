@@ -18,8 +18,8 @@ c++ -std=c++17 -I lib/ui/src -I .pio/libdeps/codex-monitor/TFT_eSPI scripts/moni
 magick /tmp/monitor-ui-idle.ppm -filter point -resize 300% apps/codex-monitor/preview.png
 ```
 
-It writes idle, active, attention, offline, recording, empty-quota and full-quota
-PPM previews. These check drawing and text at 320×240; touch and physical display
+It writes idle, active, attention, offline, recording, command listening (loud
+and quiet), status with an active agent, empty-quota and full-quota PPM previews. These check drawing and text at 320×240; touch and physical display
 appearance still require the board.
 
 `generate_monitor_icons.py` regenerates the tintable icon masks from the owner's

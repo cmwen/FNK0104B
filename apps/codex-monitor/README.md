@@ -1,14 +1,15 @@
 # Codex monitor firmware
 
-The FNK0104B shows Codex five-hour and weekly remaining quota on an idle landscape page. The angular cyan status strip shows Wi-Fi signal strength, Codex state, and segmented remaining-quota bars (`5H` and `WK`). When an agent runs, the two quota cards give way to a larger avatar view; remaining percentages stay visible in the header, and up to four agents appear at once. Tap an attentive avatar to read its short detail and direct the next voice command to that thread. A voice command without a selected agent starts a new Codex thread through the local bridge. Completed agents disappear on the next successful status poll. HTTP polling runs separately from touch and drawing so a bridge request does not pause the voice button. The screen redraws only when visible state changes.
+The FNK0104B shows Codex five-hour and weekly remaining quota on an idle landscape page. The angular cyan status strip shows Wi-Fi signal strength, Codex state, and segmented remaining-quota bars (`5H` and `WK`). A tiny bar between each label and percentage counts down to its reset: full width is five hours for `5H` or seven days for `WK`; half width is 2.5 hours or 3.5 days. Gray shows elapsed time; cyan/mint shows time still remaining. Both bars use the same high-contrast gray track. Missing reset/time data shows a muted dash. The countdown uses the bridge timestamp plus cache age and elapsed device time, and refreshes only the header when its fill changes. When an agent runs, the two quota cards give way to a larger avatar view; remaining percentages stay visible in the header, and up to four agents appear at once. Tap any visible agent to read its short detail and explicitly target the next voice message to that thread, including an agent that is still running. The bridge adds messages to a running turn through its existing steering path. A voice message without a selected agent starts a new Codex thread through the local bridge. Completed agents disappear on the next successful status poll. HTTP polling runs separately from touch and drawing so a bridge request does not pause the voice button. The screen redraws only when visible state changes.
 
 ![Host-rendered idle screen using the firmware drawing helpers](preview.png)
 
 This preview uses sample values. The cyan/mint icons are tintable masks derived
 from the owner's UI references; the firmware renders them in RGB565 at 320×240.
 
-After tapping **Voice command**, wait for **Stop recording** and the listening
-message before speaking. The button shows **Preparing mic** during capture
+Tap **New Codex message** (or **Message to agent** after selecting an avatar)
+and wait for **Recording message** before speaking. This tap-to-talk flow sends
+free-form speech to Codex; the wake-word flow listens for local device commands. The button shows **Preparing mic** during capture
 preparation and **Sending voice** while transcription runs. Successful submission briefly
 shows `Sent:` followed by the recognized text. Serial diagnostics report voice
 stages, recording duration, and HTTP result without printing the transcript.
@@ -63,13 +64,16 @@ Quota cards and bars show what remains: `100 - used_percent`. Unknown values sta
 
 ## Local wake and commands (0.5.0)
 
-Say **Hi ESP**, then one of these English phrases within six seconds:
+Say **Hi ESP** to open the on-screen phrase guide and amber **Command listening**
+control, then one of these English phrases within twelve seconds:
+
+![Host-rendered command guide](commands-preview.png)
 
 | Phrase | Action |
 |---|---|
 | start listening | Record a voice message to the bridge, targeting the selected agent if present |
-| go back | Return from agent detail to the overview |
-| show status | Show the overview and request a fresh bridge status |
+| go back | Return from agent detail or quota status to the agent overview |
+| show status | Show quota cards even while agents run, and request a fresh bridge status |
 | turn on the screen | Enable the backlight and resume the status stream |
 | turn off the screen | Disable the backlight and pause the stream |
 
@@ -78,15 +82,20 @@ Wi-Fi and the configured bridge/transcription service. A wake re-enables a dark
 screen. Explicit screen-off stays off until touch or wake; idle sleep retains
 its existing automatic wake policy. Voice work prevents explicit screen-off.
 WakeNet/MultiNet recognition is suspended during voice capture/submission;
-tap the record button to stop early.
+tap the record button to stop early. Tapping to talk while the command guide is
+open takes priority and starts a Codex message. Audio meters in both listening
+modes respond to microphone volume rather than a decorative animation. Agent
+avatars do not draw over the guide or recording panel. Tap quota cards or say
+**go back** to leave the status view; fresh agent updates keep that view open.
 
 The device-tested speech PoC supplies `wn10_hiesp`, English MultiNet7 and
 `vadnet1_medium`, with its ESP-DL convolution kernel selection. VAD receives
 16 kHz mono audio with 128 ms minimum speech, 1000 ms minimum silence and
 128 ms delay. All continuous AFE frames reach recognition; VAD does not gate
 or clip prefixes. AEC, NS and AGC remain disabled. Recording ends after the
-VAD silence debounce plus another second, or at nine seconds; a recording
-with no detected speech is discarded after six seconds. Audio only goes to
+VAD silence debounce plus four more seconds (approximately five seconds of
+silence), or at thirty seconds; a recording with no detected speech is discarded
+after ten seconds. Speaking again during the silence grace period resets it. Audio only goes to
 the bridge after a tap or recognized start-listening command.
 
 Build/host-test evidence and combined hardware checks are tracked in
@@ -132,8 +141,9 @@ remaining command/recording/speaker checks.
 
 ![Actual monitor display](../../docs/images/codex-monitor-screen.png)
 
-This 320 × 240 image was captured from the board's LCD memory, with live status
-at capture time. It is also shown on the GitHub Pages flasher. To capture another
+This 320 × 240 image was refreshed on 2026-10-04 from the flashed board's LCD
+memory, with live status at capture time. The [device record](../../test/hardware/codex-monitor-voice-ui-2026-10-04.md)
+includes upload verification, serial evidence and the remaining interaction checks. It is also shown on the GitHub Pages flasher. To capture another
 image after flashing this monitor build, close other serial terminals and run:
 
 ```sh
