@@ -214,3 +214,58 @@ On 2026-09-29, `pio run -e codex-monitor` passed, and PlatformIO uploaded the la
 ## Next device check
 
 Check touch selection, voice-button capture and mock WAV receipt, BLE volume/timeout writes, wake-on-touch, and audible speaker output with a connected speaker. Then configure the real bridge LAN endpoint and inspect live Codex thread visibility. The real voice transcription service remains intentionally unconfigured.
+
+
+## WakeNet10 / VADNet / MultiNet integration (2026-10-03, build evidence)
+
+Monitor 0.5.0 reuses the device-tested `speech-diag` models and convolution
+kernel selection. “Hi ESP” opens a six-second command window for “start
+listening”, “go back”, “show status”, “turn on the screen” and “turn off the
+screen”. Local commands need no transcription service. The continuous AFE
+feeds recognition and the voice recording buffer; VAD ends a recording after
+its one-second silence debounce plus another second, with six seconds to start
+speaking and a nine-second hard limit. Silence-only captures are discarded.
+Recognition pauses during recording/submission and around attention tones.
+Tap-to-stop remains available; speech never authorizes Codex approvals.
+
+The monitor retains PlatformIO 7.0.1 and uses Arduino 3.3.12 as an IDF 5.5.5
+component with its matching pinned GCC 14 compiler. Other Arduino apps retain
+Arduino 2.0.17; speech/recorder retain IDF 6.0.1. Separate dependency locks avoid
+mixing those component graphs. The monitor now uses a speech app/model layout with the Arduino NVS boundary,
+which replaces the previous monitor's OTA/FATFS layout on upload. Both CLI and
+browser image sets include the model partition. See the app README before
+flashing; no upload or flash erase was performed for this integration.
+
+Validation: `pio run -e codex-monitor` passed; its model image is 3,518,070 bytes
+and contains `wn10_hiesp`, `vadnet1_medium`, `mn7_en` and the command FST. ELF
+inspection confirmed the required unbiased WakeNet convolution kernel, USB
+HWCDC serial and the legacy I²S implementation without the conflicting new
+I²S entry point. `pio run -e speech-diag -e recorder -e audio-diag` also passed. All 18
+native tests, the browser-package host test and 48 bridge regression tests
+passed. An actual monitor-only browser package was generated
+locally with bootloader, partition table, app and model images at the configured
+offsets, without `boot_app0`.
+
+Combined device behavior remains **UNKNOWN**. Before marking it device-ready,
+check wake/command recognition, wake from screen-off, touch response, BLE
+settings and saved Wi-Fi, SSE updates while recognizing speech, VAD recording
+termination and bridge submission, attention-tone microphone recovery, heap
+stability and inference time against each 32 ms frame. The firmware reports
+VAD transitions, AFE frame counts, inference maxima and heap/PSRAM at 115200.
+
+Secure monitor Wi-Fi provisioning and browser preservation (build verification):
+- Monitor now reuses Security 1 + a fresh on-screen PoP in a separate setup boot.
+- Hold the Wi-Fi status indicator for three seconds to request setup; no saved
+  credentials opens setup automatically. Normal monitor BLE is not active then.
+- Browser manifests request the erase choice instead of ESP Web Tools' implicit
+  full erase; leave it unchecked. Monitor NVS matches the Arduino 20 KiB boundary.
+- Physical update preservation, wrong-code rejection, provisioning/restart and
+  cancellation checks: UNKNOWN until tested on the board.
+
+On 2026-10-03 the user authorized a monitor upload. PlatformIO verified all image
+hashes, and 115200-baud serial confirmed saved Wi-Fi reconnection, BLE advertising,
+all three speech models ready, continuous AFE frames and the live Codex SSE stream.
+Two hardware-only allocation failures were fixed by reserving the monitor feed
+stack statically and allocating microphone DMA before speech models. The
+[hardware record](../test/hardware/codex-monitor-speech-2026-10-03.md) includes
+sanitized evidence and the remaining physical checks; internal heap is tight.

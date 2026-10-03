@@ -1,11 +1,18 @@
 #include "audio_frontend.hpp"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#ifndef FNK_SPEECH_EXTERNAL_MICROPHONE
 #include "fnk0104b/idf_microphone.hpp"
+#endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-bool AudioFrontEnd::begin(srmodel_list_t* models, char* vad_model) {
+bool AudioFrontEnd::begin(srmodel_list_t* models, char* vad_model, ReadAudio read_audio) {
+#ifndef FNK_SPEECH_EXTERNAL_MICROPHONE
+  if (!read_audio) read_audio = fnk0104b::readIdfMicrophone;
+#endif
+  if (!read_audio) return false;
+  read_audio_ = read_audio;
   if (!models || !vad_model) return false;
   afe_config_t* config = afe_config_init("M", models, AFE_TYPE_SR, AFE_MODE_HIGH_PERF);
   if (!config) return false;
@@ -36,12 +43,21 @@ bool AudioFrontEnd::begin(srmodel_list_t* models, char* vad_model) {
   if (!feed_buffer_) return false;
   ESP_LOGI("speech-afe", "vadnet=%s aec=off ns=off agc=off channels=1 feed_samples=%d fetch_samples=%d",
            vad_model, feed_samples_, fetchSamples());
-  return xTaskCreatePinnedToCore(feedTask, "speech-feed", 4096, this, 5, nullptr, 0) == pdPASS;
+#ifdef FNK_SPEECH_EXTERNAL_MICROPHONE
+  const bool started = xTaskCreateStaticPinnedToCore(feedTask, "speech-feed", sizeof(feed_task_stack_),
+      this, 5, feed_task_stack_, &feed_task_control_, 0) != nullptr;
+#else
+  const bool started = xTaskCreatePinnedToCore(feedTask, "speech-feed", 4096, this, 5, nullptr, 0) == pdPASS;
+#endif
+  if (!started) ESP_LOGE("speech-afe", "feed task allocation failed: internal_free=%u largest=%u",
+      static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)),
+      static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)));
+  return started;
 }
 void AudioFrontEnd::feedTask(void* context) {
   auto* self = static_cast<AudioFrontEnd*>(context);
   while (true) {
-    const esp_err_t err = fnk0104b::readIdfMicrophone(self->feed_buffer_, self->feed_samples_);
+    const esp_err_t err = self->read_audio_(self->feed_buffer_, self->feed_samples_);
     if (err != ESP_OK) {
       self->error_.store(err);
       vTaskDelete(nullptr);

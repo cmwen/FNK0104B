@@ -37,9 +37,10 @@ jobs:
       - name: Run host tests
         run: |
           pio test -e native
+          python -m unittest discover -s test/host
           python -m unittest discover -s monitor-server/tests
       - name: Build BLE setup page
-        run: npm ci --prefix web-flasher && npm run build --prefix web-flasher
+        run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
       - name: Package flasher and firmware
         run: python scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
       - name: Upload Pages artifact

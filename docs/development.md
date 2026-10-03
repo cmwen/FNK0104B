@@ -57,3 +57,17 @@ The browser flasher remains Arduino-only because this firmware has a different
 partition layout and image set. See [speech diagnostic](../apps/19-speech-diag/README.md)
 before upload. `hello-debug` now explicitly selects `esp-builtin`, matching the
 speech target. Breakpoint debugging remains unverified on physical hardware.
+
+
+## Speech-enabled monitor runtime
+
+`codex-monitor` uses Arduino-ESP32 3.3.12 as an ESP-IDF 5.5.5 component via the
+same pinned PlatformIO platform. This preserves its Arduino UI/network/BLE
+interfaces while linking the existing ESP-SR 2.5.5 PoC. GCC 14.2.0+20260121 and
+`dependencies.monitor.lock` pin its separate runtime. The other IDF apps use
+`dependencies.lock` and the platform's IDF 6.0.1 / GCC 15 toolchain.
+`scripts/monitor_idf_compat.py` redirects the platform's two linker-preprocessor
+actions to the repository helper and supplies IDF text-asset embedding actions;
+it does not modify downloaded packages. The CI build script still builds the
+named environments, and CI also checks the browser monitor image package.
+The monitor's app README documents the partition change before any upload.

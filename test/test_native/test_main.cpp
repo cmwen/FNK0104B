@@ -8,6 +8,7 @@
 #include <ui/avatar_assets.hpp>
 #include <ui/idle_timer.hpp>
 #include <recorder/ogg.hpp>
+#include "../../lib/speech/src/voice_capture_gate.hpp"
 
 void test_sse_fragmented_status_comments_and_unknown_events() {
   locallink::StatusEventParser<256> parser;
@@ -268,8 +269,26 @@ void test_recorder_gate_silence_grace_reset_and_limit() {
   TEST_ASSERT_TRUE(gate.feed(true, 1));
 }
 
+void test_monitor_voice_capture_gate() {
+  speech::VoiceCaptureGate quiet;
+  TEST_ASSERT_FALSE(quiet.feed(false, 95999));
+  TEST_ASSERT_TRUE(quiet.feed(false, 1));
+  TEST_ASSERT_FALSE(quiet.voiced());
+  speech::VoiceCaptureGate resumed;
+  TEST_ASSERT_FALSE(resumed.feed(true, 512));
+  TEST_ASSERT_FALSE(resumed.feed(false, 15999));
+  TEST_ASSERT_FALSE(resumed.feed(true, 512));
+  TEST_ASSERT_FALSE(resumed.feed(false, 15999));
+  TEST_ASSERT_TRUE(resumed.feed(false, 1));
+  TEST_ASSERT_TRUE(resumed.voiced());
+  speech::VoiceCaptureGate limit;
+  TEST_ASSERT_FALSE(limit.feed(true, 143999));
+  TEST_ASSERT_TRUE(limit.feed(true, 1));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_monitor_voice_capture_gate);
   RUN_TEST(test_recorder_ogg_boundaries_and_corruption);
   RUN_TEST(test_recorder_gate_silence_grace_reset_and_limit);
   RUN_TEST(test_sse_fragmented_status_comments_and_unknown_events);

@@ -70,7 +70,7 @@
         </div>
         <div id="flash-status" class="flash-status" role="status" aria-live="polite" hidden></div>
 
-        <p class="data-note"><span aria-hidden="true">ⓘ</span> Installing firmware writes the board’s boot and application data. Keep the USB cable connected during installation.</p>
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> Leave “Erase device” unchecked to keep saved Wi-Fi and monitor settings when updating compatible firmware. Checking it deletes all saved settings. The speech monitor replaces OTA/FATFS storage with speech models. Keep USB connected during installation.</p>
       </section>
 
       <section id="recorder-preview" class="firmware-preview" aria-labelledby="recorder-preview-heading">
@@ -124,7 +124,7 @@
         <p class="eyebrow">For monitor firmware</p>
         <h2 id="monitor-heading">Monitor settings</h2>
         <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume and idle screen timeout. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. Values are saved on the board and persist across reboots.</p>
-        <p class="setup-limit">These controls configure alert volume and idle timeout. Monitor bridge host/key and speech service are configured separately in the local firmware and bridge.</p>
+        <p class="setup-limit">These controls are unauthenticated: a nearby Bluetooth client can change volume and timeout. They do not accept Wi-Fi credentials. Use the protected Wi-Fi setup section below for passwords. Monitor bridge host/key are configured separately.</p>
         <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
         <div class="ble-fields">
           <button id="monitor-connect" class="cta" type="button">Connect to monitor</button>
@@ -140,9 +140,9 @@
       </section>
 
       <section class="installer ble-setup" aria-labelledby="ble-heading">
-        <p class="eyebrow">After installing Wi-Fi over BLE firmware</p>
+        <p class="eyebrow">For the monitor or Wi-Fi over BLE firmware</p>
         <h2 id="ble-heading">Set up Wi-Fi</h2>
-        <p class="ble-intro">First use <a href="#flash">Flash firmware</a> to install <strong>Wi-Fi over BLE</strong>. Read the 12-character setup code on the board's screen, then connect from this page.</p>
+        <p class="ble-intro">The monitor opens setup when no Wi-Fi is saved. To change networks, hold its Wi-Fi indicator for three seconds. Read the 12-character code on the board, then connect below. The standalone <strong>Wi-Fi over BLE</strong> firmware also works.</p>
         <div id="ble-support" class="notice" role="status"></div>
         <div class="ble-fields">
           <label for="ble-pop">Code shown on board</label>
@@ -157,7 +157,7 @@
           <button id="ble-send" class="cta" type="submit" disabled>Save Wi-Fi on board</button>
         </form>
         <div id="ble-status" class="flash-status" role="status" aria-live="polite" hidden></div>
-        <p class="data-note"><span aria-hidden="true">ⓘ</span> The setup code protects the Bluetooth session. Your Wi-Fi password is sent directly to the board and is not saved by this page. Once connected, install the firmware you want to use.</p>
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> Check that this is the trusted HTTPS setup page. The device name alone does not prove identity. Enter the code from your own board and wait for “Connected securely” before entering a password. The code authenticates an encrypted provisioning session; this page does not save your password. The monitor returns automatically after setup.</p>
       </section>
 
       <section class="installer ble-setup" aria-labelledby="server-heading">

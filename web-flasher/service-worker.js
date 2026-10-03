@@ -1,4 +1,4 @@
-const CACHE_NAME = "fnk0104b-flasher-shell-v6";
+const CACHE_NAME = "fnk0104b-flasher-shell-v7";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./navigation.js", "./app.js", "./ble-client.bundle.js", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./docs/images/recorder-ui.png"];
 
 self.addEventListener("install", event => {

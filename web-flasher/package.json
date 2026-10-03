@@ -2,7 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild ble-client.js --bundle --format=esm --platform=browser --target=es2022 --outfile=ble-client.bundle.js"
+    "build": "esbuild ble-client.js --bundle --format=esm --platform=browser --target=es2022 --outfile=ble-client.bundle.js",
+    "test": "node --test test/*.test.cjs"
   },
   "dependencies": {
     "esp-ble-prov": "2.0.1"

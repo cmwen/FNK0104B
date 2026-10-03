@@ -65,6 +65,7 @@ using MicrophonePeakCallback = void (*)(int32_t peak, void* context);
 
 class MicrophoneSupport {
  public:
+  bool begin();  // Verified FNK0104B wiring; explicit configs remain available.
   bool begin(const MicrophoneConfig& config);
   bool capture(int16_t* samples, size_t requested_samples,
                size_t& captured_samples, uint32_t timeout_ms,

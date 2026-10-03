@@ -5,6 +5,7 @@
 #include <esp_intr_alloc.h>
 
 #include "fnk0104b/board.hpp"
+#include "fnk0104b/pins.hpp"
 
 namespace fnk0104b {
 namespace {
@@ -72,6 +73,12 @@ bool initializeEs8311(uint8_t address) {
 }  // namespace
 
 MicrophoneSupport microphone;
+
+bool MicrophoneSupport::begin() {
+  using namespace pins::audio;
+  return begin({i2s_master_clock, i2s_bit_clock, i2s_word_select, i2s_data_out,
+                i2s_data_in, i2c_sda, i2c_scl, codec_i2c_address});
+}
 
 bool MicrophoneSupport::begin(const MicrophoneConfig& config) {
   end();

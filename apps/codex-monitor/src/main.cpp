@@ -15,6 +15,8 @@
 #include <ui/avatar_assets.hpp>
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
+#include "monitor_speech.hpp"
+#include "monitor_wifi_setup.hpp"
 
 #include <atomic>
 #include <errno.h>
@@ -71,7 +73,10 @@ std::atomic<uint16_t> screenTimeoutMinutes{kScreenTimeoutDefault};
 ui::IdleTimer idleTimer;
 uint32_t lastAvatarFrame = 0;
 bool screenAwake = true, previousTouch = false;
+bool screenManuallyOff = false;
 bool bleConnected = false;
+bool wifiSetupMode = false;
+uint32_t wifiHoldStarted = 0;
 std::atomic<bool> recording{false};
 std::atomic<bool> voiceBusy{false};
 std::atomic<bool> voicePreparing{false};
@@ -80,6 +85,7 @@ std::atomic<bool> statusPaused{false};
 std::atomic<bool> refreshOnWake{false};
 bool previousMessageVisible = false;
 bool previousWifiConnected = false;
+bool previousSpeechReady = false;
 std::atomic<bool> pendingAttentionTone{false};
 uint32_t previousAttentionIds[50] = {};
 uint8_t previousAttentionCount = 0;
@@ -97,6 +103,7 @@ ui::avatar::Canvas avatarCanvas;
 uint16_t avatarScaled[96 * 96];
 BLECharacteristic* settingsCharacteristic = nullptr;
 SemaphoreHandle_t peripheralMutex = nullptr;
+SemaphoreHandle_t audioMutex = nullptr;
 SemaphoreHandle_t streamMutex = nullptr;
 int statusSocket = -1;  // Guarded by streamMutex; only the worker closes it.
 
@@ -242,9 +249,10 @@ void drawScreen() {
   const bool showingSelected = selectedAgent[0] != '\0';
   d.setTextColor(kMuted, kBg);
   if (messageVisible) d.drawString(shortText(message, 48), 10, 45, 1);
-  else if (snapshot.count) d.drawString(showingSelected ? "AGENT DETAIL / QUOTA LEFT" : "ACTIVE AGENTS / QUOTA LEFT", 10, 45, 1);
+  else if (snapshot.count) d.drawString(showingSelected ? "AGENT DETAIL / QUOTA LEFT" : (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "ACTIVE AGENTS / QUOTA LEFT"), 10, 45, 1);
   else d.drawString(!strcmp(snapshot.integration, "connected") ?
-      "QUOTA LEFT" : "BRIDGE UNAVAILABLE", 10, 45, 1);
+      (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "QUOTA LEFT") :
+      (monitor_speech::ready() ? "HI ESP: COMMANDS / BRIDGE OFFLINE" : "BRIDGE UNAVAILABLE"), 10, 45, 1);
   if (snapshot.count == 0) {
     ui::monitor::quotaCard(d, 6, "5H left", ui::monitor::remaining(snapshot.five_hour.used), false);
     ui::monitor::quotaCard(d, 164, "Week left", ui::monitor::remaining(snapshot.weekly.used), true);
@@ -296,8 +304,8 @@ void publishSettings() {
 
 class SettingsCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
-    const std::string raw = characteristic->getValue();
-    if (raw.size() != 4 || static_cast<uint8_t>(raw[0]) != 1) return;
+    const auto raw = characteristic->getValue();
+    if (raw.length() != 4 || static_cast<uint8_t>(raw[0]) != 1) return;
     const uint8_t volume = static_cast<uint8_t>(raw[1]);
     const uint16_t timeout = static_cast<uint8_t>(raw[2]) |
                              (static_cast<uint16_t>(static_cast<uint8_t>(raw[3])) << 8);
@@ -555,9 +563,12 @@ void refreshSelectedAgent() {
 }
 
 void playPendingAttentionTone() {
-  if (!pendingAttentionTone || voiceBusy.load() || !peripheralMutex) return;
+  if (!pendingAttentionTone || voiceBusy.load() || !peripheralMutex || !audioMutex) return;
   pendingAttentionTone = false;
+  monitor_speech::quietFor(1500);
+  xSemaphoreTake(audioMutex, portMAX_DELAY);
   xSemaphoreTake(peripheralMutex, portMAX_DELAY);
+  fnk0104b::microphone.end();
   if (fnk0104b::speaker.begin()) {
     fnk0104b::speaker.setVolume(volumePercent);
     fnk0104b::speaker.setTone(880);
@@ -569,9 +580,8 @@ void playPendingAttentionTone() {
     Serial.println("monitor_attention_tone unavailable");
   }
   xSemaphoreGive(peripheralMutex);
+  xSemaphoreGive(audioMutex);
 }
-
-bool captureStop(void*) { return stopCapture.load(std::memory_order_relaxed); }
 
 void voiceWorker(void*) {
   int16_t* pcm = nullptr;
@@ -583,42 +593,21 @@ void voiceWorker(void*) {
       recording = false; voiceBusy = false; uiDirty = true;
       setMessage("Bridge unavailable"); continue;
     }
-    if (peripheralMutex) xSemaphoreTake(peripheralMutex, portMAX_DELAY);
-    if (fnk0104b::speaker.ready()) fnk0104b::speaker.end();
-    const bool micReady = fnk0104b::microphone.begin(fnk0104b::MicrophoneConfig{
-        fnk0104b::pins::audio::i2s_master_clock, fnk0104b::pins::audio::i2s_bit_clock,
-        fnk0104b::pins::audio::i2s_word_select, fnk0104b::pins::audio::i2s_data_out,
-        fnk0104b::pins::audio::i2s_data_in, fnk0104b::pins::audio::i2c_sda,
-        fnk0104b::pins::audio::i2c_scl, fnk0104b::pins::audio::codec_i2c_address});
-    if (micReady) {
-      voicePreparing = false;
-      recording.store(true);
-      Serial.println("monitor_voice state=recording");
-      uiDirty = true;
-    }
-    if (peripheralMutex) xSemaphoreGive(peripheralMutex);
-    if (!micReady) {
-      voicePreparing = false;
-      Serial.println("monitor_voice state=error reason=microphone_unavailable");
-      recording = false; voiceBusy = false; uiDirty = true;
-      setMessage("Microphone unavailable"); continue;
-    }
+    voicePreparing = false;
+    recording = true;
+    uiDirty = true;
     setMessage("Listening: tap to stop", 12000);
+    Serial.println("monitor_voice state=recording source=vadnet");
     pcm = static_cast<int16_t*>(ps_malloc(kRecordSamples * sizeof(int16_t)));
-    if (!pcm) pcm = static_cast<int16_t*>(malloc(kRecordSamples * sizeof(int16_t)));
     size_t captured = 0;
-    bool ok = pcm && fnk0104b::microphone.capture(pcm, kRecordSamples, captured, kRecordSeconds * 1000 + 600,
-                                                   captureStop, nullptr);
-    if (peripheralMutex) xSemaphoreTake(peripheralMutex, portMAX_DELAY);
-    fnk0104b::microphone.end();
-    if (peripheralMutex) xSemaphoreGive(peripheralMutex);
+    bool ok = pcm && monitor_speech::capture(pcm, kRecordSamples, captured, stopCapture);
     recording = false;
     Serial.printf("monitor_voice state=captured samples=%u duration_ms=%u\n",
                   static_cast<unsigned>(captured), static_cast<unsigned>(captured * 1000 / kSampleRate));
     uiDirty = true;
     if (!ok || captured == 0) {
       free(pcm); pcm = nullptr; voiceBusy = false; uiDirty = true;
-      setMessage("Recording failed"); continue;
+      setMessage("No speech captured"); continue;
     }
     const size_t pcmBytes = captured * sizeof(int16_t);
     wav = static_cast<uint8_t*>(ps_malloc(pcmBytes + 44));
@@ -668,7 +657,7 @@ void voiceWorker(void*) {
 }
 
 void beginVoice() {
-  if (!voiceTask || !peripheralMutex || WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
+  if (!voiceTask || !peripheralMutex || !monitor_speech::ready() || WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
     setMessage("Check Wi-Fi and bridge"); return;
   }
   if (voiceBusy.load()) {
@@ -686,6 +675,44 @@ void beginVoice() {
   xTaskNotifyGive(voiceTask);
 }
 
+void speechLoop() {
+  monitor_speech::Event event;
+  while (monitor_speech::poll(event)) {
+    using Event = monitor_speech::Event;
+    if (event == Event::Error) { setMessage("Speech unavailable", 10000); continue; }
+    if (event == Event::Timeout) { setMessage("Say Hi ESP to try again"); continue; }
+    idleTimer.activity(millis());
+    if (event == Event::ScreenOff) {
+      if (recording || voiceBusy) { setMessage("Finish voice first"); continue; }
+      screenAwake = false;
+      screenManuallyOff = true;
+      if (streamMutex) pauseStatus();
+      fnk0104b::display.setBacklight(false);
+      Serial.println("monitor_sleep state=quiet reason=voice");
+      continue;
+    }
+    if (!screenAwake) {
+      markOffline();
+      screenAwake = true;
+      screenManuallyOff = false;
+      fnk0104b::display.setBacklight(true);
+      resumeStatus();
+    }
+    switch (event) {
+      case Event::Wake: setMessage("Say a command", 6000); break;
+      case Event::StartListening: beginVoice(); break;
+      case Event::GoBack: selectedAgent[0] = '\0'; setMessage("Showing overview"); break;
+      case Event::ShowStatus:
+        selectedAgent[0] = '\0';
+        if (streamMutex) pauseStatus();
+        resumeStatus(); setMessage("Refreshing status"); break;
+      case Event::ScreenOn: setMessage("Screen on"); break;
+      default: break;
+    }
+    uiDirty = true;
+  }
+}
+
 void touchLoop() {
   // Codec setup may hold the shared I2C bus; keep drawing while it does.
   if (peripheralMutex && xSemaphoreTake(peripheralMutex, 0) != pdTRUE) return;
@@ -698,12 +725,17 @@ void touchLoop() {
       // Do not show cached quotas as current after an unattended interval.
       markOffline();
       screenAwake = true;
+      screenManuallyOff = false;
       setMessage("Refreshing status", 6000);
       fnk0104b::display.setBacklight(true);
       resumeStatus();
       Serial.println("monitor_sleep state=awake reason=touch");
       drawScreen(); previousTouch = true; return;
     }
+    if (touchPoint.x >= 4 && touchPoint.x <= 80 && touchPoint.y >= 4 && touchPoint.y <= 40) {
+      if (!wifiHoldStarted) wifiHoldStarted = millis();
+      if (millis() - wifiHoldStarted >= 3000 && !voiceBusy.load()) monitor_wifi_setup::request();
+    } else wifiHoldStarted = 0;
     if (previousTouch) return;
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
@@ -727,6 +759,7 @@ void touchLoop() {
       }
     }
   }
+  if (!touchPoint.pressed) wifiHoldStarted = 0;
   previousTouch = touchPoint.pressed;
 }
 
@@ -734,10 +767,11 @@ void touchLoop() {
 
 void setup() {
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.4.0");
+  fnk0104b::board.printStartupInfo("codex-monitor", "0.5.0");
   fnk0104b::display.begin(1);
   fnk0104b::touch.begin();
   peripheralMutex = xSemaphoreCreateMutex();
+  audioMutex = xSemaphoreCreateMutex();
   streamMutex = xSemaphoreCreateMutex();
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
@@ -747,6 +781,10 @@ void setup() {
   screenTimeoutMinutes = preferences.getUShort("timeout", kScreenTimeoutDefault);
   if (screenTimeoutMinutes < 1 || screenTimeoutMinutes > 120) screenTimeoutMinutes = kScreenTimeoutDefault;
   idleTimer.activity(millis());
+  const uint8_t wifiSetupRequest = preferences.getUChar("wifiSetup", 0);
+  if (wifiSetupRequest) preferences.remove("wifiSetup");
+  wifiSetupMode = monitor_wifi_setup::begin(wifiSetupRequest == 1, wifiSetupRequest == 2);
+  if (wifiSetupMode) return;
   WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true); WiFi.begin();
   startBle();
   if (xTaskCreatePinnedToCore(voiceWorker, "monitor-voice", 8192, nullptr, 1, &voiceTask, 1) != pdPASS) {
@@ -756,11 +794,19 @@ void setup() {
     statusTask = nullptr;
     setMessage("Status stream unavailable", 10000);
   }
+  if (!monitor_speech::begin(peripheralMutex, audioMutex, &voiceBusy))
+    setMessage("Speech worker unavailable", 10000);
   setMessage(MONITOR_SERVER_HOST[0] ? "Connecting to bridge" : "Set monitor server host", 6000);
   drawScreen();
 }
 
 void loop() {
+  if (wifiSetupMode) { monitor_wifi_setup::loop(); return; }
+  speechLoop();
+  if (previousSpeechReady != monitor_speech::ready()) {
+    previousSpeechReady = monitor_speech::ready();
+    uiDirty = true;
+  }
   touchLoop();
   refreshSelectedAgent();
   playPendingAttentionTone();
@@ -785,9 +831,9 @@ void loop() {
   activeAgents = status.total_agents;
   portEXIT_CRITICAL(&statusMux);
   // Pending input/error agents and voice work also keep the monitor visible.
-  const bool busy = activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
+  const bool busy = monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);
-  if (busy && !screenAwake) {
+  if (busy && !screenAwake && !screenManuallyOff) {
     screenAwake = true;
     fnk0104b::display.setBacklight(true);
     resumeStatus();

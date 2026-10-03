@@ -1,0 +1,70 @@
+import csv
+import configparser
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts/package_web_firmware.py"
+spec = importlib.util.spec_from_file_location("firmware_package", SCRIPT)
+package = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(package)
+
+
+class MonitorPackageTest(unittest.TestCase):
+    def test_monitor_preserves_arduino_nvs_boundary(self):
+        root = SCRIPT.parents[1]
+        config = configparser.ConfigParser(interpolation=None)
+        config.read(root / "platformio.ini")
+        path = root / config["env:codex-monitor"]["board_build.partitions"]
+        rows = list(csv.reader(line for line in path.read_text().splitlines()
+                               if line and not line.startswith("#")))
+        nvs = next(row for row in rows if row[0] == "nvs")
+        # Match the existing Arduino app3M_fat9M_16MB NVS region, not the
+        # larger diagnostic NVS which absorbs Arduino's old OTA data sector.
+        self.assertEqual((0x9000, 0x5000), (int(nvs[3], 0), int(nvs[4], 0)))
+        app_offset, _, model_offset, _ = package.monitor_partitions()
+        self.assertGreaterEqual(app_offset, 0x9000 + 0x5000)
+        self.assertGreaterEqual(model_offset, app_offset)
+
+    def test_models_and_offsets_follow_partition_csv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            site = root / "site"
+            site.mkdir()
+            (site / "ble-client.bundle.js").write_text("test")
+            (root / "docs/images").mkdir(parents=True)
+            (root / "platformio.ini").write_text(
+                "[env:codex-monitor]\nboard_build.partitions = partitions.csv\n")
+            (root / "partitions.csv").write_text(
+                "factory,app,factory,0x10000,0x600000\nmodel,data,spiffs,0x710000,0x8f0000\n")
+            build = root / "build"
+            for name in ("bootloader.bin", "partitions.bin", "firmware.bin", "srmodels/srmodels.bin"):
+                image = build / "codex-monitor" / name
+                image.parent.mkdir(parents=True, exist_ok=True)
+                image.write_bytes(b"test")
+            core = root / "core"
+            boot_app = core / "packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+            boot_app.parent.mkdir(parents=True)
+            boot_app.write_bytes(b"arduino")
+            output = root / "output"
+            with patch.object(package, "ROOT", root), patch.object(package, "SITE", site), \
+                 patch.object(package, "BUILD", build), \
+                 patch.object(package, "firmware_environments", return_value=["codex-monitor"]), \
+                 patch.dict(package.os.environ, {"PLATFORMIO_CORE_DIR": str(core)}):
+                self.assertEqual(1, package.package(output, "test"))
+                manifest = json.loads((output / "firmware/codex-monitor/manifest.json").read_text())
+                self.assertTrue(manifest["new_install_prompt_erase"])
+                parts = manifest["builds"][0]["parts"]
+                self.assertEqual([0, 0x8000, 0x10000, 0x710000], [part["offset"] for part in parts])
+                self.assertNotIn("boot_app0.bin", [part["path"] for part in parts])
+                self.assertEqual(b"test", (output / "firmware/codex-monitor/srmodels/srmodels.bin").read_bytes())
+                (build / "codex-monitor/srmodels/srmodels.bin").unlink()
+                with self.assertRaises(FileNotFoundError):
+                    package.package(output, "test")
+
+
+if __name__ == "__main__":
+    unittest.main()

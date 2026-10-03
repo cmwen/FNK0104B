@@ -14,6 +14,8 @@ const status = document.querySelector("#ble-status");
 
 let provisioner = null;
 let busy = false;
+let wifiConfirmed = false;
+let secureSession = false;
 
 function showStatus(message, error = false) {
   status.hidden = false;
@@ -48,6 +50,9 @@ connectButton.addEventListener("click", async () => {
     return;
   }
   busy = true;
+  wifiConfirmed = false;
+  secureSession = false;
+  passwordInput.value = "";
   connectButton.disabled = true;
   setConnected(false);
   showStatus("Choose FNK0104B-SETUP in the Bluetooth device picker…");
@@ -59,8 +64,17 @@ connectButton.addEventListener("click", async () => {
       security: new Security1({ pop }),
     });
     await provisioner.connect();
+    const connectedProvisioner = provisioner;
+    connectedProvisioner.device?.addEventListener("gattserverdisconnected", () => {
+      if (provisioner !== connectedProvisioner) return;
+      secureSession = false;
+      setConnected(false);
+      passwordInput.value = "";
+      if (!busy && !wifiConfirmed) showStatus("Disconnected. Connect again using the board's current code.", true);
+    });
     showStatus("Securing the Bluetooth connection…");
     await provisioner.establishSession();
+    secureSession = true;
     setConnected(true);
     showStatus("Connected securely. Enter your 2.4 GHz Wi-Fi details.");
     ssidInput.focus();
@@ -77,7 +91,7 @@ connectButton.addEventListener("click", async () => {
 
 wifiForm.addEventListener("submit", async event => {
   event.preventDefault();
-  if (busy || !provisioner?.isConnected) {
+  if (busy || wifiConfirmed || !secureSession || !provisioner?.isConnected) {
     showStatus("Connect to the board over Bluetooth first.", true);
     return;
   }
@@ -92,15 +106,17 @@ wifiForm.addEventListener("submit", async event => {
   showStatus("Sending Wi-Fi details and waiting for the board to connect…");
   try {
     await provisioner.sendCredentials({ ssid, passphrase }, 60000);
+    wifiConfirmed = true;
     passwordInput.value = "";
+    popInput.value = "";
     setConnected(false);
-    showStatus("Wi-Fi connected and saved on the board. Install your chosen firmware next.");
+    showStatus("Wi-Fi connected and saved. The monitor restarts automatically; standalone setup firmware can now be replaced (leave Erase device unchecked).");
   } catch (error) {
     passwordInput.value = "";
     showStatus(`Could not confirm Wi-Fi connection: ${error instanceof Error ? error.message : String(error)} Check the board's screen.`, true);
   } finally {
     busy = false;
-    sendButton.disabled = !provisioner?.isConnected;
+    sendButton.disabled = wifiConfirmed || !provisioner?.isConnected;
   }
 });
 
