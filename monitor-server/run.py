@@ -8,6 +8,25 @@ import re
 import server
 
 
+def configure_dispatcher(environ, path):
+    """Load optional ignored local defaults; explicit environment values win."""
+    allowed = {"MONITOR_REPOSITORY_ROOT", "MONITOR_ROUTER_MODEL", "MONITOR_ROUTER_EFFORT",
+               "MONITOR_WORKER_MODEL", "MONITOR_REPOSITORY_SCAN_DEPTH"}
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, separator, value = line.partition("=")
+        if not separator or name.strip() not in allowed:
+            raise ValueError("Invalid dispatcher setting in " + str(path))
+        value = value.strip()
+        if value.startswith('"'):
+            value = json.loads(value)
+        environ.setdefault(name.strip(), value)
+
+
 def configure(environ, config_path):
     """Read literal firmware defines without executing header contents."""
     source = config_path.read_text() if config_path.exists() else ""
@@ -25,6 +44,7 @@ def configure(environ, config_path):
 
 
 if __name__ == "__main__":
+    configure_dispatcher(os.environ, Path(__file__).resolve().parents[1] / ".env.dispatcher")
     configure(os.environ, Path(__file__).resolve().parents[1] /
               "apps/codex-monitor/include/monitor_secrets.h")
     server.main()

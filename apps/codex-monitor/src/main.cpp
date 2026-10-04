@@ -28,6 +28,7 @@
 #include <memory>
 #include <new>
 #include <esp_timer.h>
+#include <esp_random.h>
 #include <esp_heap_caps.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -685,6 +686,10 @@ void voiceWorker(void*) {
     http.setTimeout(30000);
     if (http.begin(client, url)) {
       http.addHeader("Content-Type", "audio/wav");
+      char requestId[40];
+      snprintf(requestId, sizeof(requestId), "%08lx-%08lx-%08lx", static_cast<unsigned long>(esp_random()),
+               static_cast<unsigned long>(esp_random()), static_cast<unsigned long>(esp_random()));
+      http.addHeader("X-Request-ID", requestId);
       if (MONITOR_SERVER_TOKEN[0]) http.addHeader("X-Monitor-Key", MONITOR_SERVER_TOKEN);
       const int code = http.POST(wav, pcmBytes + 44);
       Serial.printf("monitor_voice state=response http=%d\n", code);
@@ -699,7 +704,11 @@ void voiceWorker(void*) {
           accepted = code >= 200 && code < 300 && result["ok"].is<bool>() && result["ok"].as<bool>();
           if (accepted) {
             const char* transcript = result["transcript"] | "";
-            snprintf(responseMessage, sizeof(responseMessage), "Sent: %.40s", transcript);
+            const char* action = result["action"] | "";
+            if (strcmp(action, "queued") == 0)
+              strlcpy(responseMessage, "Voice queued; follow dispatcher avatar", sizeof(responseMessage));
+            else
+              snprintf(responseMessage, sizeof(responseMessage), "Sent: %.40s", transcript);
           }
           JsonVariantConst error = result["error"];
           rejected = error.is<const char*>() || error.is<JsonObjectConst>();

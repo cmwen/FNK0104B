@@ -17,6 +17,57 @@ and idle timeout; it does not currently configure the bridge host/key.
 
 ## Run
 
+### Luna repository dispatcher
+
+Set `MONITOR_REPOSITORY_ROOT` to enable asynchronous dispatch. New text/voice
+commands are acknowledged immediately, then GPT-6 Luna selects a repository
+from the host's bounded Git catalog. The host validates that choice and starts
+the coding task with its original instruction in the selected repository.
+Explicit agent replies bypass repository classification. Ambiguous requests
+show a `needs_attention` dispatcher avatar; select it and answer by voice.
+
+```sh
+MONITOR_REPOSITORY_ROOT=/home/you/dev \
+MONITOR_ROUTER_MODEL=gpt-6-luna MONITOR_ROUTER_EFFORT=low \
+MONITOR_WORKER_MODEL=gpt-6.1-sol \
+TRANSCRIBE_URL=http://127.0.0.1:8790/v1/audio/transcriptions \
+TRANSCRIBE_MODE=multipart python3 monitor-server/run.py
+```
+
+For persistent local defaults, copy `monitor-server/dispatcher.env.example` to
+the repository root as `.env.dispatcher` and edit its paths. That file is ignored
+by Git and loaded by `run.py`, including the LocalLink startup wrapper. Explicit
+environment variables override local defaults. Remove the root setting (or set
+the environment value to empty) to use the original single-repository behavior.
+Without `MONITOR_WORKER_MODEL`, the worker inherits the Codex default model.
+The dispatcher model defaults to `gpt-6-luna`; unavailable models fail visibly.
+
+Discovery includes nested repositories and Git worktrees up to
+`MONITOR_REPOSITORY_SCAN_DEPTH` (default 3), excludes hidden/dependency/build
+directories and symlink directories, and stops at 100 repositories or 10,000
+directories. The catalog is refreshed on bridge restart. A root containing too
+many repositories must be narrowed. Repository descriptions are bounded README
+excerpts. The router runs in a temporary directory with a read-only sandbox and
+instructions to use only supplied catalog data; read-only does not disable tools.
+
+With dispatch enabled, POST returns `action: queued`, a `job_id`, the same ID in
+`agent_id`, and an empty `transcript` until transcription completes. This confirms
+acceptance, not execution success. Authenticated `GET /v1/jobs/<job_id>` returns
+`stage`, `text` (recognized transcript), `repository`, `worker_id`, and `detail`.
+Stages are `queued`, `transcribing`, `routing`, `dispatching`, `running`,
+`clarify`, `completed`, and `error`. Existing SSE status frames show dispatcher
+avatars, worker attention/approval states, and completed/error details for 60
+seconds. Dispatcher IDs can be targeted like agent IDs; the bridge resolves them
+to their worker thread or pending clarification. Voice never grants approvals.
+
+Text requests can provide `request_id`; voice can send `X-Request-ID`.
+Repeated IDs with identical input return the same job; different input is rejected.
+There are at most eight pending intake jobs and 128 retained jobs. State and
+idempotency records are in memory and disappear on restart/eviction. Do not
+automatically resend uncertain requests across bridge restarts. Tasks already
+started in Codex persist independently. Board firmware sends a new ID per voice
+submission; it does not automatically retry voice uploads.
+
 From the repository root:
 
 To use the same LAN address, port, and key as the device's ignored

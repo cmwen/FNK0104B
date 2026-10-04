@@ -1,5 +1,33 @@
 # Codex monitor readiness
 
+## Luna dispatcher implemented, 2026-10-04
+
+The bridge now queues new text/voice commands, uses GPT-6 Luna to select from
+an environment-configured repository root, validates the choice on the host and
+starts the coding task in that repository. Ambiguous commands receive a question;
+explicit existing-agent replies retain their thread. Dispatcher stages and brief
+completion results use the existing SSE avatar format. The running LocalLink
+service is configured for `/home/cmwen/dev` with 78 discovered repositories,
+Luna dispatch and GPT-6.1 Sol coding. All 60 host tests passed; real task and
+clarification dispatch completed. PlatformIO built/uploaded the board's queued
+acknowledgement and request-ID update with hash verification and unchanged
+partition boundaries. At 115200 baud, serial confirmed network reconnection and
+live dispatcher status after a normal USB reset. Current physical voice submission
+remains **UNKNOWN**. See the [implementation record](../test/hardware/codex-monitor-dispatcher-2026-10-04.md)
+for the initial AFE warning/recovery, evidence and remaining limits.
+
+## Local orchestrator research, 2026-10-04
+
+The [orchestrator feasibility record](local-orchestrator-research.md) includes
+real GPT-6 Luna structured routing and ambiguity probes, a repository-specific
+coding handoff, and a completed task through the running bridge's text endpoint.
+All 48 bridge tests passed. PlatformIO serial at 115200 confirmed live SSE agent
+count/quota updates on the attached board. No voice capture/upload was observed
+during this check. Production repository discovery/routing is not implemented;
+the current physical voice-to-routed-task path remains **UNKNOWN**. The record
+lists proposed environment settings, latency/clarification/retry gaps and the
+acceptance checks needed before declaring that path ready.
+
 Reviewed 2026-09-29. The integrated monitor has now been uploaded and exercised against a controllable LAN mock. This verifies board polling and status transitions; it does not establish live Codex agent visibility.
 
 ## SSE firmware uploaded, 2026-10-03

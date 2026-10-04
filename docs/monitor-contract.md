@@ -56,6 +56,17 @@ Touch-wake uses `/v1/events?refresh=1` for fresh agents and quotas.
 
 ## Voice commands
 
+When `MONITOR_REPOSITORY_ROOT` enables the Luna dispatcher, text and voice POSTs
+are asynchronous: success returns `action: queued`, `job_id`, that dispatcher ID
+as `agent_id`, and an initially empty `transcript`. The board displays a queued
+acknowledgement. Transcription, repository selection, worker attention and brief
+completion/error results appear as normal avatars through the existing SSE
+status shape. Select a clarification avatar to answer it; selected worker replies
+retain their repository. Authenticated `GET /v1/jobs/<job_id>` provides the full
+recognized text, stage, chosen repository and worker ID for diagnostics. Voice
+requests include `X-Request-ID`; repeated identical IDs reuse the in-memory job.
+See the [dispatcher configuration](../monitor-server/README.md#luna-repository-dispatcher).
+
 The board records at most a short mono 16-bit, 16 kHz WAV segment after the user taps **Voice command**. It shows microphone preparation before recording, then **Stop recording** when ready to listen. Tapping again stops early. It sends raw WAV bytes with `Content-Type: audio/wav` to `POST /v1/voice`. With no selected agent, no target is supplied and the bridge creates a Codex thread. When the user opens a `needs_attention` avatar, the request uses `?agent_id=<URL-encoded thread id>` so the bridge routes recognized speech to that thread. Successful submission briefly displays the recognized text. Status streaming runs in a separate task from touch and drawing; remaining quota stays visible in the header while avatars occupy the main panel. The UI shows `100 - used_percent` and labels it `left`; the HTTP contract continues to carry used percentages, with null values shown as unknown.
 
 The bridge accepts WAV bodies up to 10 MiB. It returns JSON with `ok`, `transcript`, `action`, `agent_id`, and `message`, or an `error` object. The host must have `TRANSCRIBE_URL` configured for voice; otherwise it returns `transcription_unconfigured` without starting work. `POST /v1/commands/text` with `{"text":"...","agent_id":"optional-thread-id"}` is a development fallback. The firmware does not print WAV data or transcripts over serial.

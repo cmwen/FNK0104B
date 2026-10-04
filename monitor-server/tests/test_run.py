@@ -8,6 +8,15 @@ import run
 
 
 class LauncherTests(unittest.TestCase):
+    def test_dispatcher_local_defaults_preserve_explicit_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = pathlib.Path(directory) / '.env.dispatcher'
+            config.write_text('MONITOR_REPOSITORY_ROOT=/tmp/projects\nMONITOR_ROUTER_MODEL=gpt-6-luna\n')
+            env = {'MONITOR_REPOSITORY_ROOT': '/tmp/override'}
+            run.configure_dispatcher(env, config)
+            self.assertEqual(env['MONITOR_REPOSITORY_ROOT'], '/tmp/override')
+            self.assertEqual(env['MONITOR_ROUTER_MODEL'], 'gpt-6-luna')
+
     def test_matches_device_and_preserves_environment_overrides(self):
         with tempfile.TemporaryDirectory() as directory:
             header = pathlib.Path(directory) / "monitor_secrets.h"

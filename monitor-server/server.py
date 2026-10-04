@@ -67,6 +67,9 @@ class AppServer:
         self.pending_approvals = {}
         self.pending_other = {}
         self.latest_messages = {}
+        self.result_threads = {}
+        self.turn_outcomes = {}
+        self.result_messages = {}
 
     def _connect(self):
         if self.initialized and not self.connection_lost.is_set():
@@ -296,6 +299,28 @@ class AppServer:
         params = message.get("params") or {}
         old_revision = self.status_revision
         old_limits = self.rate_limits
+        thread_id = params.get("threadId")
+        if method == "item/completed" and (params.get("item") or {}).get("type") == "agentMessage":
+            self.result_messages[thread_id] = str(params['item'].get('text', ''))[:2000]
+            if len(self.result_messages) > 128:
+                self.result_messages.pop(next(iter(self.result_messages)))
+        if method == "turn/started":
+            self.turn_outcomes.pop(thread_id, None)
+            self.result_messages.pop(thread_id, None)
+        if method == "item/completed" and thread_id in self.result_threads:
+            item = params.get("item") or {}
+            if item.get("type") == "agentMessage":
+                self.result_threads[thread_id]["text"] = str(item.get("text", ""))[:16384]
+        if method == "turn/completed":
+            turn = params.get("turn") or {}
+            if thread_id in self.result_threads:
+                self.result_threads[thread_id]["turn"] = turn
+            self.turn_outcomes[thread_id] = {
+                "status": turn.get("status"), "turn_id": turn.get("id"),
+                "detail": (self.result_messages.get(thread_id) or self.latest_messages.get(thread_id) or
+                           (turn.get("error") or {}).get("message") or "Task completed")[:160]}
+            if len(self.turn_outcomes) > 128:
+                self.turn_outcomes.pop(next(iter(self.turn_outcomes)))
         if method == "account/rateLimits/updated":
             bucket = (params.get("rateLimitsByLimitId") or {}).get("codex") or params.get("rateLimits")
             if bucket and bucket.get("limitId") in (None, "codex"):
@@ -359,7 +384,37 @@ class AppServer:
                     "rate_limits": self.rate_limits, "rate_limits_at": self.rate_limits_at,
                     "rate_limits_monotonic": self.rate_limits_monotonic,
                     "pending_inputs": dict(self.pending_inputs), "pending_approvals": dict(self.pending_approvals),
-                    "latest_messages": dict(self.latest_messages)}
+                    "latest_messages": dict(self.latest_messages), "turn_outcomes": copy.deepcopy(self.turn_outcomes)}
+
+    def track_result(self, thread_id):
+        with self.state_lock:
+            self.result_threads[thread_id] = {}
+
+    def forget_result(self, thread_id):
+        with self.state_lock:
+            self.result_threads.pop(thread_id, None)
+
+    def wait_result(self, thread_id, turn_id, timeout, stopped):
+        deadline = time.monotonic() + timeout
+        with self.activity:
+            while not stopped.is_set() and not self.connection_lost.is_set():
+                result = self.result_threads.get(thread_id, {})
+                turn = result.get("turn", {})
+                if turn.get("id") == turn_id:
+                    if turn.get("status") != "completed" or not result.get("text"):
+                        raise BridgeError("Dispatcher turn failed or returned no output", "routing_failed")
+                    return result["text"]
+                if thread_id in self.pending_approvals or thread_id in self.pending_inputs:
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self.activity.wait(min(remaining, 1))
+        try:
+            self.call("turn/interrupt", {"threadId": thread_id, "turnId": turn_id})
+        except BridgeError:
+            pass
+        raise BridgeError("Dispatcher timed out, disconnected, or requested a tool interaction", "routing_failed")
 
     def answer_user_input(self, thread_id, text):
         pending = self.pending_inputs.get(thread_id)
@@ -398,6 +453,8 @@ class AppServer:
             self.pending_approvals.clear()
             self.pending_other.clear()
             self.latest_messages.clear()
+            self.turn_outcomes.clear()
+            self.result_messages.clear()
             self.signal_activity()
         if self.sock:
             try:
@@ -482,6 +539,20 @@ class Bridge:
         self.quota_checked_at = 0
         self.quota_updated_at = None
         self.seen_quota_event = None
+        self.dispatcher = None
+
+    def enable_dispatcher(self, root, model="gpt-6-luna", effort="low", worker_model=None, depth=3, router=None):
+        from dispatcher import Dispatcher
+        self.dispatcher = Dispatcher(self, root, model, effort, worker_model, depth, router)
+
+    def submit(self, text=None, wav=None, agent_id=None, request_id=None):
+        if self.dispatcher:
+            if wav is not None and not self.transcriber:
+                raise BridgeError("Voice transcription is not configured", "transcription_unconfigured")
+            return self.dispatcher.submit(text, wav, agent_id, request_id)
+        if wav is not None:
+            text = self.transcribe(wav)
+        return self.command(text, agent_id)
 
     def _sync_quota_event(self, snapshot):
         if snapshot["rate_limits"] is not None and snapshot["rate_limits"] is not self.seen_quota_event:
@@ -510,7 +581,8 @@ class Bridge:
                 self.cached_status = None
                 self.quota_result = None
             self._sync_quota_event(snapshot)
-            interval = self.active_refresh if self.cached_status and self.cached_status["total_agents"] else self.idle_refresh
+            dispatch_active = self.dispatcher and bool(self.dispatcher.agents())
+            interval = self.active_refresh if dispatch_active or (self.cached_status and self.cached_status["total_agents"]) else self.idle_refresh
             if self.operational_error:
                 interval = 30
             quota_expired = self.quota_result is not None and now - self.quota_checked_at >= self.idle_refresh
@@ -539,6 +611,21 @@ class Bridge:
                 result["codex"]["usage"] = _quota_usage(self.quota_result)
             result["quota_updated_at"] = self.quota_updated_at
             result["cache_age_seconds"] = max(0, int(self.clock() - self.checked_at))
+            if self.dispatcher:
+                dispatch_agents = self.dispatcher.agents()
+                jobs = self.dispatcher.snapshot()
+                visible_job_ids = {a['id'] for a in dispatch_agents}
+                worker_ids = {j['worker_id'] for j in jobs if j['worker_id'] and j['id'] in visible_job_ids}
+                workers = {a['id']: a for a in result['agents']}
+                job_workers = {j['id']: j['worker_id'] for j in jobs if j['stage'] == 'running'}
+                for agent in dispatch_agents:
+                    worker = workers.get(job_workers.get(agent['id']))
+                    if worker:
+                        agent.update(status=worker['status'], detail=worker['detail'])
+                existing = [a for a in result["agents"] if a['id'] not in worker_ids]
+                agents = dispatch_agents + existing
+                result["total_agents"] = len(dispatch_agents) + result["total_agents"] - (len(result["agents"]) - len(existing))
+                result["agents"] = agents[:8]
             return result
 
     def _refresh_status(self):
@@ -676,7 +763,13 @@ class Bridge:
             self.app.call("thread/resume", {"threadId": agent_id})
             self.app.call("turn/start", {"threadId": agent_id, "input": [{"type": "text", "text": text}]})
             return {"ok": True, "transcript": text, "action": "steered", "agent_id": agent_id, "message": "Command started in the selected Codex thread."}
-        started = self.app.call("thread/start", {"cwd": self.agent_cwd})
+        return self.start_task(text, self.agent_cwd)
+
+    def start_task(self, text, cwd, model=None):
+        params = {"cwd": cwd}
+        if model:
+            params["model"] = model
+        started = self.app.call("thread/start", params)
         thread_id = (started.get("thread") or {}).get("id")
         if not thread_id:
             raise BridgeError("Codex app-server did not return a thread id")
@@ -807,6 +900,10 @@ def make_handler(bridge, monitor_token=None):
             if not self._authorized():
                 return self._json(401, {"error": {"code": "unauthorized", "message": "Missing or invalid X-Monitor-Key"}})
             parsed = urlparse(self.path)
+            if parsed.path.startswith("/v1/jobs/") and bridge.dispatcher:
+                job_id = parsed.path.removeprefix("/v1/jobs/")
+                job = next((j for j in bridge.dispatcher.snapshot() if j['id'] == job_id), None)
+                return self._json(200, job) if job else self._json(404, {"error": {"code": "not_found", "message": "Unknown job"}})
             if parsed.path not in ("/v1/status", "/v1/events"):
                 return self._json(404, {"error": {"code": "not_found", "message": "Unknown endpoint"}})
             params = parse_qs(parsed.query, keep_blank_values=True)
@@ -836,7 +933,7 @@ def make_handler(bridge, monitor_token=None):
                     data = json.loads(self.rfile.read(length))
                     if not isinstance(data, dict):
                         return self._json(400, {"ok": False, "error": {"code": "invalid_request", "message": "JSON body must be an object"}})
-                    result = bridge.command(data.get("text", ""), data.get("agent_id"))
+                    result = bridge.submit(text=data.get("text", ""), agent_id=data.get("agent_id"), request_id=data.get("request_id"))
                 elif parsed.path == "/v1/voice":
                     if self.headers.get_content_type() != "audio/wav":
                         return self._json(415, {"ok": False, "error": {"code": "unsupported_media_type", "message": "Expected audio/wav"}})
@@ -848,9 +945,8 @@ def make_handler(bridge, monitor_token=None):
                     wav = self.rfile.read(length)
                     if not wav.startswith(b"RIFF") or wav[8:12] != b"WAVE":
                         return self._json(400, {"ok": False, "error": {"code": "invalid_wav", "message": "Body is not a RIFF/WAVE file"}})
-                    text = bridge.transcribe(wav)
                     agent_id = parse_qs(parsed.query).get("agent_id", [None])[0]
-                    result = bridge.command(text, agent_id)
+                    result = bridge.submit(wav=wav, agent_id=agent_id, request_id=self.headers.get("X-Request-ID"))
                 else:
                     return self._json(404, {"ok": False, "error": {"code": "not_found", "message": "Unknown endpoint"}})
                 self._json(200, result)
@@ -879,6 +975,12 @@ def main():
     if not is_loopback and not token:
         raise SystemExit("MONITOR_TOKEN is required when MONITOR_HOST is not a loopback address")
     bridge = Bridge(transcriber=os.environ.get("TRANSCRIBE_URL"), transcriber_mode=os.environ.get("TRANSCRIBE_MODE", "raw"))
+    if os.environ.get("MONITOR_REPOSITORY_ROOT"):
+        bridge.enable_dispatcher(os.environ["MONITOR_REPOSITORY_ROOT"],
+                                 model=os.environ.get("MONITOR_ROUTER_MODEL", "gpt-6-luna"),
+                                 effort=os.environ.get("MONITOR_ROUTER_EFFORT", "low"),
+                                 worker_model=os.environ.get("MONITOR_WORKER_MODEL"),
+                                 depth=int(os.environ.get("MONITOR_REPOSITORY_SCAN_DEPTH", "3")))
     server = ThreadingHTTPServer((host, port), make_handler(bridge, None if is_loopback else token))
     print(f"FNK monitor bridge listening on http://{host}:{port}", flush=True)
     try:
@@ -887,6 +989,8 @@ def main():
         pass
     finally:
         server.server_close()
+        if bridge.dispatcher:
+            bridge.dispatcher.close()
         bridge.app.close()
 
 
