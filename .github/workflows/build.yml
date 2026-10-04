@@ -26,6 +26,10 @@ jobs:
           cache-dependency-path: |
             web-flasher/package-lock.json
             site/package-lock.json
+      - name: Build BLE setup page
+        run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
+      - name: Build and verify Astro guide
+        run: npm ci --prefix site && npm run build --prefix site && npm test --prefix site
       - uses: actions/cache@v6
         with:
           path: |
@@ -42,10 +46,6 @@ jobs:
           pio test -e native
           python -m unittest discover -s test/host
           python -m unittest discover -s monitor-server/tests
-      - name: Build BLE setup page
-        run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
-      - name: Build and verify Astro guide
-        run: npm ci --prefix site && npm run build --prefix site && npm test --prefix site
       - name: Package flasher and firmware
         run: python scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
       - name: Upload Pages artifact
