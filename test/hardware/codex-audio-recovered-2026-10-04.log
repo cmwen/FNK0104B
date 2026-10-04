@@ -1,0 +1,14 @@
+monitor_speech startup_stage=5 heap=25431
+monitor_speech startup_stage=6 heap=25431
+monitor_speech startup_stage=7 heap=11051
+monitor_speech state=ready wake=Hi_ESP wakenet=wn10_hiesp vadnet=vadnet1_medium multinet=mn7_en
+monitor_wifi connected=true status=3
+monitor_stream state=connected
+monitor_status integration=connected agents=1 first_state=running five_hour_used=47 weekly_used=82
+monitor_speech vad=speech
+monitor_speech vad=silence
+monitor_speech state=wake afe_frames=157 max_inference_us=10068 frame_us=32000 heap=10811 psram=4446572
+monitor_speech state=wake afe_frames=4396 max_inference_us=8146 frame_us=32000 heap=9959 psram=4427672
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10811
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=9959
+monitor_health heap=9959 psram=4427672 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none

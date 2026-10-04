@@ -52,7 +52,7 @@ def save_png(path, pixels):
 def capture(port, timeout):
     master, slave = pty.openpty()
     process = subprocess.Popen(["pio", "device", "monitor", "-p", port, "-b", "115200",
-                                "--dtr", "0", "--rts", "0"],
+                                "--dtr", "1", "--rts", "1"],
                                stdin=slave, stdout=slave, stderr=slave)
     os.close(slave)
     lines, pending = [], b""

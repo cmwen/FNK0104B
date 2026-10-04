@@ -8,6 +8,14 @@ import subprocess
 
 Import("env")  # noqa: F821
 
+# PlatformIO's scanner does not track headers supplied with compiler -include.
+# Rebuild the two descriptor producers when the board compatibility changes.
+board_headers = [env.subst("$PROJECT_DIR") + "/lib/fnk0104b/src/fnk0104b/" + name
+                 for name in ("codex_usb_identity.hpp", "usb_audio_descriptor_compat.hpp")]
+for source in ("cores/esp32/USB.cpp", "libraries/USB/src/USBAudioCard.cpp"):
+    env.Depends(env.File(env.subst("$BUILD_DIR") +
+                        "/managed_components/espressif__arduino-esp32/" + source + ".o"), board_headers)
+
 framework = Path(env.PioPlatform().get_package_dir("framework-espidf"))
 missing = framework / "tools/cmake/linker_script_preprocessor.cmake"
 helper = Path(env.subst("$PROJECT_DIR")) / "scripts/idf_linker_preprocessor.cmake"

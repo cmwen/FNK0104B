@@ -41,20 +41,22 @@ public:
 };
 int main(int argc,char**argv){
   const std::string base=argc>1?argv[1]:"/tmp/monitor";
-  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full"}){
+  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full","micro"}){
     Display d;bool active=state=="active"||state=="attention";bool offline=state=="offline";bool recording=state=="recording";bool commands=state=="commands"||state=="commands-quiet";
     d.fillScreen(ui::monitor::kBackground);
     const int fiveHour=offline?-1:(state=="empty"?0:(state=="full"?100:74));
     const int weekly=offline?-1:(state=="empty"?0:(state=="full"?100:12));
     ui::monitor::statusBar(d,!offline,-58,offline?"unavailable":"connected",active||state=="status-active"||commands,state=="attention",false,fiveHour,weekly,
         offline?-1:(state=="empty"?0:(state=="full"?16:8)),
-        offline?-1:(state=="empty"?0:(state=="full"?24:12)));
+        offline?-1:(state=="empty"?0:(state=="full"?24:12)), state=="micro" ? "Linked" : nullptr);
     d.setTextColor(ui::monitor::kMuted,ui::monitor::kBackground);
     d.drawString(offline?"Status HTTP -11":(commands?"Listening for device command":(recording?"Recording Codex message":(active?"ACTIVE AGENTS / QUOTA LEFT":"QUOTA LEFT"))),10,45,1);
     if(commands) ui::monitor::commandHelp(d,speech::kMonitorCommands,speech::kMonitorCommandCount);
     else if(recording) ui::monitor::messagePanel(d,true,false,false);
     else if(!active){ui::monitor::quotaCard(d,6,"5H left",fiveHour,false);ui::monitor::quotaCard(d,164,"Week left",weekly,true);}
     else{ui::monitor::frame(d,8,59,304,123,ui::monitor::kBorder);d.fillRoundRect(15,71,102,102,6,state=="attention"?ui::monitor::kAmber:ui::monitor::kMint);d.avatar(18,74,96,state=="attention"?ui::avatar::Mood::NeedsInput:ui::avatar::Mood::Thinking);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString("Fix display",128,70,2);d.setTextColor(state=="attention"?ui::monitor::kAmber:ui::monitor::kMint,ui::monitor::kPanel);d.drawString(state=="attention"?"Needs input":"Working",128,96,1);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString(state=="attention"?"Which layout should I use?":"Codex is working",128,122,1);}
-    ui::monitor::voiceControl(d,recording,false,recording,false,commands,state=="commands-quiet"?0:75);d.save(base+"-"+state+".ppm");
+    if (state=="micro") ui::monitor::dualVoiceControl(d,true,true,false,true,75,true,false,false,false,false,0);
+    else ui::monitor::voiceControl(d,recording,false,recording,false,commands,state=="commands-quiet"?0:75);
+    d.save(base+"-"+state+".ppm");
   }
 }

@@ -89,7 +89,7 @@ void resetBar(Display& d, int x, int width, int filled, uint16_t accent) {
 
 template<class Display>
 void statusBar(Display& d, bool wifi, int rssi, const char* integration,
-               bool active, bool attention, bool error, int fiveHour, int weekly, int fiveHourReset = -1, int weeklyReset = -1) {
+               bool active, bool attention, bool error, int fiveHour, int weekly, int fiveHourReset = -1, int weeklyReset = -1, const char* microState = nullptr) {
   using namespace monitor_icons;
   frame(d, 4, 4, 312, 36, kCyan);
   for (int x : {80, 160, 232}) d.drawFastVLine(x, 11, 22, kBorder);
@@ -100,13 +100,13 @@ void statusBar(Display& d, bool wifi, int rssi, const char* integration,
   for (int i=0; i<4; ++i) d.fillRect(67+i*3, 19-(2+i*2), 2, 2+i*2, i<strength ? kMint : kTrack);
   const bool connected=!strcmp(integration, "connected");
   const bool degraded=!strcmp(integration, "degraded");
-  const uint16_t stateColor=!connected ? (degraded ? kAmber : kRed) :
+  const uint16_t stateColor=microState ? (!strcmp(microState, "Linked") ? kMint : (!strcmp(microState, "Off") ? kRed : kAmber)) : !connected ? (degraded ? kAmber : kRed) :
                             (error ? kRed : (attention ? kAmber : (active ? kCyan : kMint)));
   icon(d, kRobot, kRobotWidth, kRobotHeight, 86, 9, stateColor);
-  d.setTextColor(kText, kPanel); d.drawString("Codex", 113, 10, 1);
+  d.setTextColor(kText, kPanel); d.drawString(microState ? "Micro" : "Codex", 113, 10, 1);
   d.setTextColor(stateColor, kPanel);
-  d.drawString(!connected ? (degraded ? "Check" : "Off") :
-               (error ? "Error" : (attention ? "Input" : (active ? "Busy" : "Ready"))), 113, 25, 1);
+  d.drawString(microState ? microState : (!connected ? (degraded ? "Check" : "Off") :
+               (error ? "Error" : (attention ? "Input" : (active ? "Busy" : "Ready")))), 113, 25, 1);
   char value[16];
   d.setTextColor(kCyan, kPanel); d.drawString("5H", 167, 10, 1);
   if (fiveHour<0) snprintf(value,sizeof(value),"--%%"); else snprintf(value,sizeof(value),"%d%%",fiveHour);
@@ -179,5 +179,25 @@ void voiceControl(Display& d, bool recording, bool preparing, bool busy, bool se
   d.setTextColor(kText,kPanel);d.drawString(label,61,199,2);
   d.setTextColor(accent,kPanel);d.drawString(recording ? "Tap to send / pause to finish" : (preparing ? "Please wait" : (busy ? "Transcribing..." : (commands ? "Say a phrase / tap to talk" : (ready ? "Tap to talk / Hi ESP: commands" : "Speech starting or unavailable")))),62,222,1);
   voiceMeter(d, recording || commands, level, accent);
+}
+// Both transports stay available, with explicit touch targets for their voice paths.
+template<class Display>
+void dualVoiceControl(Display& d, bool microLinked, bool micReady, bool micHeld,
+                      bool usbStreaming, int micLevel, bool wifiReady, bool recording,
+                      bool preparing, bool busy, bool commands, int wifiLevel) {
+  frame(d,4,191,152,46,micHeld ? kRed : kBorder);
+  frame(d,160,191,156,46,recording ? kRed : kBorder);
+  d.setTextColor(kText,kPanel); d.drawString("Micro voice",12,199,1); d.drawString("Wi-Fi voice",168,199,1);
+  d.setTextColor(microLinked && micReady ? kMint : kMuted,kPanel);
+  d.drawString(!micReady ? "Mic unavailable" : (!microLinked ? "USB / no app" : (micHeld ? "Mic key held" : "Tap voice / hold PTT")),12,222,1);
+  d.setTextColor(wifiReady ? kMint : kMuted,kPanel);
+  d.drawString(recording ? "Recording / tap send" : (preparing ? "Preparing..." : (busy ? "Sending..." :
+    (commands ? "Say command" : (wifiReady ? "Tap to talk" : "Speech unavailable")))),168,222,1);
+  const int heights[7]={4,9,16,25,16,9,4};
+  for (int i=0;i<7;++i) {
+    const int a = (micHeld || usbStreaming) ? 2 + heights[i] * micLevel / 100 : 2;
+    const int b = (recording || commands) ? 2 + heights[i] * wifiLevel / 100 : 2;
+    d.drawFastVLine(124+i*4,212-a/2,a,kCyan); d.drawFastVLine(280+i*4,212-b/2,b,kMint);
+  }
 }
 } }  // namespace ui::monitor

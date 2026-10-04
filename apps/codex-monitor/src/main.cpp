@@ -17,6 +17,9 @@
 #include <ui/idle_timer.hpp>
 #include "monitor_speech.hpp"
 #include "monitor_commands.hpp"
+#include <codex_hid/backend.hpp>
+#include <fnk0104b/audio_input.hpp>
+#include <fnk0104b/usb_microphone.hpp>
 #include "voice_capture_gate.hpp"
 #include "monitor_wifi_setup.hpp"
 
@@ -25,6 +28,7 @@
 #include <memory>
 #include <new>
 #include <esp_timer.h>
+#include <esp_heap_caps.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <stdio.h>
@@ -39,6 +43,15 @@
 #endif
 
 namespace {
+struct AllocationFailure { uint32_t magic, size, caps; };
+RTC_NOINIT_ATTR volatile AllocationFailure lastAllocationFailure;
+constexpr uint32_t kAllocationFailureMagic = 0x464e4b41;
+void IRAM_ATTR allocationFailed(size_t size, uint32_t caps, const char*) {
+  // The allocator callback must not allocate or take a logging lock.
+  lastAllocationFailure.size = size;
+  lastAllocationFailure.caps = caps;
+  lastAllocationFailure.magic = kAllocationFailureMagic;
+}
 constexpr uint32_t kStatusTimeoutMs = 15000;
 constexpr uint32_t kStreamSilenceMs = 90000;
 constexpr uint32_t kAvatarFrameMs = 100;
@@ -80,8 +93,11 @@ int drawnFiveHourReset = -1, drawnWeeklyReset = -1;
 bool screenAwake = true, previousTouch = false;
 bool screenManuallyOff = false;
 bool showingStatus = false, commandHelpVisible = false;
+bool desktopMicHeld = false;
+codex_hid::LinkState previousMicroLink = codex_hid::LinkState::Off;
 uint32_t lastVoiceMeterFrame = 0;
-int drawnVoiceLevel = -1;
+int drawnVoiceLevel = -1, drawnMicLevel = -1;
+bool previousAudioReady = false, previousUsbStreaming = false;
 bool bleConnected = false;
 bool wifiSetupMode = false;
 uint32_t wifiHoldStarted = 0;
@@ -255,13 +271,17 @@ void drawStatusBar(const MonitorStatus& snapshot) {
   ui::monitor::statusBar(d, wifi, wifi ? WiFi.RSSI() : -127,
       snapshot.integration, snapshot.count > 0, attention, error,
       ui::monitor::remaining(snapshot.five_hour.used), ui::monitor::remaining(snapshot.weekly.used),
-      drawnFiveHourReset, drawnWeeklyReset);
+      drawnFiveHourReset, drawnWeeklyReset,
+      previousMicroLink == codex_hid::LinkState::Linked ? "Linked" : previousMicroLink == codex_hid::LinkState::Idle ? "Idle" :
+      previousMicroLink == codex_hid::LinkState::Usb ? "USB" : "Off");
 }
 
 void drawVoiceControl() {
   drawnVoiceLevel = monitor_speech::level();
-  ui::monitor::voiceControl(tft(), recording.load(), voicePreparing.load(), voiceBusy.load(),
-      selectedAgent[0] != '\0', commandHelpVisible, drawnVoiceLevel, monitor_speech::ready());
+  drawnMicLevel = fnk0104b::audio_input::level();
+  ui::monitor::dualVoiceControl(tft(), previousMicroLink == codex_hid::LinkState::Linked || previousMicroLink == codex_hid::LinkState::Idle,
+      fnk0104b::audio_input::ready(), desktopMicHeld, fnk0104b::usb_microphone::streaming(), fnk0104b::audio_input::level(),
+      monitor_speech::ready(), recording.load(), voicePreparing.load(), voiceBusy.load(), commandHelpVisible, drawnVoiceLevel);
 }
 
 void drawScreen() {
@@ -604,7 +624,7 @@ void refreshSelectedAgent() {
 }
 
 void playPendingAttentionTone() {
-  if (!pendingAttentionTone || voiceBusy.load() || commandHelpVisible || !peripheralMutex || !audioMutex) return;
+  if (!pendingAttentionTone || voiceBusy.load() || commandHelpVisible || desktopMicHeld || fnk0104b::usb_microphone::streaming() || !peripheralMutex || !audioMutex) return;
   pendingAttentionTone = false;
   monitor_speech::quietFor(1500);
   xSemaphoreTake(audioMutex, portMAX_DELAY);
@@ -721,7 +741,7 @@ void speechLoop() {
   monitor_speech::Event event;
   while (monitor_speech::poll(event)) {
     using Event = monitor_speech::Event;
-    if (event == Event::Error) { commandHelpVisible = false; setMessage("Speech unavailable", 10000); continue; }
+    if (event == Event::Error) { commandHelpVisible = false; setMessage(monitor_speech::error(), 10000); continue; }
     // A tap takes priority over any local command still queued by recognition.
     if (voiceBusy.load()) continue;
     commandHelpVisible = event == Event::Wake;
@@ -787,7 +807,11 @@ void touchLoop() {
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
     const int y = touchPoint.y;
-    if (y >= 191 && y <= 237 && x >= 4 && x <= 315) beginVoice();
+    if (y >= 191 && y <= 237 && x >= 4 && x <= 155) {
+      if (!fnk0104b::audio_input::ready()) setMessage(fnk0104b::audio_input::error(), 6000);
+      else if (codex_hid::microphoneKey(true)) { desktopMicHeld = true; uiDirty = true; }
+      else setMessage("Desktop HID unavailable", 6000);
+    } else if (y >= 191 && y <= 237 && x >= 160 && x <= 315) beginVoice();
     else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load())) {
       // Hints and recording replace the agent panel; never select hidden agents.
     } else if (y >= 59 && y < 184 && showingStatus) {
@@ -811,7 +835,12 @@ void touchLoop() {
       }
     }
   }
-  if (!touchPoint.pressed) wifiHoldStarted = 0;
+  if (!touchPoint.pressed) {
+    wifiHoldStarted = 0;
+    if (desktopMicHeld && (codex_hid::microphoneKey(false) || codex_hid::linkState() == codex_hid::LinkState::Off)) {
+      desktopMicHeld = false; uiDirty = true;
+    }
+  }
   previousTouch = touchPoint.pressed;
 }
 
@@ -825,6 +854,12 @@ void serialLoop() {
     if (c == '\n') {
       command[length] = '\0';
       capture = strcmp(command, "screenshot") == 0;
+      if (!strcmp(command, "hid-agent0"))
+        Serial.printf("codex_hid input=%s\n", codex_hid::agent0Tap() ? "queued" : "unavailable");
+      if (!strcmp(command, "health"))
+        Serial.printf("monitor_health heap=%u psram=%u wifi=%d status_task=%d voice_task=%d speech=%d speech_reason=%s\n",
+          unsigned(ESP.getFreeHeap()), unsigned(ESP.getFreePsram()), int(WiFi.status()), statusTask != nullptr,
+          voiceTask != nullptr, monitor_speech::ready(), monitor_speech::error());
       length = 0;
       if (capture) break;
     } else if (length < sizeof(command) - 1) command[length++] = c;
@@ -865,8 +900,16 @@ void serialLoop() {
 }  // namespace
 
 void setup() {
+  const bool hidStarted = codex_hid::begin();
   fnk0104b::board.begin();
   fnk0104b::board.printStartupInfo("codex-monitor", "0.5.0");
+  Serial.printf("monitor_startup reset_reason=%u\n", unsigned(esp_reset_reason()));
+  if (lastAllocationFailure.magic == kAllocationFailureMagic)
+    Serial.printf("monitor_heap previous_failure size=%lu caps=0x%lx\n",
+      (unsigned long)lastAllocationFailure.size, (unsigned long)lastAllocationFailure.caps);
+  lastAllocationFailure.magic = 0;
+  heap_caps_register_failed_alloc_callback(allocationFailed);
+  Serial.printf("codex_hid startup=%s wifi=independent\n", hidStarted ? "ready" : "failed");
   fnk0104b::display.begin(1);
   fnk0104b::touch.begin();
   peripheralMutex = xSemaphoreCreateMutex();
@@ -880,12 +923,20 @@ void setup() {
   screenTimeoutMinutes = preferences.getUShort("timeout", kScreenTimeoutDefault);
   if (screenTimeoutMinutes < 1 || screenTimeoutMinutes > 120) screenTimeoutMinutes = kScreenTimeoutDefault;
   idleTimer.activity(millis());
+  monitor_wifi_setup::prepare();
+  const bool usbAudioStarted = fnk0104b::usb_microphone::begin();
+  const bool inputStarted = fnk0104b::audio_input::begin(peripheralMutex, audioMutex);
+  Serial.printf("monitor_audio startup=%s usb_audio=%s\n", inputStarted ? "ready" : "failed", usbAudioStarted ? "ready" : "failed");
+  Serial.printf("monitor_startup stage=wifi_setup heap=%u\n", unsigned(ESP.getFreeHeap()));
   const uint8_t wifiSetupRequest = preferences.getUChar("wifiSetup", 0);
   if (wifiSetupRequest) preferences.remove("wifiSetup");
   wifiSetupMode = monitor_wifi_setup::begin(wifiSetupRequest == 1, wifiSetupRequest == 2);
   if (wifiSetupMode) return;
+  Serial.printf("monitor_startup stage=wifi heap=%u\n", unsigned(ESP.getFreeHeap()));
   WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true); WiFi.begin();
+  Serial.printf("monitor_startup stage=ble heap=%u\n", unsigned(ESP.getFreeHeap()));
   startBle();
+  Serial.printf("monitor_startup stage=workers heap=%u\n", unsigned(ESP.getFreeHeap()));
   if (xTaskCreatePinnedToCore(voiceWorker, "monitor-voice", 8192, nullptr, 1, &voiceTask, 1) != pdPASS) {
     voiceTask = nullptr;
   }
@@ -893,13 +944,27 @@ void setup() {
     statusTask = nullptr;
     setMessage("Status stream unavailable", 10000);
   }
-  if (!monitor_speech::begin(peripheralMutex, audioMutex, &voiceBusy))
-    setMessage("Speech worker unavailable", 10000);
   setMessage(MONITOR_SERVER_HOST[0] ? "Connecting to bridge" : "Set monitor server host", 6000);
   drawScreen();
+  // Keep the established Wi-Fi/BLE startup order and show the UI before the
+  // recognition worker starts its model allocations. Raw USB capture is already
+  // independent and does not depend on recognition startup.
+  Serial.printf("monitor_startup stage=speech heap=%u\n", unsigned(ESP.getFreeHeap()));
+  if (!monitor_speech::begin(peripheralMutex, audioMutex, &voiceBusy))
+    setMessage("Speech worker unavailable", 10000);
+  Serial.println("monitor_startup stage=complete");
 }
 
 void loop() {
+  const auto microLink = codex_hid::linkState();
+  if (microLink != previousMicroLink) { previousMicroLink = microLink; uiDirty = true; }
+  static codex_hid::Status desktopStatus{};
+  if (codex_hid::takeStatus(desktopStatus))
+    Serial.printf("codex_hid application=status_retained revision=%lu\n", (unsigned long)desktopStatus.revision);
+  const bool audioReady = fnk0104b::audio_input::ready(), usbStreaming = fnk0104b::usb_microphone::streaming();
+  if (audioReady != previousAudioReady || usbStreaming != previousUsbStreaming) {
+    previousAudioReady = audioReady; previousUsbStreaming = usbStreaming; uiDirty = true;
+  }
   if (wifiSetupMode) { monitor_wifi_setup::loop(); return; }
   serialLoop();
   speechLoop();
@@ -931,7 +996,7 @@ void loop() {
   activeAgents = status.total_agents;
   portEXIT_CRITICAL(&statusMux);
   // Pending input/error agents and voice work also keep the monitor visible.
-  const bool busy = monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
+  const bool busy = desktopMicHeld || fnk0104b::usb_microphone::streaming() || monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);
   if (busy && !screenAwake && !screenManuallyOff) {
     screenAwake = true;
@@ -958,13 +1023,10 @@ void loop() {
       drawStatusBar(snapshot);
   }
   // Update only the audio control at 12.5 Hz, leaving the center and header stable.
-  if (screenAwake && (commandHelpVisible || recording.load()) && millis() - lastVoiceMeterFrame >= 80) {
+  if (screenAwake && (desktopMicHeld || fnk0104b::usb_microphone::streaming() || commandHelpVisible || recording.load()) && millis() - lastVoiceMeterFrame >= 80) {
     lastVoiceMeterFrame = millis();
-    const int level = monitor_speech::level();
-    if (drawnVoiceLevel != level) {
-      drawnVoiceLevel = level;
-      ui::monitor::voiceMeter(tft(), true, level, recording.load() ? kRed : kAmber);
-    }
+    if (drawnVoiceLevel != monitor_speech::level() || drawnMicLevel != fnk0104b::audio_input::level())
+      drawVoiceControl();
   }
   if (screenAwake && uiDirty.exchange(false)) {
     drawScreen();

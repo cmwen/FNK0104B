@@ -154,3 +154,18 @@ The script uses PlatformIO Core's 115200-baud interactive monitor, sends the
 `screenshot` command, validates all 240 RGB rows, and saves a PNG. Normal speech
 and status processing continue while display updates pause for the capture.
 Screenshot capture is unavailable during Wi-Fi setup or voice submission.
+
+## Concurrent Codex vendor HID
+
+The monitor now includes an independent USB vendor HID backend alongside its
+existing Wi-Fi/SSE integration. Native USB changes to `303a:8360` and retains
+CDC serial; USB Serial/JTAG is unavailable while USB-OTG owns the internal PHY.
+`hid-agent0` followed by Enter over serial queues a diagnostic AG00 tap. Input
+is never emitted automatically, and Desktop slot status does not replace Wi-Fi
+agents. See [protocol evidence, testing and limitations](../../docs/codex-hid.md).
+
+The follow-up adds a **Micro** link indicator, separate **Micro voice** and
+**Wi-Fi voice** controls, and a mono PCM16/16 kHz USB microphone. Micro voice
+sends the ACT10 key; select the board as the host input and choose Voice Chat
+in Desktop Micro settings for tap-to-start behavior. The waveform shows local
+mic input while USB capture is active. See [audio setup and verification](../../docs/codex-audio.md).

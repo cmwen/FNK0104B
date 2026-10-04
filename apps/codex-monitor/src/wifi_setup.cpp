@@ -13,6 +13,8 @@
 namespace monitor_wifi_setup {
 namespace {
 char proof[13]{};
+uint8_t random[6]{};
+bool prepared = false;
 wifi_config_t previousConfig{};
 enum class Stage { Ready, Failed, Connected, Error };
 std::atomic<Stage> stage{Stage::Ready};
@@ -61,12 +63,16 @@ void draw() {
   drawn = current;
 }
 }
-bool begin(bool requested, bool skip) {
+void prepare() {
+  if (prepared) return;
   // The bootloader entropy source must be disabled before Wi-Fi/audio starts.
-  uint8_t random[6];
   bootloader_random_enable();
   esp_fill_random(random, sizeof(random));
   bootloader_random_disable();
+  prepared = true;
+}
+bool begin(bool requested, bool skip) {
+  prepare();
   WiFi.STA.begin(false);
   if (esp_wifi_get_config(WIFI_IF_STA, &previousConfig) != ESP_OK) {
     // Do not infer that credentials are absent on an initialization failure.

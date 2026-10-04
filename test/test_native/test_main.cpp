@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <codex_hid/protocol.hpp>
 #include <initializer_list>
 
 #include <string.h>
@@ -325,8 +326,106 @@ void test_keypad_touch_boundaries_and_gaps() {
   TEST_ASSERT_EQUAL(-1, keypad::cell(8, 175, 58, 39, 3));
 }
 
+void test_codex_hid_descriptor_contract() {
+  unsigned size = 0, count = 0, id = 0, page = 0, inputBits = 0, outputBits = 0;
+  const auto* bytes = codex_hid::kDescriptor;
+  for (size_t at = 0; at < sizeof(codex_hid::kDescriptor); ) {
+    unsigned prefix = bytes[at++]; unsigned length = prefix & 3;
+    if (length == 3) length = 4;
+    TEST_ASSERT_TRUE(at + length <= sizeof(codex_hid::kDescriptor));
+    unsigned value = 0;
+    for (unsigned i = 0; i < length; ++i) value |= unsigned(bytes[at++]) << (i * 8);
+    switch (prefix & 0xfc) {
+      case 0x04: page = value; break;
+      case 0x74: size = value; break;
+      case 0x94: count = value; break;
+      case 0x84: id = value; break;
+      case 0x80: inputBits += size * count; break;
+      case 0x90: outputBits += size * count; break;
+    }
+  }
+  TEST_ASSERT_EQUAL_HEX16(0xff00, page); TEST_ASSERT_EQUAL(6, id);
+  TEST_ASSERT_EQUAL(63 * 8, inputBits); TEST_ASSERT_EQUAL(63 * 8, outputBits);
+}
+
+void test_codex_hid_framing_bounds_and_recovery() {
+  codex_hid::Decoder decoder;
+  struct Capture { unsigned count = 0; char json[256]{}; } capture;
+  auto handler = [](const char* text, size_t n, void* context) {
+    auto& c = *static_cast<Capture*>(context); ++c.count;
+    if (n < sizeof(c.json)) { memcpy(c.json, text, n); c.json[n] = 0; }
+  };
+  const char* json = "{\"m\":\"device.status\",\"p\":{\"text\":\"}\\\"{\"},\"id\":7}";
+  uint8_t body[63]; size_t offset = 0;
+  while (size_t n = codex_hid::frame(json, strlen(json), offset, body)) {
+    TEST_ASSERT_TRUE(decoder.feed(body, sizeof(body), handler, &capture)); offset += n;
+  }
+  TEST_ASSERT_EQUAL(1, capture.count); TEST_ASSERT_EQUAL_STRING(json, capture.json);
+  body[0] = 2; body[1] = 62;
+  TEST_ASSERT_FALSE(decoder.feed(body, sizeof(body), handler, &capture));
+  TEST_ASSERT_FALSE(decoder.feed(body, 1, handler, &capture));
+  TEST_ASSERT_FALSE(decoder.feed(nullptr, 63, handler, &capture));
+  const char* newlineFree = "{\"m\":\"sys.version\"}";
+  codex_hid::frame(newlineFree, strlen(newlineFree), 0, body);
+  body[1] = strlen(newlineFree);
+  TEST_ASSERT_TRUE(decoder.feed(body, 2 + strlen(newlineFree), handler, &capture));
+  TEST_ASSERT_EQUAL(2, capture.count);
+  const char* longJson = "{\"m\":\"device.status\",\"p\":{\"text\":\"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"},\"id\":9}";
+  offset = 0;
+  while (size_t n = codex_hid::frame(longJson, strlen(longJson), offset, body)) {
+    TEST_ASSERT_TRUE(decoder.feed(body, 63, handler, &capture)); offset += n;
+  }
+  TEST_ASSERT_EQUAL_STRING(longJson, capture.json);
+  TEST_ASSERT_EQUAL(3, capture.count);
+  const char* two = "{\"m\":\"sys.version\"}{\"m\":\"device.status\"}";
+  codex_hid::frame(two, strlen(two), 0, body);
+  decoder.feed(body, 63, handler, &capture); TEST_ASSERT_EQUAL(5, capture.count);
+  // Overflow discards the whole object, then resynchronizes at its closing brace.
+  uint8_t large[63]{}; large[0] = 2; large[1] = 61; memset(large + 2, ' ', 61); large[2] = '{';
+  decoder.feed(large, 63, handler, &capture); large[2] = ' ';
+  for (unsigned i = 0; i < 40; ++i) decoder.feed(large, 63, handler, &capture);
+  large[1] = 1; large[2] = '}'; decoder.feed(large, 63, handler, &capture);
+  codex_hid::frame(newlineFree, strlen(newlineFree), 0, body);
+  decoder.feed(body, 63, handler, &capture); TEST_ASSERT_EQUAL(6, capture.count);
+}
+
+void test_codex_hid_discovery_status_events_and_unknown_calls() {
+  codex_hid::Protocol protocol; char output[1024];
+  auto call = [&](const char* input) { return protocol.process(input, strlen(input), output, sizeof(output)); };
+  TEST_ASSERT_TRUE(call("{\"m\":\"device.status\",\"id\":8}"));
+  StaticJsonDocument<1024> response; TEST_ASSERT_FALSE(deserializeJson(response, output));
+  TEST_ASSERT_EQUAL(8, response["id"].as<int>());
+  TEST_ASSERT_EQUAL_STRING("0.1.0-fnk0104b-hid", response["result"]["version"]);
+  TEST_ASSERT_TRUE(call("{\"method\":\"sys.version\",\"id\":\"abc\"}"));
+  deserializeJson(response, output); TEST_ASSERT_EQUAL_STRING("abc", response["id"]);
+  TEST_ASSERT_TRUE(call("{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":0,\"c\":123,\"b\":0.5,\"e\":4},{\"id\":99}]}"));
+  TEST_ASSERT_EQUAL(1, protocol.status.revision);
+  TEST_ASSERT_TRUE(protocol.status.slots[0].present); TEST_ASSERT_EQUAL(123, protocol.status.slots[0].color);
+  TEST_ASSERT_EQUAL_STRING("4", protocol.status.slots[0].effect);
+  TEST_ASSERT_EQUAL(0, call("{\"m\":\"v.oai.thstatus\",\"p\":null}"));
+  TEST_ASSERT_EQUAL(1, protocol.status.revision);
+  TEST_ASSERT_TRUE(call("{\"m\":\"unknown\",\"id\":1}"));
+  deserializeJson(response, output); TEST_ASSERT_EQUAL(-32601, response["error"]["code"].as<int>());
+  TEST_ASSERT_EQUAL(0, call("{\"m\":\"unknown\"}"));
+  TEST_ASSERT_EQUAL(0, call("{bad json}"));
+  TEST_ASSERT_TRUE(codex_hid::agentEvent(true, output, sizeof(output)));
+  deserializeJson(response, output); TEST_ASSERT_EQUAL(1, response["p"]["act"].as<int>());
+  TEST_ASSERT_TRUE(codex_hid::agentEvent(false, output, sizeof(output)));
+  deserializeJson(response, output); TEST_ASSERT_EQUAL(0, response["p"]["act"].as<int>());
+  TEST_ASSERT_TRUE(codex_hid::microphoneEvent(true, output, sizeof(output)));
+  deserializeJson(response, output);
+  TEST_ASSERT_EQUAL_STRING("v.oai.hid", response["m"]);
+  TEST_ASSERT_EQUAL_STRING("ACT10", response["p"]["k"]);
+  TEST_ASSERT_EQUAL(1, response["p"]["act"].as<int>());
+  TEST_ASSERT_TRUE(codex_hid::microphoneEvent(false, output, sizeof(output)));
+  deserializeJson(response, output); TEST_ASSERT_EQUAL(0, response["p"]["act"].as<int>());
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_codex_hid_descriptor_contract);
+  RUN_TEST(test_codex_hid_framing_bounds_and_recovery);
+  RUN_TEST(test_codex_hid_discovery_status_events_and_unknown_calls);
   RUN_TEST(test_keypad_touch_boundaries_and_gaps);
   RUN_TEST(test_monitor_voice_capture_gate);
   RUN_TEST(test_monitor_microphone_level);

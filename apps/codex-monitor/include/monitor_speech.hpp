@@ -11,6 +11,7 @@ enum class Event : uint8_t { Wake = 0, StartListening = 1, GoBack,
 bool begin(SemaphoreHandle_t peripheral_mutex, SemaphoreHandle_t audio_mutex, std::atomic<bool>* voice_busy);
 bool poll(Event& event);
 bool ready();
+const char* error();
 bool listening();
 bool speech();
 uint8_t level();

@@ -157,3 +157,33 @@ the Arduino NVS boundary. A 115200-baud capture showed continuous wake-state
 AFE processing; LCD readback showed Wi-Fi Online and live running Codex agents.
 No full-chip erase or security changes occurred. See
 [the restoration record](../test/hardware/codex-monitor-restored-after-hid-2026-10-04.md).
+
+## Concurrent USB HID and microphone (2026-10-04)
+
+The monitor now runs Wi-Fi/SSE beside unofficial Codex Micro-compatible vendor
+HID and microphone-only UAC1, using the existing native USB and ES8311/I2S pins.
+The owner confirmed Desktop discovery. USB identity is 303a:8360; Windows reports
+healthy HID/CDC, TinyUSB UAC1 audio and Microphone (TinyUSB UAC1) input.
+USB-OTG owns the PHY; USB Serial/JTAG is unavailable during normal app operation.
+
+Recovery diagnostics captured internal RAM allocation failure during WakeNet
+creation, after the model partition loaded. CPU-only buffers now use PSRAM;
+DMA and task stacks remain internal, with reduced unused FIFO/radio buffers and
+selected non-ISR code placed in flash. The final flashed image reached raw
+microphone and speech ready, Wi-Fi/SSE connected and both monitor workers ready.
+More than 170 seconds of consecutive AFE frames completed without reset; a live
+Windows-side HID device.status request received a completed reply.
+
+Windows initially rejected separate UAC1 control/streaming interfaces with Code
+10. A board-level audio IAD resolved their grouping beside CDC's existing IAD.
+The forced-header SDK include and PlatformIO object dependencies ensure the fix
+actually reaches the firmware image. The supported watchdog reset starts the
+app after recovery upload; PlatformIO 1200-baud recovery was also observed.
+No GPIO assignment, partition boundary, NVS erase or security setting changed.
+
+The actual LCD shows Micro status and separate Micro/Wi-Fi voice controls.
+Captured host PCM, physical touch delivery, Desktop voice/transcription and
+sustained transport coexistence remain UNKNOWN. USB is available to Windows.
+See [physical evidence](../test/hardware/codex-audio-2026-10-04.md),
+[setup](../docs/codex-audio.md) and
+[official references](references.md#usb-microphone-recovery-references-2026-10-04).
