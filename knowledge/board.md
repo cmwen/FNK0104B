@@ -149,3 +149,11 @@ partition layout, which replaces the IDF monitor/speech/recorder layout on
 upload. USB-OTG and USB Serial/JTAG share the internal PHY, so built-in JTAG
 is unavailable during HID operation. No new pins, erase-all operation or
 security settings were used. See the dated hardware checklist. [E9, E10, F2, F3]
+
+After the direct Windows test, the owner requested the Codex monitor restored.
+Its existing named PlatformIO environment built and uploaded with all hashes
+verified, restoring its documented app/model partition layout and retaining
+the Arduino NVS boundary. A 115200-baud capture showed continuous wake-state
+AFE processing; LCD readback showed Wi-Fi Online and live running Codex agents.
+No full-chip erase or security changes occurred. See
+[the restoration record](../test/hardware/codex-monitor-restored-after-hid-2026-10-04.md).

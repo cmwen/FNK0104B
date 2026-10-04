@@ -19,3 +19,7 @@ Record the board revision, firmware commit, PlatformIO environment, USB port, re
 | Codex monitor | [Mock board run](codex-monitor-mock-2026-09-29.md): build and USB upload passed; serial confirmed quota, agent, attention, completion, offline, and recovery transitions; owner confirmed stable landscape view. | Check touch targets, actual voice upload, BLE settings, audible tone, and live Codex bridge. |
 
 Do not combine these into an automated hardware test runner yet. Preserve a serial log and the outcome for every new device check.
+
+[Monitor restoration after HID testing](codex-monitor-restored-after-hid-2026-10-04.md)
+records the successful PlatformIO build/upload, 115200-baud wake-state audio,
+and LCD readback showing Wi-Fi Online and live Codex agents on 2026-10-04.
