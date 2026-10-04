@@ -182,5 +182,21 @@
     "readme": "apps/01-hello/README.md",
     "installable": false,
     "status": "Diagnostic"
+  },
+  {
+    "id": "hid-diag",
+    "title": "USB HID diagnostic",
+    "summary": "Composite USB keyboard and serial diagnostic. Sends test input only when explicitly commanded.",
+    "readme": "apps/22-hid-diag/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "keyboard",
+    "title": "Emoji and numpad keyboard",
+    "summary": "Touchscreen USB number pad and OS-specific emoji shortcuts. Keyboard input verified directly on Windows 11; remote-session forwarding remains unverified.",
+    "readme": "apps/23-keyboard/README.md",
+    "installable": true,
+    "status": "Device-verified"
   }
 ]

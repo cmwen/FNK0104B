@@ -19,6 +19,8 @@ pio run -e hello
 pio run -e display
 pio run -e touch
 pio run -e calculator
+pio run -e hid-diag
+pio run -e keyboard
 pio run -e wifi
 pio run -e wifi-ble
 pio run -e codex-monitor
@@ -47,6 +49,7 @@ pio debug -e hello-debug
 ```
 
 `hello`, `display`, and `touch` are independent diagnostics. The `calculator` environment combines the shared display and touch support. See `apps/09-calculator/README.md` for its controls.
+`hid-diag` checks USB HID plus CDC before the `keyboard` app combines it with touchscreen input. The keyboard has a number pad, emoji shortcuts, and Windows/Mac/Linux selection. See [keyboard controls and flash effects](apps/23-keyboard/README.md).
 `wifi-ble` pairs with the GitHub Pages flasher to save Wi-Fi credentials over a secure Bluetooth session. See `apps/15-wifi-ble/README.md`. `audio-diag` checks the onboard ES8311 microphone path by reporting signal presence without printing samples. `speaker-diag` plays notes through the PH1.25 speaker connector and provides a touchscreen volume slider. `locallink` combines mic capture, Wi-Fi/DNS-SD, HTTP transcription, and an LVGL touchscreen UI; configure private Wi-Fi values and see `apps/12-locallink/README.md` before flashing.
 `ota` is a user-confirmed HTTPS update demo with touchscreen and serial controls. It downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
 `sd` is the serial-only SDIO diagnostic. `file-manager` combines the shared SD, display, and touch support to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.

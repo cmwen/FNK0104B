@@ -25,6 +25,8 @@ PARTS = (
 )
 
 NAMES = {
+    "hid-diag": ("USB HID diagnostic", "Composite USB keyboard and serial diagnostic. Types only when commanded over serial; switches USB from Serial/JTAG to TinyUSB."),
+    "keyboard": ("Emoji and numpad keyboard", "USB touchscreen number pad and OS-specific emoji shortcuts. Windows emoji search, Mac Character Viewer, and Linux GTK Unicode entry. Uses TinyUSB HID plus serial."),
     "hello": ("Hello", "USB serial diagnostic. Reports the chip, flash, PSRAM, and free heap; it does not initialize the display."),
     "display": ("Display", "Cycles red, green, blue, white, and black screens to check the display panel."),
     "avatar-diag": ("Avatar animation", "Shows four generated pixel avatars with animated agent states and reports rendering speed over USB serial."),

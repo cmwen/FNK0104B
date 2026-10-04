@@ -9,6 +9,7 @@
 #include <ui/idle_timer.hpp>
 #include <ui/monitor_theme.hpp>
 #include <recorder/ogg.hpp>
+#include <keypad/layout.hpp>
 #include "../../lib/speech/src/voice_capture_gate.hpp"
 
 void test_sse_fragmented_status_comments_and_unknown_events() {
@@ -311,8 +312,22 @@ void test_monitor_microphone_level() {
   TEST_ASSERT_EQUAL(0, speech::microphoneLevel(nullptr, 0));
 }
 
+void test_keypad_touch_boundaries_and_gaps() {
+  TEST_ASSERT_EQUAL(0, keypad::cell(8, 58, 58, 31, 5));
+  TEST_ASSERT_EQUAL(19, keypad::cell(305, 206, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(7, 58, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(312, 58, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(8, 57, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(8, 213, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(78, 58, 58, 31, 5));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(8, 84, 58, 31, 5));
+  TEST_ASSERT_EQUAL(11, keypad::cell(305, 169, 58, 39, 3));
+  TEST_ASSERT_EQUAL(-1, keypad::cell(8, 175, 58, 39, 3));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_keypad_touch_boundaries_and_gaps);
   RUN_TEST(test_monitor_voice_capture_gate);
   RUN_TEST(test_monitor_microphone_level);
   RUN_TEST(test_monitor_reset_countdown);

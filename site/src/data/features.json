@@ -49,9 +49,9 @@
   },
   {
     "slug": "usb-hid",
-    "title": "USB HID & a number-pad prototype",
-    "summary": "Explore making the board appear as a keyboard to a computer or phone.",
-    "status": "Explore"
+    "title": "USB emoji and number-pad keyboard",
+    "summary": "Use the touchscreen as a wired USB keyboard, with number-pad keys and OS-specific emoji shortcuts.",
+    "status": "Device-verified"
   },
   {
     "slug": "updates",

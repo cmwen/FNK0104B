@@ -115,13 +115,37 @@ image using TFT_eSPI `readRectRGB` and the existing verified GPIO13 MISO mapping
 See [hardware evidence](../docs/hardware.md#device-verified-lcd-readback) and
 [actual screenshot](../docs/images/codex-monitor-screen.png).
 
-## USB HID exploration (documentation review, 2026-10-04)
+## USB HID implementation (2026-10-04)
 
 Espressif documents TinyUSB keyboard/mouse HID and composite USB device support
 on ESP32-S3. Combined with the verified native Type-C data wiring, a touch keypad
-is a plausible future diagnostic. No HID firmware is implemented here; Windows,
-macOS and Android compatibility, cable/host-role behavior and HID-plus-CDC
-operation remain **UNKNOWN**. USB-OTG and USB Serial/JTAG share the internal PHY,
-so a HID experiment must account for serial/debug access and verify download
-recovery. This review changed no firmware, pins, partitions or security settings.
-[E9, F2, F3]
+is implemented in the new `hid-diag` and `keyboard` Arduino PlatformIO
+environments. Both builds passed with the pinned platform and Arduino 2.0.17;
+the shared HID implementation is in `lib/fnk0104b`. They select USB-OTG mode
+and expose HID plus CDC, preserving the verified USB/display/touch GPIOs.
+The diagnostic upload verified all image hashes, then USB/IP detached during
+the USB identity change; PlatformIO reported a post-write reset failure.
+Windows subsequently listed a composite USB Input Device plus serial COM8
+on bus `3-1`; re-sharing it requires Windows administrator privileges.
+After user reattachment, the diagnostic reported repeated `hid_ready=1` at
+115200 baud. The combined keyboard was then uploaded with every image hash
+verified and a successful PlatformIO exit. Its serial heartbeat reports
+`touch_ready=1 host=Windows`; Linux enumerated its HID keyboard and CDC.
+Combined-firmware HID readiness in the initial WSL capture was `0`. Version 0.1.1 corrects
+the use of endpoint readiness as connection state and removes unsolicited
+status-change release reports. Both environments rebuilt successfully and the
+keyboard was flashed with verified hashes. Four 115200-baud heartbeats now
+report `hid_ready=1 endpoint_ready=1 touch_ready=1`. The owner subsequently
+confirmed touchscreen keyboard input works directly on Windows 11; earlier
+missing-input observations were made through a Windows App remote session.
+That remote-session path did not deliver input as expected in the tested
+setup. Specific key/Num Lock coverage, emoji selection, other hosts and
+sustained use remain UNKNOWN. USB ownership was returned to Windows for the
+local test. See the dated HID hardware checklist.
+PlatformIO's 1200-baud reset entered the ROM bootloader without physical
+buttons; USB/IP required reattachment across the identity change. Physical
+BOOT/RESET recovery remains **UNKNOWN**. Both environments use the existing Arduino
+partition layout, which replaces the IDF monitor/speech/recorder layout on
+upload. USB-OTG and USB Serial/JTAG share the internal PHY, so built-in JTAG
+is unavailable during HID operation. No new pins, erase-all operation or
+security settings were used. See the dated hardware checklist. [E9, E10, F2, F3]
