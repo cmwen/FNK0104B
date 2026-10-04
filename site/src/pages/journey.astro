@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+const steps = [
+ ['bdf59cb','Start with the board','Separate hello, display, touch, networking and storage diagnostics made the basic capabilities independently buildable. Lesson: establish the hardware path before designing the full product.'],
+ ['5ac04ed','Make a touch application','The calculator moved from board checks to a usable LVGL interface. Connectivity tools followed with scan results and an on-screen keyboard. Lesson: design for a small screen and verify control placement.'],
+ ['17a747a','Make it easy to try','GitHub Pages gained a PWA browser flasher and named firmware catalog. Lesson: discovery and installation belong together, with explicit descriptions of what each build does.'],
+ ['7b85e91','Connect audio to a local service','LocalLink recorded microphone audio and discovered a LAN speech service. Later microphone diagnostics corrected the input path and added a live meter. Lesson: a successful service request cannot replace checking the actual microphone signal.'],
+ ['881fef4','Add appliance behavior','A screen-timeout diagnostic kept touch running while the backlight was off. Speaker, SD file manager and confirmed OTA demos expanded the catalog. Lesson: test each peripheral before combining it with the dashboard.'],
+ ['5dd0a64','Bring setup into the browser','BLE provisioning used an on-screen proof-of-possession code. Advertising fixes and separate flash/setup tasks made discovery clearer. Lesson: distinguish provisioning, settings and network health.'],
+ ['04b0f27','Build the Codex monitor','A local bridge, animated dashboard and BLE idle settings combined existing capabilities. Mock runs checked quota endpoints, attention and unavailable/recovery states. Lesson: errors and stale state are part of the interface.'],
+ ['d5f3fd1','Treat the bridge as a local service','LocalLink management and SSE status streaming reduced manual process handling and made updates more immediate. Quiet mode made the device more practical on a desk. Lesson: network and host lifecycle matter as much as the screen.'],
+ ['3dea6f8','Learn local speech first','WakeNet10, MultiNet7 and VADNet were exercised in a visual diagnostic. Frame timing revealed how close command inference could get to the audio deadline. Lesson: measure compute and memory before integrating ML.'],
+ ['6bbb88d','Keep an offline recording path','The recorder combined SD, audio and touch with Opus. A codec-stack failure and measured touch latency led to a larger worker stack and independent touch polling. Lesson: host tests help, but device resource constraints need device evidence.'],
+ ['9071fcf','Combine speech with the monitor','Local commands and secure monitor Wi-Fi setup required a speech model partition. Device-only allocation failures led to reserving the feed stack and allocating microphone DMA early. Lesson: total free memory does not tell you which allocations will succeed.'],
+ ['75155c0','Capture the actual display','LCD readback produced a real screen capture through PlatformIO serial. Lesson: label device captures and host-rendered previews separately.'],
+ ['74eb0dc','Clarify the voice interaction','The command guide, microphone feedback, reset bars and explicit quota/agent views refined behavior. Lesson: command listening and message recording need different guidance and timeouts.'],
+];
+---
+<Layout title="Build journal"><div class="wrap"><header class="page-head"><p class="eyebrow">Lessons from the commit history</p><h1>Small experiments.<br />A capable appliance.</h1><p class="lede">A high-level trail through the repository, focused on decisions and lessons you can reuse when directing a coding agent.</p></header><div class="prose timeline">{steps.map(([sha,title,body]) => <article><h2>{title}</h2><p>{body}</p><a href={`https://github.com/cmwen/FNK0104B/commit/${sha}`}><code>{sha}</code> · inspect the milestone ↗</a></article>)}</div></div></Layout>

@@ -1,5 +1,8 @@
 # FNK0104B ESP32-S3 firmware lab
 
+The [board field guide](https://cmwen.github.io/FNK0104B/) explains capabilities, firmware and lessons from the Codex monitor. Use [Flash & setup](https://cmwen.github.io/FNK0104B/setup.html#flash) to install published builds or configure the board. The Astro sources and local preview workflow are in [site/README.md](site/README.md).
+
+
 PlatformIO Core CLI repository for small, independently buildable firmware apps targeting the Freenove FNK0104B (2.8-inch ILI9341 touch) board. Arduino is the starting framework. Board-specific GPIO facts and the initial board support API live in `lib/fnk0104b`; applications do not carry their own pin maps.
 
 Read `docs/hardware.md`, `docs/pins.md`, and `docs/flashing.md` before hardware work. Verified facts and unresolved vendor-source conflicts are recorded there.

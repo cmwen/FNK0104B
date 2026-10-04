@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import features from '../../data/features.json';
+const documents = import.meta.glob('../../../content/features/*.md', { eager: true });
+export function getStaticPaths() {return features.map(feature => ({params:{slug:feature.slug}, props:{feature}}));}
+const { feature } = Astro.props;
+const document = documents[`../../../content/features/${feature.slug}.md`] as any;
+const Content = document.Content;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Layout title={feature.title} description={feature.summary}><div class="wrap"><header class="page-head"><p class="eyebrow"><a href={`${base}/features/`}>Capabilities</a> / <span class="tag">{feature.status}</span></p><h1>{feature.title}</h1><p class="lede">{feature.summary}</p></header><div class="article-grid"><article class="prose"><Content /></article><aside class="aside"><h3>Explore with a purpose</h3><p>Start with one capability diagnostic, then combine the pieces. A build is evidence of compilation; a device check establishes observed behavior.</p><a href={`${base}/firmware/`}>Firmware catalog →</a><a href={`${base}/monitor/`}>How the monitor uses it →</a><a href={`${base}/setup.html#setup`}>Browser device setup →</a><h3>Trace the evidence</h3><a href={`https://github.com/cmwen/FNK0104B/blob/main/site/content/features/${feature.slug}.md`}>Edit this guide ↗</a><a href="https://github.com/cmwen/FNK0104B/blob/main/knowledge/board.md">Verified board facts ↗</a><a href="https://github.com/cmwen/FNK0104B/blob/main/docs/hardware.md">Recorded hardware checks ↗</a><a href={`${base}/sources/`}>Sources & unknowns →</a></aside></div></div></Layout>

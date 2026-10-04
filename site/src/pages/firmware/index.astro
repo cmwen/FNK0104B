@@ -1,0 +1,6 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import firmware from '../../data/firmware.json';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Layout title="Firmware catalog"><div class="wrap"><header class="page-head"><p class="eyebrow">Independent apps, one board</p><h1>Find your next firmware.</h1><p class="lede">Choose a small diagnostic or a complete application. Every entry has a named PlatformIO environment; browser installation is available for the published catalog.</p></header><div class="grid">{firmware.map(f => <article class="card"><span class="number">{f.id}</span><h3><a href={`${base}/firmware/${f.id}/`}>{f.title} ↗</a></h3><p>{f.summary}</p><span class="tag">{f.status}</span><p><small>{f.installable ? 'Browser install + PlatformIO' : 'PlatformIO only'}</small></p></article>)}</div></div></Layout>

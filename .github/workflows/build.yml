@@ -1,4 +1,4 @@
-name: Build firmware and publish flasher
+name: Build firmware and publish board guide
 
 on:
   push:
@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PLATFORMIO_SETTING_ENABLE_TELEMETRY: 'No'
+      ASTRO_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -22,7 +23,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: web-flasher/package-lock.json
+          cache-dependency-path: |
+            web-flasher/package-lock.json
+            site/package-lock.json
       - uses: actions/cache@v6
         with:
           path: |
@@ -41,6 +44,8 @@ jobs:
           python -m unittest discover -s monitor-server/tests
       - name: Build BLE setup page
         run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
+      - name: Build and verify Astro guide
+        run: npm ci --prefix site && npm run build --prefix site && npm test --prefix site
       - name: Package flasher and firmware
         run: python scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
       - name: Upload Pages artifact

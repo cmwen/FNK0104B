@@ -59,3 +59,5 @@ python3 scripts/capture_monitor_screen.py docs/images/codex-monitor-screen.png -
 Unlike `monitor_ui_preview.cpp`, this captures the actual board and current
 values. `docs/images/codex-monitor-screen.png` is copied into the Pages artifact
 and shown in the Codex monitor screenshot section.
+
+Additional monitor documentation previews use the same host renderer: convert its `commands`, `recording`, `idle` and `offline` PPM outputs to `docs/images/monitor-command.png`, `monitor-recording.png`, `monitor-idle.png` and `monitor-offline.png`. These contain sample data and are labeled host previews in the Astro guide.

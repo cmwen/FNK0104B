@@ -1,0 +1,16 @@
+---
+import '../styles/guide.css';
+const { title, description = 'A practical field guide to the Freenove FNK0104B: capabilities, firmware and lessons from the Codex monitor.' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const url = (path = '') => `${base}/${path}`;
+const links = [['', 'Overview'], ['features/', 'Capabilities'], ['firmware/', 'Firmware'], ['monitor/', 'Codex monitor'], ['journey/', 'Build journal']];
+---
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content={description} /><meta name="theme-color" content="#102c2a" /><link rel="icon" href={url('icon.svg')} /><title>{title} · FNK0104B field guide</title></head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="header"><a class="brand" href={url()}><span class="mark">F</span><span>FNK0104B <small>FIELD GUIDE</small></span></a><nav aria-label="Main navigation">{links.map(([path, label]) => <a href={url(path)} aria-current={Astro.url.pathname.replace(/\/$/, '') === url(path).replace(/\/$/, '') ? 'page' : undefined}>{label}</a>)}</nav><a class="button compact" href={url('setup.html#flash')}>Flash & setup ↗</a></header>
+<main id="main"><slot /></main>
+<footer><p>A board. Many possibilities.<br /><small>Freenove FNK0104B · Built from repository evidence · Updated 4 October 2026</small></p><div><a href="https://github.com/cmwen/FNK0104B">Repository ↗</a><a href={url('sources/')}>Evidence & sources</a><a href={url('setup.html#setup')}>Device setup</a></div></footer>
+</body></html>

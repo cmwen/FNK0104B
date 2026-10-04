@@ -1,0 +1,19 @@
+{
+  "name": "fnk0104b-guide",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "dev": "npm run prepare:assets && astro dev --host 127.0.0.1",
+    "build": "npm run prepare:assets && astro build",
+    "preview": "astro preview --host 127.0.0.1",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs"
+  },
+  "dependencies": {
+    "astro": "7.3.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0"
+  }
+}

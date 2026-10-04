@@ -1,0 +1,10 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import features from '../../data/features.json';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Layout title="Capabilities"><div class="wrap"><header class="page-head"><p class="eyebrow">Understand the building blocks</p><h1>Choose a capability.<br />Shape an idea.</h1><p class="lede">Plain-language guides for board owners. Learn the useful patterns, see how the monitor uses them, and give your coding agent a precise brief.</p></header><p><span class="tag">Implemented</span> means there is working application code; physical evidence and remaining checks are described in each guide. <span class="tag explore">Explore</span> includes proposed or partially used capabilities.</p><label for="search" class="eyebrow">Find a capability</label><br /><input id="search" class="filter" type="search" placeholder="Try storage, wake word, USB…" /><p id="results" role="status" aria-live="polite"></p><div class="grid" id="capabilities">{features.map((f,i) => <article class="card" data-search={`${f.title} ${f.summary} ${f.slug}`}><span class="number">{String(i+1).padStart(2,'0')}</span><h3><a href={`${base}/features/${f.slug}/`}>{f.title} ↗</a></h3><p>{f.summary}</p><span class:list={['tag',{explore:f.status==='Explore'}]}>{f.status}</span></article>)}</div></div><script>
+const input = document.querySelector<HTMLInputElement>('#search')!;
+const cards = [...document.querySelectorAll<HTMLElement>('[data-search]')];
+input.addEventListener('input', () => {let count=0;for(const card of cards){card.hidden=!card.dataset.search!.toLowerCase().includes(input.value.toLowerCase());if(!card.hidden)count++;}document.querySelector('#results')!.textContent=`${count} capabilities found`;});
+</script></Layout>

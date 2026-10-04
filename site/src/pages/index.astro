@@ -1,0 +1,24 @@
+---
+import Layout from '../layouts/Layout.astro';
+import features from '../data/features.json';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Layout title="A small board, a lot to build">
+<div class="wrap">
+<section class="hero"><div><p class="eyebrow">The Freenove FNK0104B, explored</p><h1>A small board.<br /><em>A lot to build.</em></h1><p class="lede">A practical guide to your ESP32-S3 display: what it can do, how to use it, and what building a Codex monitor taught us.</p><div class="actions"><a class="button" href={`${base}/features/`}>Explore the capabilities →</a><a class="button secondary" href={`${base}/firmware/`}>Choose a firmware</a></div></div><div class="device"><figure><img src={`${base}/docs/images/codex-monitor-screen.png`} width="320" height="240" alt="Actual board display with Codex usage, a working agent avatar and voice controls" /><figcaption>CODEX MONITOR / actual LCD readback<br />320 × 240 landscape · captured 4 October 2026</figcaption></figure></div></section>
+<div class="specs"><div><strong>2.8″</strong><span>IPS display + capacitive touch</span></div><div><strong>ESP32-S3</strong><span>Wi-Fi + Bluetooth LE</span></div><div><strong>16 + 8 MB</strong><span>Flash + PSRAM</span></div><div><strong>Voice-ready</strong><span>Onboard microphone + codec</span></div></div>
+<section class="section"><div class="section-head"><div><p class="eyebrow">Start with a possibility</p><h2>What would you like to make?</h2></div><a href={`${base}/features/`}>All capabilities ↗</a></div><div class="grid">{features.filter(f => ['display-touch','bluetooth','storage','speech','screen-idle','usb-hid'].includes(f.slug)).map((f,i) => <article class="card"><span class="number">0{i+1} / {f.status === 'Explore' ? 'NEXT EXPERIMENT' : 'IN THE REPOSITORY'}</span><h3><a href={`${base}/features/${f.slug}/`}>{f.title} ↗</a></h3><p>{f.summary}</p><span class:list={['tag', {explore:f.status==='Explore'}]}>{f.status}</span></article>)}</div></section>
+<section class="band"><div><p class="eyebrow" style="color:#b5cbbd">One project, many lessons</p><h2>Meet the Codex monitor.</h2><p>Usage at a glance. Agent activity on your desk. Local voice commands and a message path through your own bridge.</p><a href={`${base}/monitor/`}>See the screens and the setup →</a></div><div><h3>Build by describing behavior.</h3><p>Each capability guide includes a brief you can give a coding agent, a small diagnostic to start with, and the limits of what has actually been tested.</p><a href={`${base}/journey/`}>Follow the build journal →</a></div></section>
+</div>
+<script>
+// Existing GitHub Pages links keep their flash/setup destination after migration.
+function legacyLink() {
+ const hash = location.hash;
+ if (['#flash','#setup','#monitor-heading','#ble-heading','#server-heading','#bluetooth-help','#monitor-settings','#wifi-setup'].includes(hash)) {
+  location.replace(new URL(`setup.html${location.search}${hash}`, location.href));
+ }
+}
+legacyLink();
+window.addEventListener('hashchange', legacyLink);
+</script>
+</Layout>

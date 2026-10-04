@@ -1,0 +1,186 @@
+[
+  {
+    "id": "hello",
+    "title": "Hello",
+    "summary": "USB serial diagnostic. Reports the chip, flash, PSRAM, and free heap; it does not initialize the display.",
+    "readme": "apps/01-hello/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "display",
+    "title": "Display",
+    "summary": "Cycles red, green, blue, white, and black screens to check the display panel.",
+    "readme": "apps/02-display/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "avatar-diag",
+    "title": "Avatar animation",
+    "summary": "Shows four generated pixel avatars with animated agent states and reports rendering speed over USB serial.",
+    "readme": "apps/14-avatar-diag/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "touch",
+    "title": "Touch",
+    "summary": "Reads screen taps and prints their coordinates over USB serial.",
+    "readme": "apps/03-touch/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "calculator",
+    "title": "Calculator",
+    "summary": "Touchscreen calculator with decimal input, sign toggle, backspace, clear, and chained basic arithmetic.",
+    "readme": "apps/09-calculator/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "wifi",
+    "title": "Wi-Fi",
+    "summary": "Shows a setup QR code for Espressif's phone app to provision 2.4 GHz Wi-Fi. Credentials are saved on the board.",
+    "readme": "apps/04-wifi/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "wifi-ble",
+    "title": "Wi-Fi over BLE",
+    "summary": "Use this page and the code shown on the board to securely set up 2.4 GHz Wi-Fi over Bluetooth.",
+    "readme": "apps/15-wifi-ble/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "connectivity",
+    "title": "Connectivity",
+    "summary": "Touchscreen tools to scan for and join Wi-Fi networks, scan BLE devices, or advertise a BLE diagnostic device.",
+    "readme": "apps/10-connectivity/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "nvs",
+    "title": "NVS",
+    "summary": "Placeholder only: reports startup information but does not test nonvolatile storage yet.",
+    "readme": "apps/05-nvs/README.md",
+    "installable": true,
+    "status": "Placeholder"
+  },
+  {
+    "id": "sd",
+    "title": "SD card diagnostic",
+    "summary": "Lists files from the FNK0104B four-bit SDIO card over serial without formatting it.",
+    "readme": "apps/06-sd/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "file-manager",
+    "title": "SD file manager",
+    "summary": "Touchscreen SD browser with storage capacity and read-only text and hex file viewing.",
+    "readme": "apps/17-file-manager/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "mqtt",
+    "title": "MQTT",
+    "summary": "Placeholder only: does not connect to an MQTT broker yet.",
+    "readme": "apps/07-mqtt/README.md",
+    "installable": true,
+    "status": "Placeholder"
+  },
+  {
+    "id": "ota",
+    "title": "OTA",
+    "summary": "User-confirmed HTTPS firmware update from a GitHub Release, with touchscreen and serial controls.",
+    "readme": "apps/08-ota/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "codex-monitor",
+    "title": "Codex monitor",
+    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Arduino Wi-Fi storage and replaces OTA/FATFS data.",
+    "readme": "apps/codex-monitor/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "audio-diag",
+    "title": "Audio",
+    "summary": "Captures one second of onboard microphone audio at a time and reports signal detection; it never prints or saves samples.",
+    "readme": "apps/11-audio-diag/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "speaker-diag",
+    "title": "Speaker keyboard",
+    "summary": "Plays notes from a touchscreen keyboard with an adjustable speaker volume.",
+    "readme": "apps/16-speaker-diag/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "locallink",
+    "title": "LocalLink",
+    "summary": "Records speech with the onboard microphone, discovers a Speech Recognition service on your LAN, and shows the returned transcript. Requires Wi-Fi and a compatible service.",
+    "readme": "apps/12-locallink/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "screen-timeout",
+    "title": "Screen timeout",
+    "summary": "Turns the display backlight off after 60 seconds of inactivity and wakes it on touch.",
+    "readme": "apps/13-screen-timeout/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "button-diag",
+    "title": "Button",
+    "summary": "Checks the verified expansion GPIO14 button input over USB serial.",
+    "readme": "apps/18-button-diag/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
+    "id": "speech-diag",
+    "title": "Speech diagnostic",
+    "summary": "Visual offline wake-word, command and VAD diagnostic.",
+    "readme": "apps/19-speech-diag/README.md",
+    "installable": false,
+    "status": "Diagnostic"
+  },
+  {
+    "id": "recorder",
+    "title": "Offline voice recorder",
+    "summary": "Wake-triggered recording to SD with touch controls and Opus playback.",
+    "readme": "apps/20-recorder/README.md",
+    "installable": false,
+    "status": "Diagnostic"
+  },
+  {
+    "id": "recorder-io-diag",
+    "title": "Recorder I/O diagnostic",
+    "summary": "Exercises display, touch, microphone and SD before full recording.",
+    "readme": "apps/21-recorder-io-diag/README.md",
+    "installable": false,
+    "status": "Diagnostic"
+  },
+  {
+    "id": "hello-debug",
+    "title": "USB-JTAG hello diagnostic",
+    "summary": "Debug-oriented serial diagnostic; an actual breakpoint session remains UNKNOWN.",
+    "readme": "apps/01-hello/README.md",
+    "installable": false,
+    "status": "Diagnostic"
+  }
+]

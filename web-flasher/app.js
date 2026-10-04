@@ -84,6 +84,8 @@ async function prepareInstaller() {
     }));
     firmwareChoice.disabled = false;
     firmwareChoice.addEventListener("change", () => selectFirmware(firmwareChoice.value));
+    const requested = new URLSearchParams(location.search).get("firmware");
+    if (firmwareBuilds.some(build => build.id === requested)) firmwareChoice.value = requested;
     await selectFirmware(firmwareChoice.value);
   } catch (error) {
     firmwareChoice.replaceChildren(new Option("Firmware unavailable", ""));

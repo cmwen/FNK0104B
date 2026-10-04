@@ -11,7 +11,7 @@ import shutil
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SITE = ROOT / "web-flasher"
+SITE = ROOT / "site" / "dist"
 BUILD = ROOT / ".pio" / "build"
 OUTPUT_MARKER = ".fnk0104b-pages"
 
@@ -77,7 +77,7 @@ def monitor_partitions():
 
 def package(output: Path, version: str):
     if not (SITE / "ble-client.bundle.js").is_file():
-        raise FileNotFoundError("Build the BLE setup page with npm ci and npm run build in web-flasher before packaging")
+        raise FileNotFoundError("Build web-flasher and the Astro site before packaging")
     if output.exists():
         if not output.is_dir() or not (output / OUTPUT_MARKER).is_file():
             raise ValueError(f"Refusing to replace a directory not made by this packager: {output}")
@@ -91,7 +91,7 @@ def package(output: Path, version: str):
         ),
     )
     # Canonical documentation images are also served by the Pages app.
-    shutil.copytree(ROOT / "docs" / "images", output / "docs" / "images")
+    shutil.copytree(ROOT / "docs" / "images", output / "docs" / "images", dirs_exist_ok=True)
     (output / OUTPUT_MARKER).touch()
     (output / ".nojekyll").touch()
     firmware_root = output / "firmware"

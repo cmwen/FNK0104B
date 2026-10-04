@@ -114,3 +114,14 @@ LCD readback verified on 2026-10-03: the monitor captured a complete 320 × 240 
 image using TFT_eSPI `readRectRGB` and the existing verified GPIO13 MISO mapping.
 See [hardware evidence](../docs/hardware.md#device-verified-lcd-readback) and
 [actual screenshot](../docs/images/codex-monitor-screen.png).
+
+## USB HID exploration (documentation review, 2026-10-04)
+
+Espressif documents TinyUSB keyboard/mouse HID and composite USB device support
+on ESP32-S3. Combined with the verified native Type-C data wiring, a touch keypad
+is a plausible future diagnostic. No HID firmware is implemented here; Windows,
+macOS and Android compatibility, cable/host-role behavior and HID-plus-CDC
+operation remain **UNKNOWN**. USB-OTG and USB Serial/JTAG share the internal PHY,
+so a HID experiment must account for serial/debug access and verify download
+recovery. This review changed no firmware, pins, partitions or security settings.
+[E9, F2, F3]

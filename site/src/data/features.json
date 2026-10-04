@@ -1,0 +1,68 @@
+[
+  {
+    "slug": "display-touch",
+    "title": "Display & touch",
+    "summary": "Build a dashboard, calculator, control panel or number pad.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "bluetooth",
+    "title": "Bluetooth LE & Web Bluetooth",
+    "summary": "Configure a powered board from a browser, without another firmware upload.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "wifi",
+    "title": "Wi-Fi & the local bridge",
+    "summary": "Connect the display to services running on your own computer.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "storage",
+    "title": "NVS, flash, PSRAM & SD",
+    "summary": "Understand which data survives a reboot, an update or a power loss.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "microphone",
+    "title": "Microphone & audio capture",
+    "summary": "Turn sound into a level meter, a recording or a message.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "speech",
+    "title": "Wake words, commands & on-device ML",
+    "summary": "Say a wake phrase and control the board without a cloud service.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "speaker",
+    "title": "Speaker output & alerts",
+    "summary": "Play a note, acknowledge an action or replay a recording.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "screen-idle",
+    "title": "Screen inactivity & wake",
+    "summary": "Make an always-on appliance quieter without losing its connection.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "usb-hid",
+    "title": "USB HID & a number-pad prototype",
+    "summary": "Explore making the board appear as a keyboard to a computer or phone.",
+    "status": "Explore"
+  },
+  {
+    "slug": "updates",
+    "title": "Browser flashing & OTA",
+    "summary": "Install independent firmware and understand what an update replaces.",
+    "status": "Implemented"
+  },
+  {
+    "slug": "expansion",
+    "title": "Expansion, buttons & remaining hardware",
+    "summary": "Add physical controls while respecting the board\u2019s occupied pins.",
+    "status": "Explore"
+  }
+]

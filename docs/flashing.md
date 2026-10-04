@@ -35,7 +35,7 @@ to configure an already flashed board. Setup includes Windows/macOS Bluetooth
 instructions and a **Can't find the board?** troubleshooting section. Existing
 links to `#monitor-heading` and `#ble-heading` open the setup section.
 
-The [GitHub Pages flasher](https://cmwen.github.io/FNK0104B/) offers the firmware builds from this repository. It uses Web Serial through ESP Web Tools, so use a desktop Chromium browser on an HTTPS origin (or localhost), connect the FNK0104B with a USB data cable, choose the firmware environment, and press **Install**. If the board is not detected, use BOOT and RESET to enter download mode as described below and try again. Close serial monitors and other programs using the port first.
+The [GitHub Pages flasher](https://cmwen.github.io/FNK0104B/setup.html#flash) offers the firmware builds from this repository. It uses Web Serial through ESP Web Tools, so use a desktop Chromium browser on an HTTPS origin (or localhost), connect the FNK0104B with a USB data cable, choose the firmware environment, and press **Install**. If the board is not detected, use BOOT and RESET to enter download mode as described below and try again. Close serial monitors and other programs using the port first.
 
 The page installs the PlatformIO bootloader, selected partition table, OTA metadata image, and selected application at the same addresses as a PlatformIO upload. It does not request a full flash erase. The selected partition table may differ from the board's factory layout, which has not been verified; back up any data that matters before first use. CI builds use default settings and no private Wi-Fi credentials.
 
@@ -63,11 +63,15 @@ The publishing workflow builds every firmware environment on pushes and pull req
 ```bash
 npm ci --prefix web-flasher
 npm run build --prefix web-flasher
+npm ci --prefix site
+ASTRO_TELEMETRY_DISABLED=1 npm run build --prefix site
 python3 scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
-python3 -m http.server 8000 --directory /tmp/fnk0104b-pages
+mkdir -p /tmp/fnk0104b-preview
+ln -sfn /tmp/fnk0104b-pages /tmp/fnk0104b-preview/FNK0104B
+python3 -m http.server 8000 --directory /tmp/fnk0104b-preview
 ```
 
-Open `http://localhost:8000/` in a browser with Web Serial support. GitHub Pages serves the same generated files over HTTPS.
+Open `http://localhost:8000/FNK0104B/` in a browser with Web Serial support. GitHub Pages serves the same generated files over HTTPS.
 
 ## Serial monitor
 
@@ -141,3 +145,6 @@ If an application does not boot, use the board's BOOT and RESET buttons to force
 ## Hardware checks
 
 Recorded results and remaining device checks are listed in `test/hardware/README.md`. Keep one capability per diagnostic app and capture the serial log after every upload.
+
+
+The [Astro board guide](../site/README.md) and existing installer are built before packaging. The packager copies `site/dist/` and adds PlatformIO firmware manifests and images. Old `index.html#flash` and `index.html#setup` links retain their destinations.

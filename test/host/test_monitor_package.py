@@ -35,6 +35,10 @@ class MonitorPackageTest(unittest.TestCase):
             site = root / "site"
             site.mkdir()
             (site / "ble-client.bundle.js").write_text("test")
+            (site / "index.html").write_text("Astro guide")
+            (site / "setup.html").write_text("Installer")
+            (site / "docs/images").mkdir(parents=True)
+            (site / "docs/images/preview.png").write_bytes(b"preview")
             (root / "docs/images").mkdir(parents=True)
             (root / "platformio.ini").write_text(
                 "[env:codex-monitor]\nboard_build.partitions = partitions.csv\n")
@@ -55,6 +59,9 @@ class MonitorPackageTest(unittest.TestCase):
                  patch.object(package, "firmware_environments", return_value=["codex-monitor"]), \
                  patch.dict(package.os.environ, {"PLATFORMIO_CORE_DIR": str(core)}):
                 self.assertEqual(1, package.package(output, "test"))
+                self.assertEqual("Astro guide", (output / "index.html").read_text())
+                self.assertEqual("Installer", (output / "setup.html").read_text())
+                self.assertEqual(b"preview", (output / "docs/images/preview.png").read_bytes())
                 manifest = json.loads((output / "firmware/codex-monitor/manifest.json").read_text())
                 self.assertTrue(manifest["new_install_prompt_erase"])
                 parts = manifest["builds"][0]["parts"]
