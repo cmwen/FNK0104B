@@ -15,6 +15,14 @@ SITE = ROOT / "site" / "dist"
 BUILD = ROOT / ".pio" / "build"
 OUTPUT_MARKER = ".fnk0104b-pages"
 
+# Build these diagnostics in CI without publishing browser-install manifests.
+# In particular, codex-audio-diag uses the monitor partition layout but does
+# not produce the speech model image required by the monitor manifest.
+BUILD_ONLY_ENVIRONMENTS = (
+    "hello-debug", "speech-diag", "recorder", "recorder-io-diag",
+    "codex-hid-diag", "codex-audio-diag",
+)
+
 # These are the image offsets used by the pinned Arduino ESP32 PlatformIO
 # builder for ESP32-S3. Keep this list aligned with platformio.ini.
 PARTS = (
@@ -52,13 +60,13 @@ NAMES = {
 def firmware_environments():
     config = configparser.ConfigParser(interpolation=None)
     config.read(ROOT / "platformio.ini")
-    # Standalone IDF diagnostics are built separately in CI. The monitor
-    # uses its own speech image list below; other entries use Arduino images.
+    # The monitor uses its own speech image list below; other published
+    # entries use Arduino images. Keep standalone diagnostics build-only.
     environments = [
         section.removeprefix("env:")
         for section in config.sections()
         if section.startswith("env:")
-        and section not in {"env:native", "env:hello-debug", "env:speech-diag", "env:recorder", "env:recorder-io-diag"}
+        and section.removeprefix("env:") not in {"native", *BUILD_ONLY_ENVIRONMENTS}
     ]
     unknown = set(environments) - NAMES.keys()
     if unknown:

@@ -3,6 +3,8 @@ import configparser
 import importlib.util
 import json
 from pathlib import Path
+import runpy
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -14,6 +16,36 @@ spec.loader.exec_module(package)
 
 
 class MonitorPackageTest(unittest.TestCase):
+    def test_ci_builds_all_firmware_without_publishing_standalone_diagnostics(self):
+        published = package.firmware_environments()
+        self.assertIn("codex-monitor", published)
+        self.assertNotIn("codex-hid-diag", published)
+        self.assertNotIn("codex-audio-diag", published)
+        self.assertEqual(set(package.NAMES), set(published))
+
+        config = configparser.ConfigParser(interpolation=None)
+        config.read(SCRIPT.parents[1] / "platformio.ini")
+        expected = {section.removeprefix("env:") for section in config.sections()
+                    if section.startswith("env:") and section != "env:native"}
+        with patch.object(sys, "path", [str(SCRIPT.parent), *sys.path]), \
+             patch("subprocess.run") as run:
+            runpy.run_path(str(SCRIPT.with_name("build_firmware.py")), run_name="__main__")
+        run.assert_called_once()
+        command = run.call_args.args[0]
+        self.assertEqual(["pio", "run"], command[:2])
+        self.assertEqual(["-e"] * len(expected), command[2::2])
+        self.assertEqual(expected, set(command[3::2]))
+        self.assertEqual(len(expected), len(command[3::2]))
+        self.assertTrue(run.call_args.kwargs["check"])
+
+    def test_unclassified_firmware_still_requires_catalog_labels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "platformio.ini").write_text("[env:new-app]\n")
+            with patch.object(package, "ROOT", root):
+                with self.assertRaisesRegex(ValueError, "Add catalog labels for environments: new-app"):
+                    package.firmware_environments()
+
     def test_monitor_preserves_arduino_nvs_boundary(self):
         root = SCRIPT.parents[1]
         config = configparser.ConfigParser(interpolation=None)

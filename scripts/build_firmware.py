@@ -3,11 +3,11 @@
 
 import subprocess
 
-from package_web_firmware import firmware_environments
+from package_web_firmware import BUILD_ONLY_ENVIRONMENTS, firmware_environments
 
 
 if __name__ == "__main__":
-    environments = ["hello-debug", "speech-diag", "recorder", "recorder-io-diag", *firmware_environments()]
+    environments = [*BUILD_ONLY_ENVIRONMENTS, *firmware_environments()]
     command = ["pio", "run"]
     for environment in environments:
         command.extend(("-e", environment))
