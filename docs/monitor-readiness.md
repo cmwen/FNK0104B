@@ -1,5 +1,42 @@
 # Codex monitor readiness
 
+## Adaptive Micro/Wi-Fi UI, 2026-10-07
+
+With no recognized Desktop discovery, including USB power/enumeration alone,
+the header shows Codex bridge state and only a full-width Wi-Fi voice touch
+control. Linked/Idle Desktop protocol state enables the Micro header and both
+voice controls. Quiet Desktop connections retain Micro Idle; USB disconnect
+restores the Wi-Fi layout and clears held Micro touch state. Wi-Fi/SSE and USB
+audio continue to operate independently of this presentation change.
+
+PlatformIO monitor build and 25 native tests passed; host previews cover both
+layouts. The board was subsequently flashed with all image hashes verified.
+A 145-second 115200-baud monitor run kept speech/audio and Wi-Fi healthy with
+10,027 free internal heap bytes. Actual LCD readback verified Codex Busy and
+the full-width Wi-Fi voice control. After returning USB to Windows, live host
+discovery/status calls received completed HID replies while Wi-Fi/speech
+continued. Windows LCD capture was incomplete; Micro appearance, physical
+touch actions, ACT10 release and reconnect remain UNKNOWN. See the
+[device record](../test/hardware/monitor-adaptive-ui-2026-10-07.md).
+
+A subsequent label refinement uses **Online** for connected idle Codex and
+restores the status text below the title at the same height as Wi-Fi status.
+This refinement was host-previewed and subsequently flashed with all image
+hashes verified. Post-flash PlatformIO serial health at 115200 baud confirmed
+speech/audio ready, Wi-Fi connected and completed HID replies. The earlier
+LCD screenshot above predates the label-position refinement.
+
+The app uses approximately 3.10 MB of its existing 6 MiB slot (49.3%); this is
+not a firmware-too-large-to-flash failure. The [saved recovery
+record](../test/hardware/codex-audio-2026-10-04.md) separately confirms internal
+RAM allocation failure during WakeNet startup in an earlier combined image,
+USB/IP transport interruptions during upload, and a reset that retained ROM
+download mode. The final recovery image started speech/audio and Wi-Fi/SSE with
+9,983 free internal heap bytes and ran over 170 seconds without reset. This
+short run does not prove sustained memory headroom. No features were removed
+for this UI change; a recurrence needs serial/runtime heap evidence before
+selecting features to disable.
+
 ## Luna dispatcher implemented, 2026-10-04
 
 The bridge now queues new text/voice commands, uses GPT-6 Luna to select from

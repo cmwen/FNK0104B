@@ -105,8 +105,9 @@ void statusBar(Display& d, bool wifi, int rssi, const char* integration,
   icon(d, kRobot, kRobotWidth, kRobotHeight, 86, 9, stateColor);
   d.setTextColor(kText, kPanel); d.drawString(microState ? "Micro" : "Codex", 113, 10, 1);
   d.setTextColor(stateColor, kPanel);
-  d.drawString(microState ? microState : (!connected ? (degraded ? "Check" : "Off") :
-               (error ? "Error" : (attention ? "Input" : (active ? "Busy" : "Ready")))), 113, 25, 1);
+  const char* state = microState ? microState : (!connected ? (degraded ? "Check" : "Offline") :
+               (error ? "Error" : (attention ? "Input" : (active ? "Busy" : "Online"))));
+  d.drawString(state, 113, 25, 1);
   char value[16];
   d.setTextColor(kCyan, kPanel); d.drawString("5H", 167, 10, 1);
   if (fiveHour<0) snprintf(value,sizeof(value),"--%%"); else snprintf(value,sizeof(value),"%d%%",fiveHour);
@@ -167,7 +168,7 @@ void voiceMeter(Display& d, bool metering, int level, uint16_t accent) {
 
 template<class Display>
 void voiceControl(Display& d, bool recording, bool preparing, bool busy, bool selected,
-                  bool commands = false, int level = 0, bool ready = true) {
+                  bool commands = false, int level = 0, bool ready = true, bool wifiOnly = false) {
   using namespace monitor_icons;
   const uint16_t accent=recording ? kRed : (commands ? kAmber : (busy ? kCyan : (ready ? kMint : kMuted)));
   frame(d,4,191,312,46, recording || commands ? accent : kBorder);
@@ -175,12 +176,12 @@ void voiceControl(Display& d, bool recording, bool preparing, bool busy, bool se
   icon(d,kMicrophone,kMicrophoneWidth,kMicrophoneHeight,22,200,accent);
   const char* label=recording ? "Recording message" : (preparing ? "Preparing mic" :
                     (busy ? "Sending voice" : (commands ? "Command listening" :
-                    (!ready ? "Mic unavailable" : (selected ? "Message to agent" : "New Codex message")))));
+                    (!ready ? "Mic unavailable" : (selected ? "Message to agent" : (wifiOnly ? "Wi-Fi voice" : "New Codex message"))))));
   d.setTextColor(kText,kPanel);d.drawString(label,61,199,2);
   d.setTextColor(accent,kPanel);d.drawString(recording ? "Tap to send / pause to finish" : (preparing ? "Please wait" : (busy ? "Transcribing..." : (commands ? "Say a phrase / tap to talk" : (ready ? "Tap to talk / Hi ESP: commands" : "Speech starting or unavailable")))),62,222,1);
   voiceMeter(d, recording || commands, level, accent);
 }
-// Both transports stay available, with explicit touch targets for their voice paths.
+// Show both voice paths only while Desktop Micro has been detected.
 template<class Display>
 void dualVoiceControl(Display& d, bool microLinked, bool micReady, bool micHeld,
                       bool usbStreaming, int micLevel, bool wifiReady, bool recording,

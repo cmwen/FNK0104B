@@ -1,5 +1,16 @@
 # Board facts
 
+## Adaptive monitor UI check (2026-10-07)
+
+The existing monitor was flashed successfully through PlatformIO with all image
+hashes verified and unchanged partition/NVS boundaries. A 145-second serial
+check showed speech/audio ready and Wi-Fi connected with 10,027 free internal
+heap bytes. LCD readback verified the Codex/Wi-Fi-only layout before Desktop
+discovery; Windows host discovery/status received completed HID replies after
+returning USB ownership. Physical touch/voice, Micro appearance and sustained
+memory stability remain UNKNOWN. See the
+[device record](../test/hardware/monitor-adaptive-ui-2026-10-07.md).
+
 - **Board:** Freenove FNK0104B, 2.8-inch capacitive-touch ESP32-S3 Display;
   240 × 320 IPS panel. The generic `esp32-s3-devkitc-1` PlatformIO profile is a
   software build target, not the physical board. [F1, F2, F3]

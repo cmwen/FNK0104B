@@ -1,0 +1,112 @@
+--- Terminal on socket://127.0.0.1:18749 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+monitor_health heap=10027 psram=4427784 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+monitor_speech state=wake afe_frames=7065 max_inference_us=6520 frame_us=32000 heap=10027 psram=4427784
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_screenshot begin width=320 height=240 format=rgb888
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=77
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=7
+codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=7
+monitor_status integration=connected agents=2 first_state=running five_hour_used=35 weekly_used=33
+codex_hid rx report_id=6 bytes=63 reports=88
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=8
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=8
+monitor_speech state=wake afe_frames=7222 max_inference_us=8465 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=7379 max_inference_us=6849 frame_us=32000 heap=10027 psram=4427784
+monitor_status integration=connected agents=2 first_state=running five_hour_used=41 weekly_used=34
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+codex_hid host=idle
+monitor_speech state=wake afe_frames=7536 max_inference_us=6510 frame_us=32000 heap=10027 psram=4427784
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=94
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=9
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=9
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+monitor_status integration=connected agents=1 first_state=running five_hour_used=41 weekly_used=34
+codex_hid rx report_id=6 bytes=63 reports=104
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=10
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=10
+monitor_speech state=wake afe_frames=7693 max_inference_us=7571 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=7850 max_inference_us=7421 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+codex_hid rx report_id=6 bytes=63 reports=111
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=53
+codex_hid status_received revision=11
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=11
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_speech state=wake afe_frames=8007 max_inference_us=7492 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=8164 max_inference_us=7086 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+codex_hid host=idle
+monitor_speech state=wake afe_frames=8321 max_inference_us=6981 frame_us=32000 heap=10027 psram=4427784
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=121
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=12
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=12
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=8478 max_inference_us=6725 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=8635 max_inference_us=6972 frame_us=32000 heap=10027 psram=4427784
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=132
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=13
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=13
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_speech state=wake afe_frames=8792 max_inference_us=6829 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=8949 max_inference_us=6932 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+codex_hid host=idle
+monitor_speech state=wake afe_frames=9106 max_inference_us=6469 frame_us=32000 heap=10027 psram=4427784
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=143
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=14
+codex_hid tx=complete report_id=6
+codex_hid application=status_retained revision=14
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+monitor_speech state=wake afe_frames=9263 max_inference_us=6919 frame_us=32000 heap=10027 psram=4427784
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027

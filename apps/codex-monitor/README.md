@@ -164,8 +164,22 @@ CDC serial; USB Serial/JTAG is unavailable while USB-OTG owns the internal PHY.
 is never emitted automatically, and Desktop slot status does not replace Wi-Fi
 agents. See [protocol evidence, testing and limitations](../../docs/codex-hid.md).
 
-The follow-up adds a **Micro** link indicator, separate **Micro voice** and
-**Wi-Fi voice** controls, and a mono PCM16/16 kHz USB microphone. Micro voice
+Without Desktop discovery (USB absent or USB mounted without a recognized host
+call), the header says **Codex** with bridge status: **Online**, **Busy**,
+**Input**, **Error**, **Check** or **Offline**. The bottom panel is one full-width
+**Wi-Fi voice** control; every tap in that panel uses the existing
+recording/dispatch path, including taps on its left side.
+
+After Desktop discovery, **Micro Linked** or **Micro Idle** replaces that status
+cell and separate **Micro voice** and **Wi-Fi voice** controls appear. Idle
+retains the Micro controls for a quiet host; it is not proof of an app
+disconnect. USB disconnect restores the Wi-Fi layout and clears held Micro
+touch state. The 2026-10-07 build was flashed and LCD readback verified the
+Wi-Fi-only layout. Live Windows discovery/status calls received completed HID
+replies. Micro appearance, physical touch and reconnect checks remain open;
+see the [device record](../../test/hardware/monitor-adaptive-ui-2026-10-07.md).
+
+The firmware includes a mono PCM16/16 kHz USB microphone. Micro voice
 sends the ACT10 key; select the board as the host input and choose Voice Chat
 in Desktop Micro settings for tap-to-start behavior. The waveform shows local
 mic input while USB capture is active. See [audio setup and verification](../../docs/codex-audio.md).

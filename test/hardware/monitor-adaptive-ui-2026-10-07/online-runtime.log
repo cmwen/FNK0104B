@@ -1,0 +1,43 @@
+0.2s --- forcing DTR active
+0.2s --- forcing RTS active
+0.3s --- Terminal on socket://127.0.0.1:18749 | 115200 8-N-1
+0.3s --- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+0.3s --- More details at https://bit.ly/pio-monitor-filters
+0.3s --- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+2.0s monitor_speech state=wake afe_frames=1570 max_inference_us=7310 frame_us=32000 heap=10083 psram=4427676
+2.2s monitor_health heap=10083 psram=4427676 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+3.6s codex_hid host=idle
+5.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083
+6.0s codex_hid host=active
+6.0s codex_hid rx report_id=6 bytes=63 reports=56
+6.0s codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+6.0s codex_hid tx=complete report_id=6
+6.0s codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+6.0s codex_hid status_received revision=6
+6.0s codex_hid tx=complete report_id=6
+6.0s codex_hid application=status_retained revision=6
+6.1s codex_hid protocol=decoded method=device.status reply_bytes=145
+6.1s codex_hid tx=complete report_id=6
+7.0s monitor_speech state=wake afe_frames=1727 max_inference_us=6657 frame_us=32000 heap=10083 psram=4427676
+10.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083
+12.0s monitor_speech state=wake afe_frames=1884 max_inference_us=7118 frame_us=32000 heap=10083 psram=4427676
+14.9s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083
+15.8s codex_hid host=idle
+16.7s monitor_speech state=wake afe_frames=2041 max_inference_us=6698 frame_us=32000 heap=10083 psram=4427676
+18.0s codex_hid host=active
+18.0s codex_hid rx report_id=6 bytes=63 reports=67
+18.0s codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+18.0s codex_hid tx=complete report_id=6
+18.0s codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+18.0s codex_hid status_received revision=7
+18.0s codex_hid tx=complete report_id=6
+18.1s codex_hid application=status_retained revision=7
+18.1s codex_hid protocol=decoded method=device.status reply_bytes=145
+18.1s codex_hid tx=complete report_id=6
+19.5s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083
+20.2s monitor_health heap=10083 psram=4427676 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+21.5s monitor_speech state=wake afe_frames=2198 max_inference_us=6991 frame_us=32000 heap=10083 psram=4427676
+24.5s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083
+26.5s monitor_speech state=wake afe_frames=2355 max_inference_us=7797 frame_us=32000 heap=10083 psram=4427676
+28.0s codex_hid host=idle
+29.5s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10083

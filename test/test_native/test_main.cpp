@@ -1,5 +1,6 @@
 #include <unity.h>
 #include <codex_hid/protocol.hpp>
+#include <codex_hid/backend.hpp>
 #include <initializer_list>
 
 #include <string.h>
@@ -421,8 +422,17 @@ void test_codex_hid_discovery_status_events_and_unknown_calls() {
   deserializeJson(response, output); TEST_ASSERT_EQUAL(0, response["p"]["act"].as<int>());
 }
 
+void test_monitor_micro_mode_requires_desktop_discovery() {
+  TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Off));
+  TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Usb));
+  TEST_ASSERT_TRUE(codex_hid::microConnected(codex_hid::LinkState::Linked));
+  // A quiet Desktop connection stays usable until USB disconnects.
+  TEST_ASSERT_TRUE(codex_hid::microConnected(codex_hid::LinkState::Idle));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_monitor_micro_mode_requires_desktop_discovery);
   RUN_TEST(test_codex_hid_descriptor_contract);
   RUN_TEST(test_codex_hid_framing_bounds_and_recovery);
   RUN_TEST(test_codex_hid_discovery_status_events_and_unknown_calls);

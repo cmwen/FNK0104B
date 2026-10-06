@@ -274,13 +274,18 @@ void drawStatusBar(const MonitorStatus& snapshot) {
       ui::monitor::remaining(snapshot.five_hour.used), ui::monitor::remaining(snapshot.weekly.used),
       drawnFiveHourReset, drawnWeeklyReset,
       previousMicroLink == codex_hid::LinkState::Linked ? "Linked" : previousMicroLink == codex_hid::LinkState::Idle ? "Idle" :
-      previousMicroLink == codex_hid::LinkState::Usb ? "USB" : "Off");
+      nullptr);
 }
 
 void drawVoiceControl() {
   drawnVoiceLevel = monitor_speech::level();
   drawnMicLevel = fnk0104b::audio_input::level();
-  ui::monitor::dualVoiceControl(tft(), previousMicroLink == codex_hid::LinkState::Linked || previousMicroLink == codex_hid::LinkState::Idle,
+  if (!codex_hid::microConnected(previousMicroLink)) {
+    ui::monitor::voiceControl(tft(), recording.load(), voicePreparing.load(), voiceBusy.load(), selectedAgent[0] != '\0',
+        commandHelpVisible, drawnVoiceLevel, monitor_speech::ready(), true);
+    return;
+  }
+  ui::monitor::dualVoiceControl(tft(), true,
       fnk0104b::audio_input::ready(), desktopMicHeld, fnk0104b::usb_microphone::streaming(), fnk0104b::audio_input::level(),
       monitor_speech::ready(), recording.load(), voicePreparing.load(), voiceBusy.load(), commandHelpVisible, drawnVoiceLevel);
 }
@@ -816,7 +821,9 @@ void touchLoop() {
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
     const int y = touchPoint.y;
-    if (y >= 191 && y <= 237 && x >= 4 && x <= 155) {
+    const bool microConnected = codex_hid::microConnected(previousMicroLink);
+    if (y >= 191 && y <= 237 && x >= 4 && x <= 315 && !microConnected) beginVoice();
+    else if (y >= 191 && y <= 237 && x >= 4 && x <= 155) {
       if (!fnk0104b::audio_input::ready()) setMessage(fnk0104b::audio_input::error(), 6000);
       else if (codex_hid::microphoneKey(true)) { desktopMicHeld = true; uiDirty = true; }
       else setMessage("Desktop HID unavailable", 6000);
@@ -966,7 +973,10 @@ void setup() {
 
 void loop() {
   const auto microLink = codex_hid::linkState();
-  if (microLink != previousMicroLink) { previousMicroLink = microLink; uiDirty = true; }
+  if (microLink != previousMicroLink) {
+    if (!codex_hid::microConnected(microLink)) desktopMicHeld = false;
+    previousMicroLink = microLink; uiDirty = true;
+  }
   static codex_hid::Status desktopStatus{};
   if (codex_hid::takeStatus(desktopStatus))
     Serial.printf("codex_hid application=status_retained revision=%lu\n", (unsigned long)desktopStatus.revision);

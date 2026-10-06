@@ -56,7 +56,7 @@ int main(int argc,char**argv){
     else if(!active){ui::monitor::quotaCard(d,6,"5H left",fiveHour,false);ui::monitor::quotaCard(d,164,"Week left",weekly,true);}
     else{ui::monitor::frame(d,8,59,304,123,ui::monitor::kBorder);d.fillRoundRect(15,71,102,102,6,state=="attention"?ui::monitor::kAmber:ui::monitor::kMint);d.avatar(18,74,96,state=="attention"?ui::avatar::Mood::NeedsInput:ui::avatar::Mood::Thinking);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString("Fix display",128,70,2);d.setTextColor(state=="attention"?ui::monitor::kAmber:ui::monitor::kMint,ui::monitor::kPanel);d.drawString(state=="attention"?"Needs input":"Working",128,96,1);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString(state=="attention"?"Which layout should I use?":"Codex is working",128,122,1);}
     if (state=="micro") ui::monitor::dualVoiceControl(d,true,true,false,true,75,true,false,false,false,false,0);
-    else ui::monitor::voiceControl(d,recording,false,recording,false,commands,state=="commands-quiet"?0:75);
+    else ui::monitor::voiceControl(d,recording,false,recording,false,commands,state=="commands-quiet"?0:75,true,true);
     d.save(base+"-"+state+".ppm");
   }
 }

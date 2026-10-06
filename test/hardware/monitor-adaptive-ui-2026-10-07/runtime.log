@@ -1,0 +1,90 @@
+0.2s --- forcing DTR active
+0.2s --- forcing RTS active
+0.3s --- Terminal on /dev/ttyACM0 | 115200 8-N-1
+0.3s --- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+0.3s --- More details at https://bit.ly/pio-monitor-filters
+0.3s --- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+1.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10871
+1.4s monitor_speech vad=silence
+2.9s monitor_speech state=wake afe_frames=314 max_inference_us=8730 frame_us=32000 heap=10871 psram=4446708
+3.2s monitor_health heap=10871 psram=4446708 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+5.0s monitor_speech vad=speech
+6.2s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10871
+6.6s monitor_stream state=connected
+6.8s monitor_status integration=connected agents=1 first_state=running five_hour_used=35 weekly_used=33
+6.8s monitor_speech vad=silence
+8.0s monitor_speech vad=speech
+8.0s monitor_speech state=wake afe_frames=471 max_inference_us=8289 frame_us=32000 heap=10027 psram=4427760
+8.2s monitor_screenshot begin width=320 height=240 format=rgb888
+9.5s monitor_screenshot end
+9.8s monitor_speech vad=silence
+11.2s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+13.0s monitor_speech state=wake afe_frames=628 max_inference_us=8495 frame_us=32000 heap=10027 psram=4427760
+16.2s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+17.8s monitor_speech state=wake afe_frames=785 max_inference_us=6806 frame_us=32000 heap=10027 psram=4427760
+21.0s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+22.8s monitor_speech state=wake afe_frames=942 max_inference_us=6376 frame_us=32000 heap=10027 psram=4427760
+25.7s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+27.5s monitor_speech state=wake afe_frames=1099 max_inference_us=7820 frame_us=32000 heap=10027 psram=4427760
+27.7s monitor_speech vad=speech
+29.5s monitor_speech vad=silence
+30.5s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+31.4s monitor_speech vad=speech
+32.4s monitor_speech state=wake afe_frames=1256 max_inference_us=7575 frame_us=32000 heap=10027 psram=4427760
+33.2s monitor_speech vad=silence
+35.0s monitor_health heap=10027 psram=4427760 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+35.4s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+36.0s monitor_speech vad=speech
+37.4s monitor_speech vad=silence
+37.4s monitor_speech state=wake afe_frames=1413 max_inference_us=6412 frame_us=32000 heap=10027 psram=4427760
+38.4s monitor_speech vad=speech
+40.1s monitor_speech vad=silence
+40.4s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+42.5s monitor_speech state=wake afe_frames=1570 max_inference_us=6589 frame_us=32000 heap=10027 psram=4427760
+43.3s monitor_speech vad=speech
+44.9s monitor_speech vad=silence
+45.6s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+47.4s monitor_speech state=wake afe_frames=1727 max_inference_us=6457 frame_us=32000 heap=10027 psram=4427760
+50.6s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+52.5s monitor_speech state=wake afe_frames=1884 max_inference_us=7318 frame_us=32000 heap=10027 psram=4427760
+55.3s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+57.0s monitor_speech state=wake afe_frames=2041 max_inference_us=6540 frame_us=32000 heap=10027 psram=4427760
+60.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+62.1s monitor_speech state=wake afe_frames=2198 max_inference_us=6811 frame_us=32000 heap=10027 psram=4427760
+65.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+66.9s monitor_speech state=wake afe_frames=2355 max_inference_us=6782 frame_us=32000 heap=10027 psram=4427760
+70.1s monitor_health heap=10027 psram=4427760 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+70.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+72.1s monitor_speech state=wake afe_frames=2512 max_inference_us=6800 frame_us=32000 heap=10027 psram=4427760
+75.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+77.1s monitor_speech state=wake afe_frames=2669 max_inference_us=7019 frame_us=32000 heap=10027 psram=4427760
+79.9s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+81.7s monitor_speech state=wake afe_frames=2826 max_inference_us=6765 frame_us=32000 heap=10027 psram=4427760
+84.4s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+86.4s monitor_speech state=wake afe_frames=2983 max_inference_us=7038 frame_us=32000 heap=10027 psram=4427760
+89.0s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+91.1s monitor_speech state=wake afe_frames=3140 max_inference_us=7265 frame_us=32000 heap=10027 psram=4427760
+94.0s monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_dropped=0 heap=10027
+96.1s monitor_speech state=wake afe_frames=3297 max_inference_us=6813 frame_us=32000 heap=10027 psram=4427760
+99.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+100.1s monitor_screenshot begin width=320 height=240 format=rgb888
+101.2s monitor_speech state=wake afe_frames=3454 max_inference_us=8388 frame_us=32000 heap=10027 psram=4424748
+101.5s monitor_screenshot end
+104.1s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+106.2s monitor_speech state=wake afe_frames=3611 max_inference_us=8932 frame_us=32000 heap=10027 psram=4427760
+109.0s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+111.1s monitor_speech state=wake afe_frames=3768 max_inference_us=6645 frame_us=32000 heap=10027 psram=4427760
+113.8s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+115.7s monitor_speech state=wake afe_frames=3925 max_inference_us=6585 frame_us=32000 heap=10027 psram=4427784
+118.4s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+120.4s monitor_speech state=wake afe_frames=4082 max_inference_us=6533 frame_us=32000 heap=10027 psram=4427784
+123.3s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+125.3s monitor_speech state=wake afe_frames=4239 max_inference_us=6774 frame_us=32000 heap=10027 psram=4427784
+128.3s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+130.2s monitor_health heap=10027 psram=4427784 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none
+130.4s monitor_speech state=wake afe_frames=4396 max_inference_us=6235 frame_us=32000 heap=10027 psram=4427784
+133.3s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+135.3s monitor_speech state=wake afe_frames=4553 max_inference_us=6545 frame_us=32000 heap=10027 psram=4427784
+138.3s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027
+140.5s monitor_speech state=wake afe_frames=4710 max_inference_us=6193 frame_us=32000 heap=10027 psram=4427784
+143.2s monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=10027

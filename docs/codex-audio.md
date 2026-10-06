@@ -2,10 +2,14 @@
 
 ## What changed
 
-The top status cell now says **Micro**, with independent HID connection state:
+The top status cell and voice touch targets adapt to Desktop detection.
+Without recognized Desktop protocol activity, the cell says **Codex** and shows
+the Wi-Fi bridge state (**Online**, **Busy**, **Input**, **Error**, **Check**
+or **Offline**). Only the full-width **Wi-Fi voice** control is shown.
+USB enumeration alone does not enable Micro voice.
 
-- **Off**: USB is not mounted.
-- **USB**: USB is mounted, but no recognized discovery/status call has arrived.
+After discovery the cell says **Micro**, with independent HID connection state:
+
 - **Linked**: a `device.status`, `sys.version`, or `v.oai.thstatus` call arrived
   within the last minute.
 - **Idle**: a call was previously observed during this USB connection, but no
@@ -15,12 +19,19 @@ This is host protocol activity, not authenticated application identity; a
 compatible probe can also produce it. The owner reported that Desktop recognized
 the previous firmware as Codex Micro on 2026-10-04.
 
-The bottom panel has two independent controls. **Micro voice** sends ACT10 press
+In Micro mode the bottom panel has two independent controls. **Micro voice** sends ACT10 press
 on touch-down and release on lift, while **Wi-Fi voice** retains the existing
 orchestrator recording/dispatch path. This preserves concurrent integrations.
 The Micro waveform shows actual board input level while the host is capturing
 or the key is held. It does not claim to show the Desktop transcript or exact
 remote voice-session state.
+
+USB disconnect switches back to the Codex/Wi-Fi layout and clears held touch
+state. A quiet host stays in Micro Idle because the protocol does not provide
+an authenticated app-disconnect signal. The 2026-10-07 mode change passed host
+tests and was flashed. LCD readback verified Wi-Fi-only presentation; live
+Windows host requests verified HID replies. Micro appearance and touch/voice
+checks remain open in the [device record](../test/hardware/monitor-adaptive-ui-2026-10-07.md).
 
 USB now contains CDC, vendor HID and a **UAC1 microphone: 16 kHz, mono, PCM16**.
 Audio is carried by USB Audio Class; the vendor HID report carries the control
