@@ -74,6 +74,10 @@ CONFIG_ESP_WIFI_RX_IRAM_OPT=n
 # Use IDF's flash placement for task functions; retain its ISR-safe routines.
 CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6
+# PSRAM makes IDF default the RX Block Ack window to 16, which exceeds
+# twice our six static RX buffers. Keep the existing low-memory window
+# explicit so fresh builds match locally generated sdkconfig files.
+CONFIG_ESP_WIFI_RX_BA_WIN=6
 CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=4
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=65536
