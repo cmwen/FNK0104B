@@ -49,7 +49,7 @@ localhost, and Bluetooth enabled. See `apps/15-wifi-ble/README.md` for the
 standalone firmware behavior.
 
 For a board already running **Codex monitor**, open the page's **Monitor settings**
-section and click **Connect to monitor**. Choose **FNK0104B-MONITOR** in the
+section and click **Connect to monitor**. Choose **Codex Micro** in the
 Bluetooth picker. The page reads the stored settings; adjust **Volume** and
 **Idle screen timeout (minutes)**, then click **Save settings**. The timeout
 accepts 1–120 minutes and persists across reboots. Active agents and voice work

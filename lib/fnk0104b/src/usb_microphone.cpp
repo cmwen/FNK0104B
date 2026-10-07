@@ -4,6 +4,7 @@
 #include <USB.h>
 #include <tusb.h>
 #include <atomic>
+#include <freertos/semphr.h>
 #include <fnk0104b/usb_microphone.hpp>
 
 namespace fnk0104b::usb_microphone {
@@ -11,7 +12,9 @@ namespace {
 // Construction registers the descriptor before Arduino auto-starts USB.
 USBAudioCard microphone(16000, UAC_BPS_16, UAC_SPK_NONE, UAC_MIC_MONO);
 std::atomic<bool> enabled{false};
+std::atomic<bool> allowed{true}; // Diagnostics permit raw capture without Micro discovery.
 std::atomic<uint32_t> drops{0};
+SemaphoreHandle_t writerLock = nullptr;
 void usbEvent(void*, esp_event_base_t, int32_t id, void*) {
   if (id == ARDUINO_USB_STOPPED_EVENT) enabled = false;
 }
@@ -23,17 +26,33 @@ void event(void*, esp_event_base_t, int32_t id, void* data) {
   }
 }
 }
-bool begin() { USB.onEvent(usbEvent); microphone.onEvent(event); return microphone.begin(); }
-bool streaming() { return enabled.load() && tud_mounted(); }
+bool begin() {
+  writerLock = xSemaphoreCreateMutex();
+  if (!writerLock) return false;
+  USB.onEvent(usbEvent); microphone.onEvent(event); return microphone.begin();
+}
+bool streaming() { return allowed.load() && enabled.load() && tud_mounted(); }
+void setAllowed(bool value) {
+  if (allowed.exchange(value) && !value) {
+    // Remove old live samples before another experience takes ownership.
+    if (writerLock) xSemaphoreTake(writerLock, portMAX_DELAY);
+    auto* fifo = tud_audio_get_ep_in_ff();
+    if (fifo) tu_fifo_clear(fifo);
+    if (writerLock) xSemaphoreGive(writerLock);
+  }
+}
 uint32_t droppedSamples() { return drops.load(); }
 void push(const int16_t* samples, size_t count) {
   if (!streaming() || !samples || count > 1024) return;
+  if (!writerLock || xSemaphoreTake(writerLock, 0) != pdTRUE) { drops += count; return; }
+  if (!streaming()) { xSemaphoreGive(writerLock); return; }
   auto* fifo = tud_audio_get_ep_in_ff();
   const uint16_t bytes = count * sizeof(int16_t);
   // Never block the I2S producer and never truncate in the middle of a sample.
-  if (!fifo || tu_fifo_remaining(fifo) < bytes) { drops += count; return; }
+  if (!fifo || tu_fifo_remaining(fifo) < bytes) { drops += count; xSemaphoreGive(writerLock); return; }
   const size_t sent = microphone.write(samples, bytes);
   if (sent != bytes) drops += (bytes - sent) / sizeof(int16_t);
+  xSemaphoreGive(writerLock);
 }
 }
 #endif

@@ -1,0 +1,38 @@
+--- forcing DTR active
+--- forcing RTS active
+--- Terminal on socket://127.0.0.1:18749 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+monitor_health heap=30967 psram=8304472 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=96
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=10
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=10
+monitor_status integration=connected agents=2 first_state=running five_hour_used=41 weekly_used=15
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+codex_hid host=idle
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=107
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=11
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=11
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_dropped=0 heap=30967
+codex_hid host=idle

@@ -15,9 +15,12 @@
 #include <ui/avatar_assets.hpp>
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
+#include <ui/micro_layout.hpp>
 #include "monitor_speech.hpp"
 #include "monitor_commands.hpp"
 #include <codex_hid/backend.hpp>
+#include <codex_hid/ble_backend.hpp>
+#include <fnk0104b/codex_ble.hpp>
 #include <fnk0104b/audio_input.hpp>
 #include <fnk0104b/usb_microphone.hpp>
 #include "voice_capture_gate.hpp"
@@ -95,6 +98,16 @@ bool screenAwake = true, previousTouch = false;
 bool screenManuallyOff = false;
 bool showingStatus = false, commandHelpVisible = false;
 bool desktopMicHeld = false;
+int heldMicroKey = -1;
+bool microCommands = false;
+int selectedMicroSlot = -1;
+codex_hid::Transport previousTransport = codex_hid::Transport::None;
+uint32_t microHoldStarted = 0;
+bool pairingOpened = false;
+std::atomic<bool> voiceOrchestratorOnly{false};
+codex_hid::Status desktopStatus{};
+std::atomic<bool> usbMicroActive{false};
+std::atomic<uint32_t> audioGeneration{0}, requestedAudioGeneration{0};
 codex_hid::LinkState previousMicroLink = codex_hid::LinkState::Off;
 uint32_t lastVoiceMeterFrame = 0;
 int drawnVoiceLevel = -1, drawnMicLevel = -1;
@@ -244,7 +257,7 @@ void drawAgentTile(const Agent& agent, int x, int y) {
 void drawAnimatedAvatars() {
   MonitorStatus snapshot;
   portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
-  if (!snapshot.count || showingStatus || commandHelpVisible || voiceBusy.load()) return;
+  if (previousTransport != codex_hid::Transport::None || !snapshot.count || showingStatus || commandHelpVisible || voiceBusy.load()) return;
   if (selectedAgent[0]) drawAvatar(selectedDetail, 18, 74, 96, false);
   else if (snapshot.count == 1) drawAvatar(snapshot.agents[0], 18, 74, 96, false);
   else for (uint8_t i = 0; i < snapshot.count && i < 4; ++i)
@@ -285,9 +298,10 @@ void drawVoiceControl() {
         commandHelpVisible, drawnVoiceLevel, monitor_speech::ready(), true);
     return;
   }
-  ui::monitor::dualVoiceControl(tft(), true,
-      fnk0104b::audio_input::ready(), desktopMicHeld, fnk0104b::usb_microphone::streaming(), fnk0104b::audio_input::level(),
-      monitor_speech::ready(), recording.load(), voicePreparing.load(), voiceBusy.load(), commandHelpVisible, drawnVoiceLevel);
+  ui::micro::voice(tft(), usbMicroActive, usbMicroActive ? fnk0104b::audio_input::ready() : monitor_speech::ready(),
+      desktopMicHeld, fnk0104b::usb_microphone::streaming(), usbMicroActive ? drawnMicLevel : drawnVoiceLevel,
+      recording, voicePreparing, voiceBusy);
+
 }
 
 void drawScreen() {
@@ -312,6 +326,24 @@ void drawScreen() {
   else d.drawString(!strcmp(snapshot.integration, "connected") ?
       (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "QUOTA LEFT") :
       (monitor_speech::ready() ? "HI ESP: COMMANDS / BRIDGE OFFLINE" : "BRIDGE UNAVAILABLE"), 10, 45, 1);
+  if (previousTransport != codex_hid::Transport::None && !commandHelpVisible && !showingStatus && !voiceBusy) {
+    if (!messageVisible) {
+      d.fillRect(4, 42, 312, 13, kBg);
+      d.setTextColor(kMuted, kBg);
+      d.drawString(microCommands ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" :
+      usbMicroActive ? "USB MICRO / TAP MICRO FOR KEYS" : "BLE MICRO / SPEECH TO ORCHESTRATOR", 10, 45, 1);
+    }
+    for (unsigned i = 0; i < 6; ++i) {
+      const auto& slot = desktopStatus.slots[i];
+      const uint32_t c = slot.color;
+      const float brightness = slot.brightness;
+      const uint16_t color = ui::monitor::rgb(uint8_t((c >> 16) * brightness),
+          uint8_t(((c >> 8) & 255) * brightness), uint8_t((c & 255) * brightness));
+      ui::micro::tile(d, i, color, slot.present, selectedMicroSlot == int(i), microCommands);
+    }
+    drawVoiceControl();
+    return;
+  }
   if (commandHelpVisible) {
     ui::monitor::commandHelp(d, speech::kMonitorCommands, speech::kMonitorCommandCount);
   } else if (voiceBusy.load()) {
@@ -379,11 +411,13 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
 };
 
 class ServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer*) override {
+  void onConnect(BLEServer*, esp_ble_gatts_cb_param_t* p) override {
+    fnk0104b::codex_ble::connected(p->connect.conn_id, p->connect.remote_bda);
     bleConnected = true;
     Serial.println("monitor_ble connected");
   }
-  void onDisconnect(BLEServer*) override {
+  void onDisconnect(BLEServer*, esp_ble_gatts_cb_param_t* p) override {
+    fnk0104b::codex_ble::disconnected(p->disconnect.conn_id);
     bleConnected = false;
     Serial.println("monitor_ble disconnected restarting_advertising");
     BLEDevice::startAdvertising();
@@ -400,10 +434,12 @@ void bleGapDiagnostic(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* para
 }
 
 void startBle() {
-  BLEDevice::init("FNK0104B-MONITOR");
+  BLEDevice::init("Codex Micro");
   BLEDevice::setCustomGapHandler(bleGapDiagnostic);
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
+  const bool microBle = codex_hid::ble::begin() && fnk0104b::codex_ble::begin(server);
+  Serial.printf("codex_ble startup=%s pairing=hold_micro_3s\n", microBle ? "ready" : "failed");
   BLEService* service = server->createService(kServiceUuid);
   settingsCharacteristic = service->createCharacteristic(kCharacteristicUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
@@ -415,7 +451,9 @@ void startBle() {
   // Name + 128-bit service UUID cannot fit together in a legacy 31-byte packet.
   BLEAdvertisementData advertisement;
   advertisement.setFlags(ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT);
-  advertisement.setName("FNK0104B-MONITOR");
+  advertisement.setName("Codex Micro");
+  advertisement.setAppearance(0x03c0);
+  if (microBle) advertisement.setCompleteServices(BLEUUID(uint16_t(0x1812)));
   BLEAdvertisementData response;
   response.setCompleteServices(BLEUUID(kServiceUuid));
   advertising->setAdvertisementData(advertisement);
@@ -660,6 +698,10 @@ void voiceWorker(void*) {
       recording = false; voiceBusy = false; uiDirty = true;
       setMessage("Bridge unavailable"); continue;
     }
+    const uint32_t captureGeneration = requestedAudioGeneration.load();
+    if (usbMicroActive || captureGeneration != audioGeneration.load()) {
+      voicePreparing = false; recording = false; voiceBusy = false; uiDirty = true; continue;
+    }
     voicePreparing = false;
     recording = true;
     uiDirty = true;
@@ -672,7 +714,7 @@ void voiceWorker(void*) {
     Serial.printf("monitor_voice state=captured samples=%u duration_ms=%u\n",
                   static_cast<unsigned>(captured), static_cast<unsigned>(captured * 1000 / kSampleRate));
     uiDirty = true;
-    if (!ok || captured == 0) {
+    if (!ok || captured == 0 || captureGeneration != audioGeneration.load() || usbMicroActive) {
       free(pcm); pcm = nullptr; voiceBusy = false; uiDirty = true;
       setMessage("No speech captured"); continue;
     }
@@ -684,10 +726,14 @@ void voiceWorker(void*) {
       uiDirty = true; setMessage("Audio buffer unavailable"); continue;
     }
     memcpy(wav + 44, pcm, pcmBytes); free(pcm); pcm = nullptr;
+    if (captureGeneration != audioGeneration.load() || usbMicroActive) {
+      free(wav); wav = nullptr; voiceBusy = false; uiDirty = true; continue;
+    }
     HTTPClient http; WiFiClient client;
     setMessage("Transcribing voice...", 35000);
     String url = String("http://") + MONITOR_SERVER_HOST + ":" + String(MONITOR_SERVER_PORT) + "/v1/voice";
-    if (voiceAgent[0]) url += String("?agent_id=") + encodeQueryValue(voiceAgent);
+    if (voiceOrchestratorOnly) url += "?route=orchestrator";
+    else if (voiceAgent[0]) url += String("?agent_id=") + encodeQueryValue(voiceAgent);
     http.setTimeout(30000);
     if (http.begin(client, url)) {
       http.addHeader("Content-Type", "audio/wav");
@@ -732,6 +778,7 @@ void voiceWorker(void*) {
 }
 
 void beginVoice() {
+  if (usbMicroActive) return;
   if (!voiceTask || !peripheralMutex || !monitor_speech::ready() || WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
     setMessage("Check Wi-Fi and bridge"); return;
   }
@@ -747,7 +794,10 @@ void beginVoice() {
   setMessage("Preparing microphone", 12000);
   Serial.println("monitor_voice state=preparing");
   uiDirty = true;
-  strlcpy(voiceAgent, selectedAgent, sizeof(voiceAgent));
+  voiceOrchestratorOnly = previousTransport == codex_hid::Transport::Ble;
+  if (voiceOrchestratorOnly) voiceAgent[0] = 0;
+  else strlcpy(voiceAgent, selectedAgent, sizeof(voiceAgent));
+  requestedAudioGeneration = audioGeneration.load();
   xTaskNotifyGive(voiceTask);
 }
 
@@ -757,7 +807,7 @@ void speechLoop() {
     using Event = monitor_speech::Event;
     if (event == Event::Error) { commandHelpVisible = false; setMessage(monitor_speech::error(), 10000); continue; }
     // A tap takes priority over any local command still queued by recognition.
-    if (voiceBusy.load()) continue;
+    if (voiceBusy.load() || usbMicroActive) continue;
     commandHelpVisible = event == Event::Wake;
     uiDirty = true;
     if (event == Event::Timeout) { setMessage("Say Hi ESP to try again"); continue; }
@@ -817,17 +867,40 @@ void touchLoop() {
       if (!wifiHoldStarted) wifiHoldStarted = millis();
       if (millis() - wifiHoldStarted >= 3000 && !voiceBusy.load()) monitor_wifi_setup::request();
     } else wifiHoldStarted = 0;
-    if (previousTouch) return;
+    if (touchPoint.x >= 82 && touchPoint.x < 160 && touchPoint.y >= 4 && touchPoint.y <= 40) {
+      if (!microHoldStarted) microHoldStarted = millis();
+      if (!pairingOpened && millis() - microHoldStarted >= 3000) {
+        fnk0104b::codex_ble::pairFor(); pairingOpened = true;
+        setMessage("BLE pairing open for 60 seconds", 60000);
+      }
+    } else { microHoldStarted = 0; pairingOpened = false; }
+    if (previousTouch || heldMicroKey >= 0) return;
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
     const int y = touchPoint.y;
-    const bool microConnected = codex_hid::microConnected(previousMicroLink);
-    if (y >= 191 && y <= 237 && x >= 4 && x <= 315 && !microConnected) beginVoice();
-    else if (y >= 191 && y <= 237 && x >= 4 && x <= 155) {
-      if (!fnk0104b::audio_input::ready()) setMessage(fnk0104b::audio_input::error(), 6000);
-      else if (codex_hid::microphoneKey(true)) { desktopMicHeld = true; uiDirty = true; }
-      else setMessage("Desktop HID unavailable", 6000);
-    } else if (y >= 191 && y <= 237 && x >= 160 && x <= 315) beginVoice();
+    const bool microConnected = previousTransport != codex_hid::Transport::None;
+    if (microConnected) {
+      int keyId = -1;
+      if (x >= 82 && x < 160 && y >= 4 && y <= 40) { microCommands = !microCommands; uiDirty = true; }
+      else if (y >= 191 && y <= 237 && x >= 4 && x < 204) {
+        if (usbMicroActive) keyId = 10; else beginVoice();
+      }
+      else if (y >= 191 && y <= 237 && x >= 210 && x <= 315) keyId = 12;
+      else if (y >= 59 && y < 184 && showingStatus) { showingStatus = false; uiDirty = true; }
+      else {
+        const int slot = commandHelpVisible || voiceBusy ? -1 : ui::micro::tileAt(x, y);
+        if (slot >= 0) {
+          keyId = microCommands ? ui::micro::commandKeys[slot] : slot;
+          if (!usbMicroActive && keyId == 10) { beginVoice(); keyId = -1; }
+          if (!microCommands) selectedMicroSlot = slot;
+        }
+      }
+      if (keyId >= 0) {
+        if (codex_hid::key(keyId, true)) {
+          heldMicroKey = keyId; desktopMicHeld = keyId == 10; uiDirty = true;
+        } else setMessage("Desktop HID unavailable", 6000);
+      }
+    } else if (y >= 191 && y <= 237 && x >= 4 && x <= 315) beginVoice();
     else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load())) {
       // Hints and recording replace the agent panel; never select hidden agents.
     } else if (y >= 59 && y < 184 && showingStatus) {
@@ -852,9 +925,9 @@ void touchLoop() {
     }
   }
   if (!touchPoint.pressed) {
-    wifiHoldStarted = 0;
-    if (desktopMicHeld && (codex_hid::microphoneKey(false) || codex_hid::linkState() == codex_hid::LinkState::Off)) {
-      desktopMicHeld = false; uiDirty = true;
+    wifiHoldStarted = 0; microHoldStarted = 0; pairingOpened = false;
+    if (heldMicroKey >= 0 && (codex_hid::key(heldMicroKey, false) || previousTransport == codex_hid::Transport::None)) {
+      heldMicroKey = -1; desktopMicHeld = false; uiDirty = true;
     }
   }
   previousTouch = touchPoint.pressed;
@@ -918,7 +991,7 @@ void serialLoop() {
 void setup() {
   const bool hidStarted = codex_hid::begin();
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.5.0");
+  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.0");
   Serial.printf("monitor_startup reset_reason=%u\n", unsigned(esp_reset_reason()));
   if (lastAllocationFailure.magic == kAllocationFailureMagic)
     Serial.printf("monitor_heap previous_failure size=%lu caps=0x%lx\n",
@@ -940,6 +1013,7 @@ void setup() {
   if (screenTimeoutMinutes < 1 || screenTimeoutMinutes > 120) screenTimeoutMinutes = kScreenTimeoutDefault;
   idleTimer.activity(millis());
   monitor_wifi_setup::prepare();
+  fnk0104b::usb_microphone::setAllowed(false);
   const bool usbAudioStarted = fnk0104b::usb_microphone::begin();
   const bool inputStarted = fnk0104b::audio_input::begin(peripheralMutex, audioMutex);
   Serial.printf("monitor_audio startup=%s usb_audio=%s\n", inputStarted ? "ready" : "failed", usbAudioStarted ? "ready" : "failed");
@@ -966,6 +1040,7 @@ void setup() {
   // recognition worker starts its model allocations. Raw USB capture is already
   // independent and does not depend on recognition startup.
   Serial.printf("monitor_startup stage=speech heap=%u\n", unsigned(ESP.getFreeHeap()));
+  monitor_speech::setEnabled(codex_hid::transport() != codex_hid::Transport::Usb);
   if (!monitor_speech::begin(peripheralMutex, audioMutex, &voiceBusy))
     setMessage("Speech worker unavailable", 10000);
   Serial.println("monitor_startup stage=complete");
@@ -977,14 +1052,51 @@ void loop() {
     if (!codex_hid::microConnected(microLink)) desktopMicHeld = false;
     previousMicroLink = microLink; uiDirty = true;
   }
-  static codex_hid::Status desktopStatus{};
-  if (codex_hid::takeStatus(desktopStatus))
-    Serial.printf("codex_hid application=status_retained revision=%lu\n", (unsigned long)desktopStatus.revision);
+  const auto transport = codex_hid::transport();
+  const bool usbMode = transport == codex_hid::Transport::Usb;
+  if (previousTransport != transport) {
+    if (heldMicroKey >= 0) {
+      if (previousTransport == codex_hid::Transport::Ble) codex_hid::ble::key(heldMicroKey, false);
+      // USB disconnect resets held keys in the host HID connection.
+    }
+    previousTransport = transport; usbMicroActive = usbMode;
+    ++audioGeneration;
+    stopCapture = true;
+    commandHelpVisible = false; showingStatus = false; selectedAgent[0] = 0;
+    selectedMicroSlot = -1; microCommands = false; heldMicroKey = -1; desktopMicHeld = false;
+    desktopStatus = codex_hid::Status{};
+    monitor_speech::setEnabled(!usbMode);
+    fnk0104b::usb_microphone::setAllowed(false);
+    setMessage(usbMode ? "USB Micro connected" : transport == codex_hid::Transport::Ble ? "BLE Micro connected" : "Wi-Fi bridge mode", 4000);
+    idleTimer.activity(millis());
+    Serial.printf("monitor_mode mode=%s\n", usbMode ? "usb_micro" : transport == codex_hid::Transport::Ble ? "ble_micro" : "bridge");
+  }
+  fnk0104b::usb_microphone::setAllowed(usbMode && monitor_speech::paused());
+  const auto oldDesktopStatus = desktopStatus;
+  if (codex_hid::takeStatus(desktopStatus)) {
+    bool changed = false;
+    for (unsigned i = 0; i < 6; ++i) {
+      const auto& before = oldDesktopStatus.slots[i];
+      const auto& after = desktopStatus.slots[i];
+      changed |= before.present != after.present || before.color != after.color || before.brightness != after.brightness;
+    }
+    if (changed && previousTransport != codex_hid::Transport::None) {
+      idleTimer.activity(millis());
+      if (!screenAwake && !screenManuallyOff) {
+        screenAwake = true; fnk0104b::display.setBacklight(true); resumeStatus();
+      }
+    }
+    Serial.printf("codex_hid application=status_displayed revision=%lu\n", (unsigned long)desktopStatus.revision);
+    uiDirty = true;
+  }
   const bool audioReady = fnk0104b::audio_input::ready(), usbStreaming = fnk0104b::usb_microphone::streaming();
   if (audioReady != previousAudioReady || usbStreaming != previousUsbStreaming) {
     previousAudioReady = audioReady; previousUsbStreaming = usbStreaming; uiDirty = true;
   }
-  if (wifiSetupMode) { monitor_wifi_setup::loop(); return; }
+  if (wifiSetupMode) {
+    if (usbMode) monitor_wifi_setup::yieldToMicro();
+    monitor_wifi_setup::loop(); return;
+  }
   serialLoop();
   speechLoop();
   if (previousSpeechReady != monitor_speech::ready()) {

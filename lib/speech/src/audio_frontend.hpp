@@ -13,7 +13,10 @@ class AudioFrontEnd {
  public:
   using ReadAudio = esp_err_t (*)(int16_t*, size_t);
   bool begin(srmodel_list_t* models, char* vad_model, ReadAudio read_audio = nullptr);
-  afe_fetch_result_t* fetch();
+  afe_fetch_result_t* fetch(unsigned timeout_ms = 1000);
+  void setEnabled(bool enabled) { enabled_.store(enabled); }
+  bool paused() const { return !started_.load() || feed_paused_.load(); }
+  void reset() { if (iface_ && data_) iface_->reset_buffer(data_); }
   int fetchSamples() const;
   esp_err_t error() const { return error_.load(); }
   unsigned fedFrames() const { return fed_frames_.load(); }
@@ -32,4 +35,6 @@ class AudioFrontEnd {
   int16_t* feed_buffer_ = nullptr;
   std::atomic<esp_err_t> error_{ESP_OK};
   std::atomic<unsigned> fed_frames_{0};
+  std::atomic<bool> enabled_{true}, feed_paused_{false};
+  std::atomic<bool> started_{false};
 };

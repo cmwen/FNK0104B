@@ -131,3 +131,12 @@ On 2026-10-03, the monitor read all 320 × 240 LCD pixels using TFT_eSPI 2.5.43'
 produced [the actual monitor screenshot](images/codex-monitor-screen.png);
 orientation, text, borders and live values were visually checked. The capture
 uses the existing ILI9341 pin/controller configuration without new assignments.
+
+## USB microphone capture verified (2026-10-07)
+
+The connectivity monitor was flashed through PlatformIO with verified hashes.
+Windows WinMM captured 80,000 samples from TinyUSB UAC1 at 16 kHz, mono PCM16
+over five seconds, with peak 54 and 77,125 nonzero samples in a quiet run.
+This verifies live raw USB microphone delivery, not audible speech quality or
+Desktop dictation. The GPIO map and existing partition boundaries were retained.
+See [device evidence](../test/hardware/connectivity-modes-2026-10-07.md).

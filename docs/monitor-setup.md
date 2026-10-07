@@ -157,7 +157,7 @@ Look for `monitor_wifi connected=true` and
 The display shows Wi-Fi Online, Codex Ready/Busy, and remaining percentages
 (`100 - used_percent`). The bridge request log should show the board's requests
 to `/v1/status` returning 200. Then open [Device setup](https://cmwen.github.io/FNK0104B/index.html#setup)
-to connect to `FNK0104B-MONITOR` and save volume/idle timeout over BLE.
+to connect to `Codex Micro` and save volume/idle timeout over BLE.
 
 ## Troubleshooting
 

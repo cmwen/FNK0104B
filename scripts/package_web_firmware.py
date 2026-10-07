@@ -20,7 +20,7 @@ OUTPUT_MARKER = ".fnk0104b-pages"
 # not produce the speech model image required by the monitor manifest.
 BUILD_ONLY_ENVIRONMENTS = (
     "hello-debug", "speech-diag", "recorder", "recorder-io-diag",
-    "codex-hid-diag", "codex-audio-diag",
+    "codex-hid-diag", "codex-audio-diag", "codex-ble-diag",
 )
 
 # These are the image offsets used by the pinned Arduino ESP32 PlatformIO

@@ -3,6 +3,7 @@
 #include <atomic>
 #include <fnk0104b/codex_usb.hpp>
 #include <codex_hid/backend.hpp>
+#include <codex_hid/ble_backend.hpp>
 #include <freertos/queue.h>
 #include <esp_heap_caps.h>
 #include <new>
@@ -17,10 +18,10 @@ ProtocolState* state = nullptr;  // CPU-only JSON/framing state, never USB DMA.
 ProtocolState ownedState;
 ProtocolState* state = &ownedState;
 #endif
-struct Input { uint32_t epoch; bool microphone; bool pressed; };
+struct Input { uint32_t epoch; uint8_t key; bool pressed; bool tap; };
 std::atomic<bool> discovered{false};
 std::atomic<uint32_t> lastProtocol{0};
-struct Reply { char json[1024]; uint16_t length; };
+struct Reply { char json[1024]; uint16_t length; bool discovery; };
 #if defined(FNK0104B_ENABLE_USB_AUDIO)
 StaticQueue_t replyControl;
 #endif
@@ -29,16 +30,17 @@ char tx[1024]{};
 size_t txLength = 0, txOffset = 0;
 uint32_t txStarted = 0;
 bool releasePending = false;
+uint8_t releaseKey = 0;
+bool txDiscovery = false;
 uint32_t currentEpoch = 0;
 
 void message(const char* json, size_t size, void*) {
   static Reply reply;
   reply.length = state->protocol.process(json, size, reply.json, sizeof(reply.json));
+  reply.discovery = state->protocol.valid && (!strcmp(state->protocol.method, "device.status") ||
+    !strcmp(state->protocol.method, "sys.version") || !strcmp(state->protocol.method, "v.oai.thstatus"));
   if (reply.length && xQueueSend(replyQueue, &reply, 0) != pdTRUE)
     Serial.println("codex_hid reply=queue_full");
-  if (state->protocol.valid && (!strcmp(state->protocol.method, "device.status") || !strcmp(state->protocol.method, "sys.version") || !strcmp(state->protocol.method, "v.oai.thstatus"))) {
-    discovered = true; lastProtocol = millis();
-  }
   Serial.printf("codex_hid protocol=%s method=%s reply_bytes=%u\n",
     state->protocol.valid ? "decoded" : "invalid", state->protocol.method, unsigned(reply.length));
   if (state->protocol.valid && !strcmp(state->protocol.method, "v.oai.thstatus")) {
@@ -50,6 +52,7 @@ void worker(void*) {
   bool wasMounted = false, active = false;
   uint32_t lastRx = 0, loggedDrops = 0, lastReportLog = 0, reports = 0;
   for (;;) {
+    ble::poll();
     const uint32_t epoch = usb::epoch();
     const bool mounted = usb::mounted();
     if (epoch != currentEpoch || mounted != wasMounted) {
@@ -76,24 +79,28 @@ void worker(void*) {
       if (usb::send(body, sizeof(body))) {
         txOffset += count;
         if (txOffset == txLength + 2) {
+          if (txDiscovery) { discovered = true; lastProtocol = millis(); txDiscovery = false; }
           Serial.println("codex_hid tx=complete report_id=6"); txLength = 0;
         }
       } else if (millis() - txStarted > 500) {
-        Serial.println("codex_hid tx=timeout"); txLength = 0; releasePending = false;
+        Serial.println("codex_hid tx=retry"); txStarted = millis();
       }
     } else if (releasePending) {
-      txLength = agentEvent(false, tx, sizeof(tx)); txOffset = 0; txStarted = millis(); releasePending = false;
+      txDiscovery = false;
+      txLength = keyEvent(releaseKey, false, tx, sizeof(tx)); txOffset = 0; txStarted = millis(); releasePending = false;
     } else {
       static Reply reply;
       if (xQueueReceive(replyQueue, &reply, 0) == pdTRUE) {
+        txDiscovery = reply.discovery;
         memcpy(tx, reply.json, reply.length); txLength = reply.length; txOffset = 0; txStarted = millis();
         continue;
       }
       Input input{};
       if (mounted && xQueueReceive(inputQueue, &input, 0) == pdTRUE && input.epoch == epoch) {
-        txLength = input.microphone ? microphoneEvent(input.pressed, tx, sizeof(tx)) : agentEvent(true, tx, sizeof(tx));
-        txOffset = 0; txStarted = millis(); releasePending = !input.microphone;
-        Serial.printf("codex_hid event=%s action=%s\n", input.microphone ? "microphone" : "agent0_tap", input.pressed ? "press" : "release");
+        txDiscovery = false;
+        txLength = keyEvent(input.key, input.pressed, tx, sizeof(tx));
+        txOffset = 0; txStarted = millis(); releasePending = input.tap; releaseKey = input.key;
+        Serial.printf("codex_hid key=%u action=%s\n", input.key, input.pressed ? "press" : "release");
       } else {
         usb::Report report{};
         // One report per pass, keeping callbacks and UI independent of host floods.
@@ -132,21 +139,30 @@ bool begin() {
   if (!statusQueue || !inputQueue || !replyQueue || !usb::begin()) return false;
   return xTaskCreate(worker, "codex-hid", 8192, nullptr, 1, nullptr) == pdPASS;
 }
-bool agent0Tap() {
-  const Input input{usb::epoch(), false, true};
-  return inputQueue && usb::mounted() && xQueueSend(inputQueue, &input, 0) == pdTRUE;
+bool tap(uint8_t id) {
+  if (transport() == Transport::Ble) return ble::key(id, true, true);
+  const Input input{usb::epoch(), id, true, true};
+  return id <= 12 && inputQueue && usb::mounted() && xQueueSend(inputQueue, &input, 0) == pdTRUE;
 }
-LinkState linkState() {
+bool agent0Tap() { return tap(0); }
+LinkState usbLinkState() {
   if (!usb::mounted()) return LinkState::Off;
   if (!discovered.load()) return LinkState::Usb;
   return millis() - lastProtocol.load() < 60000 ? LinkState::Linked : LinkState::Idle;
 }
-bool microphoneKey(bool pressed) {
-  const Input input{usb::epoch(), true, pressed};
-  return inputQueue && usb::mounted() && xQueueSend(inputQueue, &input, 0) == pdTRUE;
+bool key(uint8_t id, bool pressed) {
+  if (transport() == Transport::Ble) return ble::key(id, pressed);
+  const Input input{usb::epoch(), id, pressed, false};
+  return id <= 12 && inputQueue && microConnected(linkState()) && xQueueSend(inputQueue, &input, 0) == pdTRUE;
 }
+bool microphoneKey(bool pressed) { return key(10, pressed); }
 bool takeStatus(Status& status) {
+  if (transport() == Transport::Ble) return ble::takeStatus(status);
   return statusQueue && xQueueReceive(statusQueue, &status, 0) == pdTRUE;
 }
+Transport transport() {
+  return chooseTransport(usbLinkState(), ble::linkState());
+}
+LinkState linkState() { return transport() == Transport::Ble ? ble::linkState() : usbLinkState(); }
 }
 #endif

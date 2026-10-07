@@ -6,4 +6,6 @@ void prepare();
 bool begin(bool requested, bool skip);
 void loop();
 void request();
+// Automatic first-boot provisioning yields to a discovered USB Micro session.
+void yieldToMicro();
 }

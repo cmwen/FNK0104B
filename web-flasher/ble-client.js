@@ -189,9 +189,9 @@ monitorConnect.addEventListener("click", async () => {
   setMonitorControls(false);
   try {
     monitorDevice?.gatt?.disconnect();
-    showMonitorStatus("Choose FNK0104B-MONITOR in the Bluetooth device picker…");
+    showMonitorStatus("Choose Codex Micro (or FNK0104B-MONITOR) in the Bluetooth device picker…");
     monitorDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "FNK0104B-MONITOR" }],
+      filters: [{ name: "Codex Micro" }, { name: "FNK0104B-MONITOR" }],
       optionalServices: [MONITOR_SERVICE_UUID],
     });
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);

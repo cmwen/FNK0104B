@@ -23,6 +23,7 @@ SemaphoreHandle_t peripheral, audio_mutex, capture_mutex;
 QueueHandle_t events;
 std::atomic<bool>* busy;
 std::atomic<bool> available{false}, in_window{false}, vad{false};
+std::atomic<bool> enabled{true}, suspended{false};
 std::atomic<uint32_t> quiet_until{0};
 std::atomic<uint8_t> input_level{0};
 int16_t* capture_buffer = nullptr;  // Protected by capture_mutex.
@@ -41,6 +42,7 @@ speech::VoiceCaptureGate capture_gate;
 
 void emit(Event event) { xQueueSend(events, &event, 0); }
 void fail(const char* reason) {
+  frontend.setEnabled(false);
   Serial.printf("monitor_speech state=error reason=%s\n", reason);
   failure_reason = reason;
   available = false;
@@ -52,6 +54,8 @@ esp_err_t readAudio(int16_t* pcm, size_t samples) {
   return fnk0104b::audio_input::read(pcm, samples);
 }
 void worker(void*) {
+  while (!enabled.load()) { suspended = true; delay(20); }
+  suspended = false;
   Serial.printf("monitor_speech startup=models heap=%u psram=%u\n", unsigned(ESP.getFreeHeap()), unsigned(ESP.getFreePsram()));
   stage(0);
   if (!dl_kernel_lookup("dl_tie728_w8a16_conv2d_11cn")) { fail("wake_kernel_missing"); vTaskDelete(nullptr); return; }
@@ -90,8 +94,34 @@ void worker(void*) {
   uint32_t deadline = 0, last_report = millis();
   int64_t max_inference_us = 0;
   bool previous_vad = false, was_busy = false;
+  bool resetOnResume = false;
   for (;;) {
+    if (!enabled.load()) {
+      frontend.setEnabled(false);
+      // Drain buffered output so a feed already blocked by backpressure can
+      // finish and acknowledge the pause. No recognition runs on these frames.
+      while (!frontend.paused() && frontend.error() == ESP_OK) frontend.fetch(20);
+      if (!suspended.load()) {
+        fnk0104b::audio_input::unsubscribeSpeech();
+        frontend.reset(); wake->clean(wake_data); commands->clean(command_data);
+        in_window = false; vad = false; input_level = 0;
+        xQueueReset(events);
+        suspended = true; // Acknowledge only after every local speech consumer is quiescent.
+        Serial.println("monitor_speech state=paused reason=usb_micro");
+      }
+      resetOnResume = true;
+      delay(20);
+      continue;
+    }
+    if (resetOnResume) {
+      frontend.reset(); wake->clean(wake_data); commands->clean(command_data);
+      frontend.setEnabled(true); suspended = false; resetOnResume = false;
+      Serial.println("monitor_speech state=resumed");
+    }
     auto* audio = frontend.fetch();
+    if (!enabled.load()) continue;
+    if (!audio && frontend.error() == ESP_OK) continue;
+
     if (frontend.error() != ESP_OK || !audio || audio->ret_value == ESP_FAIL || !audio->data ||
         audio->data_size != samples * int(sizeof(int16_t))) {
       fail("audio_fetch_failed"); vTaskDelete(nullptr); return;
@@ -177,7 +207,12 @@ bool begin(SemaphoreHandle_t mutex, SemaphoreHandle_t audio, std::atomic<bool>* 
   return true;
 }
 bool poll(Event& event) { return events && xQueueReceive(events, &event, 0) == pdTRUE; }
-bool ready() { return available; }
+bool ready() { return available && enabled && !suspended; }
+void setEnabled(bool value) {
+  enabled = value;
+  if (!value && events) xQueueReset(events);
+}
+bool paused() { return suspended || (!available && strcmp(failure_reason.load(), "starting") && frontend.paused()); }
 const char* error() { return failure_reason.load(); }
 bool listening() { return in_window; }
 bool speech() { return vad; }
@@ -188,7 +223,7 @@ void quietFor(uint32_t milliseconds) {
 }
 bool capture(int16_t* pcm, size_t capacity, size_t& captured, const std::atomic<bool>& stop) {
   captured = 0;
-  if (!available || !pcm || !capacity) return false;
+  if (!ready() || !pcm || !capacity) return false;
   xSemaphoreTake(capture_mutex, portMAX_DELAY);
   capture_buffer = pcm; capture_capacity = capacity; capture_count = 0;
   capture_finished = false; capture_gate = speech::VoiceCaptureGate{};
@@ -198,10 +233,10 @@ bool capture(int16_t* pcm, size_t capacity, size_t& captured, const std::atomic<
   while (!done) {
     delay(10);
     xSemaphoreTake(capture_mutex, portMAX_DELAY);
-    done = capture_finished || stop.load() || !available || millis() - started >= speech::kVoiceMaxSeconds * 1000 + 1000;
+    done = capture_finished || stop.load() || !ready() || millis() - started >= speech::kVoiceMaxSeconds * 1000 + 1000;
     if (done) { captured = capture_count; voiced = capture_gate.voiced(); capture_buffer = nullptr; }
     xSemaphoreGive(capture_mutex);
   }
-  return available && voiced && captured > 0;
+  return ready() && voiced && captured > 0;
 }
 }

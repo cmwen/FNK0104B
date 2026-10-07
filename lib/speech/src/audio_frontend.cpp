@@ -52,19 +52,30 @@ bool AudioFrontEnd::begin(srmodel_list_t* models, char* vad_model, ReadAudio rea
   if (!started) ESP_LOGE("speech-afe", "feed task allocation failed: internal_free=%u largest=%u",
       static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)),
       static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)));
+  started_ = started;
   return started;
 }
 void AudioFrontEnd::feedTask(void* context) {
   auto* self = static_cast<AudioFrontEnd*>(context);
   while (true) {
+    if (!self->enabled_.load()) {
+      self->feed_paused_ = true;
+      vTaskDelay(pdMS_TO_TICKS(20));
+      continue;
+    }
+    self->feed_paused_ = false;
     const esp_err_t err = self->read_audio_(self->feed_buffer_, self->feed_samples_);
+    // A mode switch can interrupt a pending read; discard that frame/error.
+    if (!self->enabled_.load()) continue;
     if (err != ESP_OK) {
       self->error_.store(err);
+      self->feed_paused_ = true;
       vTaskDelete(nullptr);
       return;
     }
     if (self->iface_->feed(self->data_, self->feed_buffer_) < 0) {
       self->error_.store(ESP_FAIL);
+      self->feed_paused_ = true;
       vTaskDelete(nullptr);
       return;
     }
@@ -72,8 +83,8 @@ void AudioFrontEnd::feedTask(void* context) {
     vTaskDelay(1);
   }
 }
-afe_fetch_result_t* AudioFrontEnd::fetch() {
-  return iface_->fetch_with_delay(data_, pdMS_TO_TICKS(1000));
+afe_fetch_result_t* AudioFrontEnd::fetch(unsigned timeout_ms) {
+  return iface_->fetch_with_delay(data_, pdMS_TO_TICKS(timeout_ms));
 }
 int AudioFrontEnd::fetchSamples() const {
   return iface_->get_fetch_chunksize(data_);

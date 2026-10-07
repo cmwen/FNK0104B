@@ -1,0 +1,2 @@
+input_device=0 name=Microphone (TinyUSB UAC1)
+usb_pcm bytes=160000 samples=80000 peak=54 rms=11.1289375054405 nonzero=77125

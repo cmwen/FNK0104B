@@ -1,6 +1,7 @@
 #include <unity.h>
 #include <codex_hid/protocol.hpp>
 #include <codex_hid/backend.hpp>
+#include <ui/micro_layout.hpp>
 #include <initializer_list>
 
 #include <string.h>
@@ -428,10 +429,45 @@ void test_monitor_micro_mode_requires_desktop_discovery() {
   TEST_ASSERT_TRUE(codex_hid::microConnected(codex_hid::LinkState::Linked));
   // A quiet Desktop connection stays usable until USB disconnects.
   TEST_ASSERT_TRUE(codex_hid::microConnected(codex_hid::LinkState::Idle));
+  using codex_hid::LinkState; using codex_hid::Transport;
+  TEST_ASSERT_TRUE(codex_hid::chooseTransport(LinkState::Usb, LinkState::Off) == Transport::None);
+  TEST_ASSERT_TRUE(codex_hid::chooseTransport(LinkState::Usb, LinkState::Linked) == Transport::Ble);
+  TEST_ASSERT_TRUE(codex_hid::chooseTransport(LinkState::Linked, LinkState::Linked) == Transport::Usb);
+  TEST_ASSERT_TRUE(codex_hid::chooseTransport(LinkState::Idle, LinkState::Linked) == Transport::Usb);
+  TEST_ASSERT_TRUE(codex_hid::chooseTransport(LinkState::Off, LinkState::Idle) == Transport::Ble);
+}
+
+void test_micro_six_keys_and_touch_gaps() {
+  char json[128]; StaticJsonDocument<256> event;
+  for (unsigned key = 0; key <= 12; ++key) {
+    for (bool pressed : {false, true}) {
+      TEST_ASSERT_TRUE(codex_hid::keyEvent(key, pressed, json, sizeof(json)));
+      TEST_ASSERT_FALSE(deserializeJson(event, json));
+      char expected[8]; snprintf(expected, sizeof(expected), key < 6 ? "AG%02u" : "ACT%02u", key);
+      TEST_ASSERT_EQUAL_STRING(expected, event["p"]["k"]);
+      TEST_ASSERT_EQUAL(pressed ? 1 : 0, event["p"]["act"].as<int>());
+      if (key < 6) TEST_ASSERT_EQUAL(key, event["p"]["ag"].as<unsigned>());
+      else TEST_ASSERT_FALSE(event["p"].containsKey("ag"));
+    }
+  }
+  TEST_ASSERT_EQUAL(0, codex_hid::keyEvent(13, true, json, sizeof(json)));
+  TEST_ASSERT_EQUAL(0, codex_hid::keyEvent(0, true, json, 8));
+  for (unsigned slot = 0; slot < 6; ++slot) {
+    const int x = ui::micro::tileX(slot), y = ui::micro::tileY(slot);
+    TEST_ASSERT_EQUAL(slot, ui::micro::tileAt(x, y));
+    TEST_ASSERT_EQUAL(slot, ui::micro::tileAt(x + 99, y + 59));
+    TEST_ASSERT_EQUAL(-1, ui::micro::tileAt(x + 100, y));
+    TEST_ASSERT_EQUAL(-1, ui::micro::tileAt(x, y + 60));
+    TEST_ASSERT_LESS_THAN(191, y + 60);
+    TEST_ASSERT_LESS_THAN(317, x + 100);
+  }
+  TEST_ASSERT_EQUAL(-1, ui::micro::tileAt(80, 40));
+  TEST_ASSERT_EQUAL(-1, ui::micro::tileAt(120, 200));
 }
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_micro_six_keys_and_touch_gaps);
   RUN_TEST(test_monitor_micro_mode_requires_desktop_discovery);
   RUN_TEST(test_codex_hid_descriptor_contract);
   RUN_TEST(test_codex_hid_framing_bounds_and_recovery);

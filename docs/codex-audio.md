@@ -1,71 +1,56 @@
 # Desktop voice and the board microphone
 
-## What changed
+## Connectivity behavior (0.6.0)
 
-The top status cell and voice touch targets adapt to Desktop detection.
-Without recognized Desktop protocol activity, the cell says **Codex** and shows
-the Wi-Fi bridge state (**Online**, **Busy**, **Input**, **Error**, **Check**
-or **Offline**). Only the full-width **Wi-Fi voice** control is shown.
-USB enumeration alone does not enable Micro voice.
+| Connection verified by protocol reply | Screen / controls | Speech |
+| --- | --- | --- |
+| No Micro session, including USB power or enumeration only | Existing Wi-Fi bridge agents and quotas | Hi ESP and bridge recording |
+| USB Micro | Six Desktop slots, native agent and command keys | UAC1 microphone; local wake/commands/AFE paused |
+| BLE Micro, with no USB Micro | Six Desktop slots, native agent and command keys | Hi ESP; Wi-Fi STT through orchestrator intake only |
 
-After discovery the cell says **Micro**, with independent HID connection state:
+USB takes precedence when both Micro sessions are discovered. Discovery requires
+a valid `device.status`, `sys.version` or `v.oai.thstatus` request and the complete
+matching reply being sent. This is protocol compatibility, not authenticated app
+identity. Quiet established sessions remain Micro until their physical
+connection ends; reliable Desktop app-exit detection is UNKNOWN.
 
-- **Linked**: a `device.status`, `sys.version`, or `v.oai.thstatus` call arrived
-  within the last minute.
-- **Idle**: a call was previously observed during this USB connection, but no
-  such call has arrived recently. This does not mean the app disconnected.
+Agent tiles emit AG00–AG05 and follow Desktop key configuration. The device
+displays Desktop-provided slot color/brightness without inventing status meanings
+or thread titles. Tap the Micro header to switch between agents and six command
+keys: Fast, Approve, Reject, Fork, Mic, Send. Approve/Reject apply to Desktop's
+current request; there is no bridge approval path. All keys use press/release
+events, allowing host mappings and double taps. Mic and Send remain in the footer.
 
-This is host protocol activity, not authenticated application identity; a
-compatible probe can also produce it. The owner reported that Desktop recognized
-the previous firmware as Codex Micro on 2026-10-04.
+USB speech is raw **16 kHz, mono, PCM16 UAC1**. Select the board microphone in
+the host's input settings, grant Desktop microphone access, and configure its
+Mic key for push-to-talk or supported voice behavior. WakeNet, MultiNet and AFE
+are quiesced before USB samples are enabled; raw ES8311/I2S capture continues.
+The waveform is board input level, not a Desktop transcript indicator.
 
-In Micro mode the bottom panel has two independent controls. **Micro voice** sends ACT10 press
-on touch-down and release on lift, while **Wi-Fi voice** retains the existing
-orchestrator recording/dispatch path. This preserves concurrent integrations.
-The Micro waveform shows actual board input level while the host is capturing
-or the key is held. It does not claim to show the Desktop transcript or exact
-remote voice-session state.
+BLE advertises **Codex Micro** and retains the monitor settings service. Hold
+the Micro/Codex header for three seconds to open a 60-second pairing window.
+Bonded peers can reconnect. BLE speech always posts
+`/v1/voice?route=orchestrator`; selecting a Micro slot cannot change its target.
+A missing orchestrator produces an explicit error. BLE exposes vendor report 6
+Input/Output/Feature with encrypted access and requires MTU >= 66 for a 63-byte
+notification. Retail descriptor parity and Desktop BLE compatibility are
+**unverified**; this first implementation exposes the vendor control collection.
 
-USB disconnect switches back to the Codex/Wi-Fi layout and clears held touch
-state. A quiet host stays in Micro Idle because the protocol does not provide
-an authenticated app-disconnect signal. The 2026-10-07 mode change passed host
-tests and was flashed. LCD readback verified Wi-Fi-only presentation; live
-Windows host requests verified HID replies. Micro appearance and touch/voice
-checks remain open in the [device record](../test/hardware/monitor-adaptive-ui-2026-10-07.md).
+Automatic first-boot Wi-Fi provisioning yields to USB Micro discovery with one
+restart, skipping setup on the next boot. Explicitly requested Wi-Fi setup
+remains open. Provisioning owns BLE until reboot. With no battery, unplugging
+USB powers the device off; it is a cold-boot test rather than live fallback.
 
-USB now contains CDC, vendor HID and a **UAC1 microphone: 16 kHz, mono, PCM16**.
-Audio is carried by USB Audio Class; the vendor HID report carries the control
-key. No USB speaker, BLE audio or external pins were added. CDC needs two IN/one
-OUT endpoints, HID one IN/one OUT, and audio one IN: four IN/two OUT in total.
+## Verification boundary
 
-One board-level capture worker owns ES8311/I2S reads and supplies raw PCM to USB
-and the existing AFE through a bounded stream buffer. Speech/model failure cannot
-stop USB capture. Microphone initialization occurs before Wi-Fi/BLE allocations;
-the audio and speech task stacks are reserved statically. CPU-only HID JSON and
-speech FIFO buffers use PSRAM, leaving internal RAM for DMA and speech models. Local failures report
-specific reasons rather than describing all recognition failures as a missing
-microphone. Attention tones wait until USB capture stops, preserving the
-shared I2S bus while Desktop records. The existing GPIO map, codec configuration,
-Wi-Fi/SSE behavior and partition boundaries remain unchanged.
-
-## Desktop setup
-
-The [official Micro guide](https://learn.chatgpt.com/docs/features/codex-micro)
-explains that Micro's mic key uses the computer's selected microphone. Its default
-is push-to-talk; a Voice Chat mapping is available when supported by the app.
-
-1. Keep the device owned by Windows while testing Desktop (detach it from WSL
-   after firmware work). Select **Microphone (TinyUSB UAC1)** as the operating system/app input
-   microphone, and grant the app microphone access.
-2. In Desktop's Codex Micro settings, map the Mic key to **Voice Chat** if you
-   want a tap to start a voice chat. Otherwise, hold the board's **Micro voice**
-   button for default push-to-talk and release it to stop. The guide also
-   documents double-tap within 350 ms for hands-free dictation.
-3. Watch for **Micro Linked**. Speak while the microphone is open: the board's
-   waveform should change. Confirm sound using the host's input-level test or
-   a recording before testing Desktop transcription.
-4. **Wi-Fi voice** continues to use the original server, independent of Micro
-   settings. USB streaming alone does not send a Wi-Fi message.
+Earlier owner feedback confirmed USB Micro recognition, and earlier records
+cover USB enumeration and the adaptive UI. They do not verify this revision's
+six keys, host PCM, repeated speech transitions or BLE HID. See
+[connectivity validation](connectivity-modes-validation.md) for current build
+evidence and the remaining physical checks. This revision was subsequently flashed and a five-second Windows UAC recording
+confirmed 80,000 nonzero-containing PCM samples. Physical keys, Desktop dictation,
+Wi-Fi speech transitions and BLE remain open; see the
+[device record](../test/hardware/connectivity-modes-2026-10-07.md).
 
 ## Diagnose “Mic unavailable”
 

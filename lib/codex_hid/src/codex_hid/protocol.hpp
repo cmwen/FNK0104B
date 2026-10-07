@@ -6,7 +6,7 @@ namespace codex_hid {
 struct Slot {
   bool present = false;
   uint32_t color = 0;
-  float brightness = 0, speed = 0;
+  float brightness = 1, speed = 0;
   char effect[16]{}; // Retain host value; do not infer semantic agent states.
 };
 struct Status { Slot slots[6]; uint32_t revision = 0; };
@@ -79,15 +79,20 @@ class Protocol {
     memcpy(dst, src, count); dst[count] = 0;
   }
 };
-inline size_t agentEvent(bool pressed, char* output, size_t capacity) {
-  const int n = snprintf(output, capacity,
-    "{\"m\":\"v.oai.hid\",\"p\":{\"k\":\"AG00\",\"act\":%u,\"ag\":0}}", pressed ? 1 : 0);
+// Physical IDs from the captured retail key matrix. Desktop owns their mappings.
+inline size_t keyEvent(uint8_t key, bool pressed, char* output, size_t capacity) {
+  if (key > 12 || !output || !capacity) return 0;
+  const int n = key < 6 ? snprintf(output, capacity,
+    "{\"m\":\"v.oai.hid\",\"p\":{\"k\":\"AG%02u\",\"act\":%u,\"ag\":%u}}", key, pressed ? 1 : 0, key) :
+    snprintf(output, capacity,
+    "{\"m\":\"v.oai.hid\",\"p\":{\"k\":\"ACT%02u\",\"act\":%u}}", key, pressed ? 1 : 0);
   return n > 0 && size_t(n) < capacity ? size_t(n) : 0;
 }
+inline size_t agentEvent(bool pressed, char* output, size_t capacity) {
+  return keyEvent(0, pressed, output, capacity);
+}
 inline size_t microphoneEvent(bool pressed, char* output, size_t capacity) {
-  const int n = snprintf(output, capacity,
-    "{\"m\":\"v.oai.hid\",\"p\":{\"k\":\"ACT10\",\"act\":%u}}", pressed ? 1 : 0);
-  return n > 0 && size_t(n) < capacity ? size_t(n) : 0;
+  return keyEvent(10, pressed, output, capacity);
 }
 
 }

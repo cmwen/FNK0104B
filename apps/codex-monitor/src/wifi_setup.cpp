@@ -15,6 +15,7 @@ namespace {
 char proof[13]{};
 uint8_t random[6]{};
 bool prepared = false;
+bool explicitlyRequested = false;
 wifi_config_t previousConfig{};
 enum class Stage { Ready, Failed, Connected, Error };
 std::atomic<Stage> stage{Stage::Ready};
@@ -73,6 +74,7 @@ void prepare() {
 }
 bool begin(bool requested, bool skip) {
   prepare();
+  explicitlyRequested = requested;
   WiFi.STA.begin(false);
   if (esp_wifi_get_config(WIFI_IF_STA, &previousConfig) != ESP_OK) {
     // Do not infer that credentials are absent on an initialization failure.
@@ -114,6 +116,12 @@ void loop() {
     hadTouch = point.pressed;
   }
   delay(20);
+}
+void yieldToMicro() {
+  if (!explicitlyRequested) {
+    Serial.println("monitor_wifi_setup exit=usb_micro restart=skip_setup_once");
+    restart(true);
+  }
 }
 void request() {
   Preferences prefs;

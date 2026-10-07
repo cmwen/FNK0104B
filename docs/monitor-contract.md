@@ -75,7 +75,7 @@ App-server approval requests are distinct from a question the agent asks. The br
 
 ## BLE settings
 
-The monitor advertises `FNK0104B-MONITOR` with service UUID `4e4b0104-0001-4d20-8f4b-0104b0000001` and one read/write settings characteristic `4e4b0104-0002-4d20-8f4b-0104b0000001`. Its four bytes are version `1`, volume percent `0..100`, and a little-endian idle display timeout in minutes `1..120`. Defaults are 50% volume and 30 minutes. The setting is stored in NVS. The display backlight turns off only after that much continuous idle time. Any visible active agent (`running`, `needs_attention`, or `error`), including overflow agents, or voice preparation/recording/submission keeps it on and resets the idle countdown. Touch resets the countdown and wakes the display. Web BLE labels the stored setting **Idle screen timeout**; the verified board support provides on/off control, not a measured dimming level. The speaker circuit has no verified plugged-in detection; a notification tone is attempted when the audio path initializes. The separate Wi-Fi BLE provisioning service is unchanged.
+The monitor advertises `Codex Micro` (the settings client also accepts the older `FNK0104B-MONITOR` name) with service UUID `4e4b0104-0001-4d20-8f4b-0104b0000001` and one read/write settings characteristic `4e4b0104-0002-4d20-8f4b-0104b0000001`. Its four bytes are version `1`, volume percent `0..100`, and a little-endian idle display timeout in minutes `1..120`. Defaults are 50% volume and 30 minutes. The setting is stored in NVS. The display backlight turns off only after that much continuous idle time. Any visible active agent (`running`, `needs_attention`, or `error`), including overflow agents, or voice preparation/recording/submission keeps it on and resets the idle countdown. Touch resets the countdown and wakes the display. Web BLE labels the stored setting **Idle screen timeout**; the verified board support provides on/off control, not a measured dimming level. The speaker circuit has no verified plugged-in detection; a notification tone is attempted when the audio path initializes. The separate Wi-Fi BLE provisioning service is unchanged.
 
 From firmware 0.4.0, this same timeout also enters automatic quiet mode: the
 status task closes the SSE socket and blocks without reconnect attempts until
@@ -92,3 +92,13 @@ sleep. Board current draw and total energy savings have not been measured.
 The bridge listens on `127.0.0.1:8765` by default. To let the board connect, explicitly bind a LAN address and set `MONITOR_TOKEN`; all `/v1` calls then need the matching `X-Monitor-Key` header. Store the matching value in the ignored `apps/codex-monitor/include/monitor_secrets.h`. New threads use the bridge's working directory unless `MONITOR_AGENT_CWD` chooses another project. This HTTP mode is for a trusted local network. Do not expose the bridge or app-server transport to the public internet. See [the bridge README](../monitor-server/README.md) for run commands and the current app-server attachment method.
 
 For board tests without Codex, [the mock server](../monitor-server/MOCK.md) implements the same `/v1/status`, `/v1/events`, and voice transport surface with separate state controls.
+
+## Micro voice routing
+
+BLE Micro voice uses `POST /v1/voice?route=orchestrator` with the existing WAV
+body and authentication. The bridge requires a configured orchestrator, rejects
+`agent_id` and duplicate/unknown routes, and never falls back to direct agent
+submission or thread creation. Missing orchestrator returns HTTP 503 with
+`orchestrator_unconfigured`. Ordinary Wi-Fi bridge voice retains its current
+route and selected-agent behavior. USB Micro speech uses the host UAC microphone
+and Desktop's native Mic key; it makes no board bridge recording request.

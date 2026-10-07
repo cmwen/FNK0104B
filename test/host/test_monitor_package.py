@@ -21,6 +21,7 @@ class MonitorPackageTest(unittest.TestCase):
         self.assertIn("codex-monitor", published)
         self.assertNotIn("codex-hid-diag", published)
         self.assertNotIn("codex-audio-diag", published)
+        self.assertNotIn("codex-ble-diag", published)
         self.assertEqual(set(package.NAMES), set(published))
 
         config = configparser.ConfigParser(interpolation=None)

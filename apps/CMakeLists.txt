@@ -13,6 +13,7 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
         SRCS ${monitor_app_sources}
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/usb_microphone.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/audio_input.cpp"
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/codex_usb.cpp" "${CMAKE_SOURCE_DIR}/lib/codex_hid/src/backend.cpp"
+             "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/codex_ble.cpp" "${CMAKE_SOURCE_DIR}/lib/codex_hid/src/ble_backend.cpp"
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/board.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/microphone.cpp"
              "${CMAKE_SOURCE_DIR}/lib/speech/src/audio_frontend.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/speaker.cpp" "${CMAKE_SOURCE_DIR}/lib/locallink/src/protocol.cpp"
              "${monitor_libdeps}/TFT_eSPI/TFT_eSPI.cpp"
@@ -21,6 +22,9 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
         REQUIRES espressif__arduino-esp32 espressif__esp-sr espressif__esp-dl espressif__network_provisioning bootloader_support arduino_tinyusb)
     target_compile_definitions(${COMPONENT_LIB} PUBLIC
         ARDUINO_USB_CDC_ON_BOOT=1 ARDUINO_USB_MODE=0 FNK0104B_ENABLE_CODEX_HID=1 FNK0104B_ENABLE_USB_AUDIO=1 FNK0104B_ENABLE_DISPLAY=1 USER_SETUP_LOADED FNK_SPEECH_EXTERNAL_MICROPHONE=1)
+    if(FNK_APP STREQUAL "codex-monitor")
+        target_compile_definitions(${COMPONENT_LIB} PUBLIC FNK0104B_ENABLE_CODEX_BLE=1)
+    endif()
     # TFT_eSPI macros trigger GCC 14 indentation warnings; keep them visible.
     target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error=misleading-indentation -include "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/tft_setup.h")
     idf_component_get_property(arduino_lib espressif__arduino-esp32 COMPONENT_LIB)

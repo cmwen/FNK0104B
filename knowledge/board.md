@@ -198,3 +198,12 @@ sustained transport coexistence remain UNKNOWN. USB is available to Windows.
 See [physical evidence](../test/hardware/codex-audio-2026-10-04.md),
 [setup](../docs/codex-audio.md) and
 [official references](references.md#usb-microphone-recovery-references-2026-10-04).
+
+## USB microphone capture verified (2026-10-07)
+
+The connectivity monitor was flashed through PlatformIO with verified hashes.
+Windows WinMM captured 80,000 samples from TinyUSB UAC1 at 16 kHz, mono PCM16
+over five seconds, with peak 54 and 77,125 nonzero samples in a quiet run.
+This verifies live raw USB microphone delivery, not audible speech quality or
+Desktop dictation. The GPIO map and existing partition boundaries were retained.
+See [device evidence](../test/hardware/connectivity-modes-2026-10-07.md).

@@ -554,6 +554,12 @@ class Bridge:
             text = self.transcribe(wav)
         return self.command(text, agent_id)
 
+    def orchestrator_voice(self, wav, request_id=None):
+        """BLE Micro speech always enters intake, never a selected Desktop slot."""
+        if not self.dispatcher:
+            raise BridgeError("Orchestrator intake is not configured", "orchestrator_unconfigured")
+        return self.submit(wav=wav, agent_id=None, request_id=request_id)
+
     def _sync_quota_event(self, snapshot):
         if snapshot["rate_limits"] is not None and snapshot["rate_limits"] is not self.seen_quota_event:
             self.seen_quota_event = snapshot["rate_limits"]
@@ -945,13 +951,25 @@ def make_handler(bridge, monitor_token=None):
                     wav = self.rfile.read(length)
                     if not wav.startswith(b"RIFF") or wav[8:12] != b"WAVE":
                         return self._json(400, {"ok": False, "error": {"code": "invalid_wav", "message": "Body is not a RIFF/WAVE file"}})
-                    agent_id = parse_qs(parsed.query).get("agent_id", [None])[0]
-                    result = bridge.submit(wav=wav, agent_id=agent_id, request_id=self.headers.get("X-Request-ID"))
+                    query = parse_qs(parsed.query)
+                    agent_id = query.get("agent_id", [None])[0]
+                    routes = query.get("route", [])
+                    if len(routes) > 1:
+                        raise BridgeError("Voice route must be unique", "invalid_voice_route")
+                    route = routes[0] if routes else None
+                    if route == "orchestrator":
+                        if any(query.get("agent_id", [])):
+                            raise BridgeError("Orchestrator voice cannot specify an agent", "invalid_voice_target")
+                        result = bridge.orchestrator_voice(wav, self.headers.get("X-Request-ID"))
+                    elif route is not None:
+                        raise BridgeError("Unknown voice route", "invalid_voice_route")
+                    else:
+                        result = bridge.submit(wav=wav, agent_id=agent_id, request_id=self.headers.get("X-Request-ID"))
                 else:
                     return self._json(404, {"ok": False, "error": {"code": "not_found", "message": "Unknown endpoint"}})
                 self._json(200, result)
             except BridgeError as exc:
-                code = 503 if exc.code in ("app_server_unavailable", "app_server_timeout", "transcription_unconfigured", "transcription_failed") else 409 if exc.code.startswith("pending_") or exc.code.startswith("unsupported_pending_") else 400
+                code = 503 if exc.code in ("app_server_unavailable", "app_server_timeout", "transcription_unconfigured", "transcription_failed", "orchestrator_unconfigured") else 409 if exc.code.startswith("pending_") or exc.code.startswith("unsupported_pending_") else 400
                 self._json(code, {"ok": False, "error": {"code": exc.code, "message": str(exc)}})
             except (ValueError, TypeError, json.JSONDecodeError) as exc:
                 self._json(400, {"ok": False, "error": {"code": "invalid_request", "message": "Invalid JSON request"}})

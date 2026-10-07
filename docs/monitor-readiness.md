@@ -367,3 +367,13 @@ No full-chip erase or security-setting change was performed. Physical meter
 sensitivity, spoken recognition timing/accuracy, pauses during actual recording,
 30-second PSRAM capture and running-agent message interactions remain
 **UNKNOWN** until exercised on the board.
+
+## Connectivity revision, 2026-10-07 (software evidence)
+
+The new USB/Wi-Fi mode policy, six-slot Micro controls, speech ownership and
+provisional BLE HID are implemented. See
+[connectivity validation](connectivity-modes-validation.md) for automated checks
+and outstanding physical tests. This revision was subsequently uploaded successfully. Live USB RPC/status and
+Windows PCM capture passed; see the
+[device record](../test/hardware/connectivity-modes-2026-10-07.md). Other physical
+acceptance checks remain open.

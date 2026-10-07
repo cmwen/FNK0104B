@@ -11,6 +11,8 @@
 namespace fnk0104b::audio_input {
 namespace {
 SemaphoreHandle_t peripheralMutex, audioMutex;
+StaticSemaphore_t speechLockStorage;
+SemaphoreHandle_t speechLock = nullptr;
 StaticStreamBuffer_t streamControl;
 constexpr size_t kSpeechStorageBytes = 4097;
 uint8_t* speechStorage = nullptr;  // CPU-only FIFO; I2S DMA remains internal.
@@ -43,10 +45,11 @@ void worker(void*) {
       const uint8_t measured = std::min<int32_t>(100, peak / 64);
       meter = measured >= meter ? measured : (meter.load() * 3 + measured) / 4;
       usb_microphone::push(pcm, count);
-      if (speechSubscribed) {
+      if (speechLock && xSemaphoreTake(speechLock, 0) == pdTRUE) {
         // Speech failures/backpressure must never stall the USB microphone.
-        if (xStreamBufferSpacesAvailable(speechStream) >= count * sizeof(int16_t))
+        if (speechSubscribed && xStreamBufferSpacesAvailable(speechStream) >= count * sizeof(int16_t))
           xStreamBufferSend(speechStream, pcm, count * sizeof(int16_t), 0);
+        xSemaphoreGive(speechLock);
       }
     } else {
       meter = 0;
@@ -64,6 +67,7 @@ void worker(void*) {
 }
 bool begin(SemaphoreHandle_t peripheral, SemaphoreHandle_t audio) {
   peripheralMutex = peripheral; audioMutex = audio;
+  speechLock = xSemaphoreCreateMutexStatic(&speechLockStorage);
   if (!peripheral || !audio) { failure = "audio_mutex_missing"; return false; }
   speechStorage = static_cast<uint8_t*>(heap_caps_malloc(kSpeechStorageBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
   if (!speechStorage) { failure = "audio_buffer_failed"; return false; }
@@ -81,7 +85,12 @@ bool begin(SemaphoreHandle_t peripheral, SemaphoreHandle_t audio) {
 }
 esp_err_t read(int16_t* samples, size_t count) {
   if (!speechStream || !samples || !count || count > (kSpeechStorageBytes - 1) / sizeof(int16_t)) return ESP_FAIL;
-  speechSubscribed = true;
+  xSemaphoreTake(speechLock, portMAX_DELAY);
+  if (!speechSubscribed) {
+    xStreamBufferReset(speechStream);
+    speechSubscribed = true;
+  }
+  xSemaphoreGive(speechLock);
   const uint32_t started = millis();
   size_t received = 0;
   const size_t bytes = count * sizeof(int16_t);
@@ -92,6 +101,12 @@ esp_err_t read(int16_t* samples, size_t count) {
   return received == bytes ? ESP_OK : ESP_FAIL;
 }
 bool ready() { return available.load(); }
+void unsubscribeSpeech() {
+  if (!speechLock) return;
+  xSemaphoreTake(speechLock, portMAX_DELAY);
+  speechSubscribed = false;
+  xSemaphoreGive(speechLock);
+}
 uint8_t level() { return meter.load(); }
 const char* error() { return failure.load(); }
 }
