@@ -179,7 +179,8 @@ def main():
     environments = [*BUILD_ONLY_ENVIRONMENTS, *firmware_environments()]
     if args.action == "plan":
         files = tracked_files(ROOT)
-        print(json.dumps({"include": [{"environment": env, "fingerprint": fingerprint(ROOT, inputs(ROOT, env, files))}
+        print(json.dumps({"include": [{"environment": env, "download_group": ("monitor" if env in {"codex-monitor", "codex-audio-diag"} else "idf" if env in IDF_APPS else "arduino"),
+                                       "fingerprint": fingerprint(ROOT, inputs(ROOT, env, files))}
                                       for env in environments]}, separators=(",", ":")))
     else:
         if args.environment not in environments:

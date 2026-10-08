@@ -106,7 +106,9 @@ Published bundles contain all boot/application/partition images, including
 Arduino boot_app0 or monitor speech models. Build-only diagnostics cache a
 successful-build marker and remain outside the browser catalog. No compiler
 object files, installed toolchains or local private configuration are in these
-firmware bundles. Separate download caches remain an installation optimization.
+firmware bundles. Download caches are shared by Arduino, standalone IDF and monitor runtime
+families. Per-environment download caches were measured above 11 GiB on the first
+run and evicted small firmware bundles; three shared caches avoid that duplication.
 
 The packager's `--reuse-dir` mode verifies bundle contents and retains each
 firmware's original build revision in its manifest. The catalog itself carries
@@ -126,8 +128,8 @@ original firmware versions and corrupt/missing bundle rejection. Actionlint
 passes. The [first hosted run](https://github.com/cmwen/FNK0104B/actions/runs/37760063277)
 completed successfully on commit `07e50b5`: all 28 firmware environments built,
 all host checks passed, and the complete Pages catalog packaged from the
-per-environment artifacts. A documentation-only follow-up checks warm-cache
-restore and skipped compilation. Branch runs do not deploy to Pages.
+per-environment artifacts. The first documentation-only follow-up exposed download-cache duplication
+and eviction; download caches were consolidated before repeating acceptance. Branch runs do not deploy to Pages.
 
 Cache behavior follows the [official Actions cache contract](https://github.com/actions/cache/blob/main/README.md);
 the output matrix follows [GitHub's matrix job documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).

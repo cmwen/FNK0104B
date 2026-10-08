@@ -59,8 +59,8 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: ${{ runner.os }}-pio-${{ matrix.environment }}-${{ hashFiles('platformio.ini') }}
-          restore-keys: ${{ runner.os }}-pio-${{ matrix.environment }}-
+          key: ${{ runner.os }}-pio-downloads-${{ matrix.download_group }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: ${{ runner.os }}-pio-downloads-${{ matrix.download_group }}-
       - name: Build changed or uncached environment
         if: steps.verified.outputs.ready != 'true'
         run: |
