@@ -136,8 +136,8 @@
       <section class="installer ble-setup" aria-labelledby="monitor-heading">
         <p class="eyebrow">For monitor firmware</p>
         <h2 id="monitor-heading">Monitor settings</h2>
-        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume and idle screen timeout. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. Values are saved on the board and persist across reboots.</p>
-        <p class="setup-limit">These controls are unauthenticated: a nearby Bluetooth client can change volume and timeout. They do not accept Wi-Fi credentials. Use the protected Wi-Fi setup section below for passwords. Monitor bridge host/key are configured separately.</p>
+        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume, idle screen timeout and USB Micro layout. Choose FNK0104B-MONITOR in the browser picker; OS pairing is unnecessary. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. Values are saved on the board and persist across reboots.</p>
+        <p class="setup-limit">These controls are unauthenticated: a nearby Bluetooth client can change these preferences. They do not accept Wi-Fi credentials. Use the protected Wi-Fi setup section below for passwords. Monitor bridge host/key are configured separately.</p>
         <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
         <div class="ble-fields">
           <button id="monitor-connect" class="cta" type="button">Connect to monitor</button>
@@ -147,6 +147,12 @@
           <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
           <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
           <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
+          <label for="monitor-slots">USB Micro controls</label>
+          <select id="monitor-slots" disabled>
+            <option value="3" selected>3 agent slots + Up / Down / Right / Left (default)</option>
+            <option value="6">6 agent slots</option>
+          </select>
+          <p>Direction buttons send joystick input. Customize their actions in Codex Desktop. Tap the board’s Micro indicator for the other Desktop keys. Older firmware needs an update to change this layout.</p>
           <button id="monitor-save" class="cta" type="submit" disabled>Save settings</button>
         </form>
         <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>

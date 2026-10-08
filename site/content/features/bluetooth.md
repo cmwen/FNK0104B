@@ -10,7 +10,7 @@ The ESP32-S3 provides Bluetooth Low Energy. This is a way to exchange small sett
 ## Two different connections
 **Wi-Fi provisioning** advertises `FNK0104B-SETUP`. Enter the fresh code displayed on the board, then send a 2.4 GHz network name and password using Espressif Security 1. Successful credentials are stored on the board. The website does not save the password.
 
-**Monitor settings** advertise `FNK0104B-MONITOR` during normal operation. The browser changes alert volume and idle screen timeout. This connection does not configure the private bridge host or key, and successful BLE setup does not prove the bridge is reachable.
+**Monitor settings** advertise `FNK0104B-MONITOR` during normal operation. The browser changes alert volume, idle screen timeout and USB Micro layout (three agent slots plus four directions by default, or six slots). The monitor reserves BLE for settings; Micro control uses USB HID. This connection does not configure the private bridge host or key, and successful BLE setup does not prove the bridge is reachable.
 
 The monitor enters its separate Wi-Fi setup boot automatically when credentials are missing. Hold its Wi-Fi indicator for three seconds to request setup. Normal monitor settings BLE is unavailable during this setup mode. Separate names make the two workflows easier to explain.
 

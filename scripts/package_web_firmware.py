@@ -85,7 +85,7 @@ def monitor_partitions():
     return int(app[3], 0), int(app[4], 0), int(model[3], 0), int(model[4], 0)
 
 
-def package(output: Path, version: str):
+def package(output: Path, version: str, reuse_dir: Path = None):
     if not (SITE / "ble-client.bundle.js").is_file():
         raise FileNotFoundError("Build web-flasher and the Astro site before packaging")
     if output.exists():
@@ -107,12 +107,18 @@ def package(output: Path, version: str):
     firmware_root = output / "firmware"
     firmware_root.mkdir()
     boot_app0 = Path(os.environ.get("PLATFORMIO_CORE_DIR", Path.home() / ".platformio")) / "packages" / "framework-arduinoespressif32" / "tools" / "partitions" / "boot_app0.bin"
-    if not boot_app0.is_file():
+    if reuse_dir is None and not boot_app0.is_file():
         raise FileNotFoundError(f"PlatformIO boot_app0 image is missing: {boot_app0}")
 
     catalog = {"version": version, "builds": []}
     for environment in firmware_environments():
-        image_dir = BUILD / environment
+        image_version = version
+        if reuse_dir is not None:
+            # Validate portable cached images, and retain their actual build revision.
+            from firmware_ci import verify
+            metadata = verify(reuse_dir, environment)
+            image_version = metadata["version"]
+        image_dir = (reuse_dir if reuse_dir is not None else BUILD) / environment
         target = firmware_root / environment
         target.mkdir()
         parts = []
@@ -125,7 +131,7 @@ def package(output: Path, version: str):
             if (image_dir / "srmodels/srmodels.bin").stat().st_size > model_limit:
                 raise ValueError("Monitor models exceed their partition")
         for name, offset in image_parts:
-            source = boot_app0 if name == "boot_app0.bin" else image_dir / name
+            source = boot_app0 if name == "boot_app0.bin" and reuse_dir is None else image_dir / name
             if not source.is_file() or not source.stat().st_size:
                 raise FileNotFoundError(f"Build {environment} before packaging: {source}")
             (target / name).parent.mkdir(parents=True, exist_ok=True)
@@ -135,7 +141,7 @@ def package(output: Path, version: str):
             raise ValueError(f"{environment} exceeds the configured app partition")
         manifest = {
             "name": f"FNK0104B {NAMES[environment][0]}",
-            "version": version,
+            "version": image_version,
             "new_install_prompt_erase": True,
             "builds": [{"chipFamily": "ESP32-S3", "parts": parts}],
         }
@@ -154,6 +160,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--version", default=os.environ.get("GITHUB_SHA", "local")[:12])
+    parser.add_argument("--reuse-dir", type=Path, help="Verified per-environment CI bundles")
     args = parser.parse_args()
-    count = package(args.output.resolve(), args.version)
+    count = package(args.output.resolve(), args.version, args.reuse_dir)
     print(f"Packaged {count} firmware builds in {args.output}")

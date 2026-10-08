@@ -61,3 +61,13 @@ values. `docs/images/codex-monitor-screen.png` is copied into the Pages artifact
 and shown in the Codex monitor screenshot section.
 
 Additional monitor documentation previews use the same host renderer: convert its `commands`, `recording`, `idle` and `offline` PPM outputs to `docs/images/monitor-command.png`, `monitor-recording.png`, `monitor-idle.png` and `monitor-offline.png`. These contain sample data and are labeled host previews in the Astro guide.
+
+## Firmware CI reuse
+
+`firmware_ci.py plan` prints the environment/input-fingerprint matrix. Actions
+restores each environment's portable image bundle, runs `verify`, builds misses
+through `pio run -e`, and uses `collect` only after success. The Pages packager
+accepts these bundles via `--reuse-dir`; local packaging without that flag still
+uses `.pio/build`. See [incremental CI](../docs/development.md#incremental-firmware-ci--2026-10-08)
+for dependencies, cold-cache behavior and validation. `build_firmware.py` remains
+the explicit full-build command.

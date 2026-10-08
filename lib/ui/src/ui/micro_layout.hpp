@@ -11,6 +11,25 @@ constexpr int tileAt(int x, int y) {
         y >= tileY(slot) && y < tileY(slot) + 60) return slot;
   return -1;
 }
+// Internal input IDs 13..16 encode radial joystick events, not ACT keys.
+constexpr const char* directionNames[] = {"Up", "Down", "Right", "Left"};
+constexpr int directionX(unsigned n) { return 6 + n * 78; }
+constexpr int directionAt(int x, int y) {
+  for (unsigned n = 0; n < 4; ++n)
+    if (x >= directionX(n) && x < directionX(n) + 74 && y >= 123 && y < 183)
+      return 13 + n;
+  return -1;
+}
+template<class Display> void directions(Display& d) {
+  for (unsigned n = 0; n < 4; ++n) {
+    const int x = directionX(n);
+    monitor::frame(d, x, 123, 74, 60, monitor::kBorder);
+    d.setTextColor(monitor::kText, monitor::kPanel);
+    d.drawString(directionNames[n], x + 9, 136, 2);
+    d.setTextColor(monitor::kMuted, monitor::kPanel);
+    d.drawString("Joystick", x + 9, 163, 1);
+  }
+}
 constexpr uint8_t commandKeys[] = {6, 7, 8, 9, 10, 12};
 constexpr const char* commandNames[] = {"Fast", "Approve", "Reject", "Fork", "Mic", "Send"};
 template<class Display>

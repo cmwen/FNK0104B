@@ -48,3 +48,6 @@ site/.astro/
 site/public/
 site/test-results/
 site/playwright-report/
+
+# Portable GitHub Actions firmware bundles
+.ci/firmware/

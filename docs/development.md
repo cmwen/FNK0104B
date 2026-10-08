@@ -16,7 +16,7 @@ This repository uses PlatformIO Core CLI. No Arduino IDE is required.
 
 Install PlatformIO Core using the [official CLI installation guide](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html) or `python3 -m pip install --user 'platformio==6.2.0'` in an environment that permits user installs. Confirm with `pio --version`. The WSL installation already has Core 6.2.0; do not install a second copy merely to run this repository.
 
-Build with `pio run` or `pio run -e <app>`. Run `pio test -e native` for host tests. The GitHub Actions workflow builds each named firmware target, runs native tests, and packages firmware images for the GitHub Pages browser flasher; it never uploads to a board. The platform pin fixes the version used by local builds and CI. Review [PlatformIO's Espressif32 releases](https://github.com/platformio/platform-espressif32/releases) and rebuild before changing it.
+Build with `pio run` or `pio run -e <app>`. Run `pio test -e native` for host tests. The GitHub Actions workflow builds changed or uncached firmware targets, runs native tests, and packages a complete catalog of new and reused firmware images for the GitHub Pages browser flasher; it never uploads to a board. The platform pin fixes the version used by local builds and CI. Review [PlatformIO's Espressif32 releases](https://github.com/platformio/platform-espressif32/releases) and rebuild before changing it.
 
 The official PlatformIO 7.0.1 release includes ESP-IDF 6.0.1 as an *alternative framework*. These applications still use Arduino 2.0.17, which is based on ESP-IDF 4.4.7. Shared low-level code can be migrated deliberately when an ESP-IDF application is introduced. This is a pin, not a claim that newer releases should automatically replace it.
 
@@ -71,3 +71,60 @@ actions to the repository helper and supplies IDF text-asset embedding actions;
 it does not modify downloaded packages. The CI build script still builds the
 named environments, and CI also checks the browser monitor image package.
 The monitor's app README documents the partition change before any upload.
+
+## Incremental firmware CI — 2026-10-08
+
+Actions previously ran `scripts/build_firmware.py` on every push, including
+website and documentation changes. It now plans a cache key per named firmware
+environment using `scripts/firmware_ci.py`. The 28-environment matrix restores
+exact portable output bundles and verifies input identity and image SHA256 values.
+An exact valid hit skips PlatformIO installation and firmware compilation. A
+missing, expired or invalid entry builds that environment with `pio run -e`.
+The first run fills the caches and therefore builds everything once.
+
+Inputs include the app source tree, inherited PlatformIO source selection and
+build scripts, libraries reached through transitive includes, and explicitly
+compiled IDF libraries. IDF targets also include CMake files, their runtime lock,
+sdkconfig defaults, partition/model inputs and applicable local components.
+Markdown documentation, website and test files are excluded from firmware keys.
+Adding/deleting source files changes the key. Shared library changes rebuild
+consumers; platformio.ini, the workflow and CI/packaging rules conservatively
+invalidate all firmware. New IDF apps or nonstandard source filters must declare
+their dependencies in the planner; it fails rather than silently omitting them.
+
+Examples with the current dependency map:
+
+- `apps/codex-monitor/src/main.cpp`: rebuild `codex-monitor` only.
+- `lib/ui/src/ui/micro_layout.hpp`: rebuild `avatar-diag`, `codex-monitor` and
+  the conservatively declared `codex-audio-diag` consumer.
+- `docs/` or `site/` changes: reuse firmware; guide and host checks still run.
+- `platformio.ini` changes: rebuild every environment.
+
+The matrix uses four concurrent runners. Cache-hit jobs still restore and hand
+images to the packaging job; the workflow never publishes a partial catalog.
+Published bundles contain all boot/application/partition images, including
+Arduino boot_app0 or monitor speech models. Build-only diagnostics cache a
+successful-build marker and remain outside the browser catalog. No compiler
+object files, installed toolchains or local private configuration are in these
+firmware bundles. Separate download caches remain an installation optimization.
+
+The packager's `--reuse-dir` mode verifies bundle contents and retains each
+firmware's original build revision in its manifest. The catalog itself carries
+the current website revision. GitHub's branch-scoped cache handles reuse across
+runs; evicted images rebuild automatically. An invalid exact-key cache rebuilds
+for correctness but must be deleted from Actions caches to replace that immutable
+entry. Cache misses never cause affected firmware to be skipped.
+
+`python scripts/build_firmware.py` still builds all apps locally. Inspect the CI
+plan with `python scripts/firmware_ci.py plan`. Run planner/bundle/package tests
+with `python -m unittest discover -s test/host`; validate workflow syntax with
+`actionlint .github/workflows/build.yml`.
+
+Validation for this change: 19 host tests pass, covering app/inherited/shared
+changes, source additions/deletions, docs-only changes, complete catalog reuse,
+original firmware versions and corrupt/missing bundle rejection. Actionlint
+passes. Actual hosted cache restore/save and artifact handoff need the first
+GitHub Actions run; no remote run was triggered from this workspace.
+
+Cache behavior follows the [official Actions cache contract](https://github.com/actions/cache/blob/main/README.md);
+the output matrix follows [GitHub's matrix job documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).

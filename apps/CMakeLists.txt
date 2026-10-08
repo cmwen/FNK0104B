@@ -22,9 +22,7 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
         REQUIRES espressif__arduino-esp32 espressif__esp-sr espressif__esp-dl espressif__network_provisioning bootloader_support arduino_tinyusb)
     target_compile_definitions(${COMPONENT_LIB} PUBLIC
         ARDUINO_USB_CDC_ON_BOOT=1 ARDUINO_USB_MODE=0 FNK0104B_ENABLE_CODEX_HID=1 FNK0104B_ENABLE_USB_AUDIO=1 FNK0104B_ENABLE_DISPLAY=1 USER_SETUP_LOADED FNK_SPEECH_EXTERNAL_MICROPHONE=1)
-    if(FNK_APP STREQUAL "codex-monitor")
-        target_compile_definitions(${COMPONENT_LIB} PUBLIC FNK0104B_ENABLE_CODEX_BLE=1)
-    endif()
+    # BLE is reserved for browser settings/provisioning; HID stays in its diagnostic.
     # TFT_eSPI macros trigger GCC 14 indentation warnings; keep them visible.
     target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error=misleading-indentation -include "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/tft_setup.h")
     idf_component_get_property(arduino_lib espressif__arduino-esp32 COMPONENT_LIB)

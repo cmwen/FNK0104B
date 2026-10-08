@@ -1,5 +1,8 @@
 # Concurrent Wi-Fi and unofficial Codex Micro HID
 
+**2026-10-08 update:** The monitor now reserves BLE for browser configuration and defaults USB Micro to three agent slots plus four joystick controls. See [the decision and implementation](usb-micro-controls.md); earlier BLE/six-slot sections below are historical.
+
+
 Engineering report, 2026-10-04. Compatibility is a private, unofficial protocol;
 USB enumeration is verified. The owner subsequently confirmed that Desktop recognizes it as Codex Micro; initial runtime gaps below remain as historical evidence.
 

@@ -1,5 +1,8 @@
 # Connectivity implementation validation — 2026-10-07
 
+**2026-10-08 update:** The monitor now reserves BLE for browser configuration and defaults USB Micro to three agent slots plus four joystick controls. See [the decision and implementation](usb-micro-controls.md); earlier BLE/six-slot sections below are historical. The [October 8 device record](../test/hardware/usb-micro-controls-2026-10-08.md) contains the final upload and live USB status evidence.
+
+
 This is software/build evidence for the connectivity revision (monitor 0.6.0),
 and subsequent physical checks. The firmware was flashed successfully after
 the user resumed testing. Sandboxed device discovery hid an attached board;

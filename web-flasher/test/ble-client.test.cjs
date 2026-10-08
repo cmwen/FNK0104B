@@ -4,7 +4,14 @@ const { readFileSync } = require('node:fs');
 const { runInNewContext } = require('node:vm');
 const source = readFileSync(`${__dirname}/../ble-client.js`, 'utf8').replace(/^import .*;\n/, '');
 
-function setup({ rejectHandshake = false } = {}) {
+function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3] } = {}) {
+  let packet = Uint8Array.from(settingsPacket);
+  const writes = [];
+  const characteristic = {
+    properties: { read: true, write: true },
+    async readValue() { return new DataView(packet.buffer); },
+    async writeValue(bytes) { writes.push(Array.from(bytes)); packet = Uint8Array.from(bytes); },
+  };
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -35,10 +42,23 @@ function setup({ rejectHandshake = false } = {}) {
     ESPProvisioner, Security1: class {}, TextEncoder, Error,
     document: { querySelector: element },
     window: { isSecureContext: true, crypto: { subtle: {} } },
-    navigator: { bluetooth: {} },
+    navigator: { bluetooth: { async requestDevice() { return {
+      addEventListener() {},
+      gatt: { disconnect() {}, async connect() { return {
+        async getPrimaryService() { return { async getCharacteristic(uuid) {
+          if (settingsPacket[0] === 1 && uuid.includes('0003')) {
+            const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
+          }
+          return characteristic;
+        } }; },
+      }; } },
+    }; } } },
   });
   element('#ble-pop').value = '012345ABCDEF';
-  return { element, client: () => client,
+  return { element, writes,
+    connectMonitor: () => element("#monitor-connect").listeners.click(),
+    saveMonitor: () => element("#monitor-settings-form").listeners.submit({ preventDefault() {} }),
+    client: () => client,
     connect: () => element('#ble-connect').listeners.click(),
     submit: () => element('#ble-wifi-form').listeners.submit({ preventDefault() {} }) };
 }
@@ -75,4 +95,32 @@ test('disconnect clears password and closes credential controls', async () => {
   assert.equal(app.element('#ble-password').disabled, true);
   await app.submit();
   assert.equal(app.client().sent, 0);
+});
+
+
+test('new firmware reads compact layout and saves six slots with readback', async () => {
+  const app = setup();
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-slots').value, '3');
+  assert.equal(app.element('#monitor-slots').disabled, false);
+  app.element('#monitor-slots').value = '6';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes, [[2, 50, 30, 0, 6]]);
+  assert.equal(app.element('#monitor-slots').value, '6');
+  assert.match(app.element('#monitor-status').textContent, /read back/);
+});
+
+test('old firmware keeps four-byte settings and disables layout selection', async () => {
+  const app = setup({ settingsPacket: [1, 25, 5, 0] });
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-slots').disabled, true);
+  await app.saveMonitor();
+  assert.deepEqual(app.writes, [[1, 25, 5, 0]]);
+});
+
+test('unsupported layout prevents settings controls from opening', async () => {
+  const app = setup({ settingsPacket: [2, 50, 30, 0, 4] });
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-save').disabled, true);
+  assert.match(app.element('#monitor-status').textContent, /invalid Micro layout/);
 });

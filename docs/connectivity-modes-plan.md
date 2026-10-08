@@ -1,5 +1,8 @@
 # Connectivity modes plan
 
+**2026-10-08 update:** The monitor now reserves BLE for browser configuration and defaults USB Micro to three agent slots plus four joystick controls. See [the decision and implementation](usb-micro-controls.md); earlier BLE/six-slot sections below are historical.
+
+
 Revised for owner clarification, 2026-10-07. Planning only; no firmware or
 bridge behavior changed. This revision supersedes the initial manual mode
 selector, computer-microphone BLE path, proposed Wi-Fi approval extension, and

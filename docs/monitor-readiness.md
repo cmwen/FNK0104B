@@ -1,5 +1,8 @@
 # Codex monitor readiness
 
+October 8: [wireless settings and compact USB controls](usb-micro-controls.md) supersede integrated BLE HID. Browser BLE recovery and Desktop radial mappings require physical acceptance.
+
+
 ## Adaptive Micro/Wi-Fi UI, 2026-10-07
 
 With no recognized Desktop discovery, including USB power/enumeration alone,

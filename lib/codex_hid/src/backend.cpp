@@ -142,7 +142,7 @@ bool begin() {
 bool tap(uint8_t id) {
   if (transport() == Transport::Ble) return ble::key(id, true, true);
   const Input input{usb::epoch(), id, true, true};
-  return id <= 12 && inputQueue && usb::mounted() && xQueueSend(inputQueue, &input, 0) == pdTRUE;
+  return id <= 16 && inputQueue && usb::mounted() && xQueueSend(inputQueue, &input, 0) == pdTRUE;
 }
 bool agent0Tap() { return tap(0); }
 LinkState usbLinkState() {
@@ -153,7 +153,7 @@ LinkState usbLinkState() {
 bool key(uint8_t id, bool pressed) {
   if (transport() == Transport::Ble) return ble::key(id, pressed);
   const Input input{usb::epoch(), id, pressed, false};
-  return id <= 12 && inputQueue && microConnected(linkState()) && xQueueSend(inputQueue, &input, 0) == pdTRUE;
+  return id <= 16 && inputQueue && microConnected(linkState()) && xQueueSend(inputQueue, &input, 0) == pdTRUE;
 }
 bool microphoneKey(bool pressed) { return key(10, pressed); }
 bool takeStatus(Status& status) {

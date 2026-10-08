@@ -171,7 +171,8 @@ call), the header says **Codex** with bridge status: **Online**, **Busy**,
 recording/dispatch path, including taps on its left side.
 
 After Desktop discovery, **Micro Linked** or **Micro Idle** replaces that status
-cell and separate **Micro voice** and **Wi-Fi voice** controls appear. Idle
+cell and separate **Micro voice** and **Send** controls appear. USB Micro pauses
+local recognition and bridge recording while the host owns raw USB microphone audio. Idle
 retains the Micro controls for a quiet host; it is not proof of an app
 disconnect. USB disconnect restores the Wi-Fi layout and clears held Micro
 touch state. The 2026-10-07 build was flashed and LCD readback verified the
@@ -183,3 +184,10 @@ The firmware includes a mono PCM16/16 kHz USB microphone. Micro voice
 sends the ACT10 key; select the board as the host input and choose Voice Chat
 in Desktop Micro settings for tap-to-start behavior. The waveform shows local
 mic input while USB capture is active. See [audio setup and verification](../../docs/codex-audio.md).
+
+## October 8 configuration and USB controls
+
+Monitor 0.6.1 disables integrated BLE HID so browser settings have their own BLE
+service. USB Micro defaults to three stable agent slots plus four joystick direction
+buttons; choose six slots on the setup page. Repeated Desktop lighting packets no
+longer clear the whole screen. See [the decision, setup steps and open checks](../../docs/usb-micro-controls.md).

@@ -450,7 +450,28 @@ void test_micro_six_keys_and_touch_gaps() {
       else TEST_ASSERT_FALSE(event["p"].containsKey("ag"));
     }
   }
-  TEST_ASSERT_EQUAL(0, codex_hid::keyEvent(13, true, json, sizeof(json)));
+  const float angles[] = {.75f, .25f, 0.f, .5f};
+  for (unsigned n = 0; n < 4; ++n) {
+    for (bool pressed : {true, false}) {
+      TEST_ASSERT_TRUE(codex_hid::keyEvent(13 + n, pressed, json, sizeof(json)));
+      TEST_ASSERT_FALSE(deserializeJson(event, json));
+      TEST_ASSERT_EQUAL_STRING("v.oai.rad", event["m"]);
+      TEST_ASSERT_FLOAT_WITHIN(.001f, pressed ? angles[n] : 0.f, event["p"]["a"].as<float>());
+      TEST_ASSERT_EQUAL(pressed ? 1 : 0, event["p"]["d"].as<int>());
+    }
+    const int x = ui::micro::directionX(n);
+    TEST_ASSERT_EQUAL(13 + n, ui::micro::directionAt(x, 123));
+    TEST_ASSERT_EQUAL(13 + n, ui::micro::directionAt(x + 73, 182));
+    TEST_ASSERT_EQUAL(-1, ui::micro::directionAt(x + 74, 123));
+    TEST_ASSERT_EQUAL(-1, ui::micro::directionAt(x, 183));
+  }
+  codex_hid::Slot a, b;
+  TEST_ASSERT_TRUE(codex_hid::sameAppearance(a, b));
+  b.speed = 1; strcpy(b.effect, "breath");
+  TEST_ASSERT_TRUE(codex_hid::sameAppearance(a, b));
+  b.color = 0xff00;
+  TEST_ASSERT_FALSE(codex_hid::sameAppearance(a, b));
+  TEST_ASSERT_EQUAL(0, codex_hid::keyEvent(17, true, json, sizeof(json)));
   TEST_ASSERT_EQUAL(0, codex_hid::keyEvent(0, true, json, 8));
   for (unsigned slot = 0; slot < 6; ++slot) {
     const int x = ui::micro::tileX(slot), y = ui::micro::tileY(slot);

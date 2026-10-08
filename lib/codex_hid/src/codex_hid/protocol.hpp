@@ -10,6 +10,9 @@ struct Slot {
   char effect[16]{}; // Retain host value; do not infer semantic agent states.
 };
 struct Status { Slot slots[6]; uint32_t revision = 0; };
+inline bool sameAppearance(const Slot& a, const Slot& b) {
+  return a.present == b.present && a.color == b.color && a.brightness == b.brightness;
+}
 class Protocol {
  public:
   Status status;
@@ -81,7 +84,17 @@ class Protocol {
 };
 // Physical IDs from the captured retail key matrix. Desktop owns their mappings.
 inline size_t keyEvent(uint8_t key, bool pressed, char* output, size_t capacity) {
-  if (key > 12 || !output || !capacity) return 0;
+  if (key > 16 || !output || !capacity) return 0;
+  if (key >= 13) {
+    // Normalized turns: up .75, down .25, right 0, left .5.
+    // Convention corroborated by fttawa/codex-micro input_scanner.cpp;
+    // actual Desktop direction bindings still require host acceptance.
+    constexpr const char* angles[] = {"0.75", "0.25", "0", "0.5"};
+    const int n = snprintf(output, capacity,
+      "{\"m\":\"v.oai.rad\",\"p\":{\"a\":%s,\"d\":%u}}",
+      pressed ? angles[key - 13] : "0", pressed ? 1 : 0);
+    return n > 0 && size_t(n) < capacity ? size_t(n) : 0;
+  }
   const int n = key < 6 ? snprintf(output, capacity,
     "{\"m\":\"v.oai.hid\",\"p\":{\"k\":\"AG%02u\",\"act\":%u,\"ag\":%u}}", key, pressed ? 1 : 0, key) :
     snprintf(output, capacity,

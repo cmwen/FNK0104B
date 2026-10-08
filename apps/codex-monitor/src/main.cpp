@@ -20,7 +20,6 @@
 #include "monitor_commands.hpp"
 #include <codex_hid/backend.hpp>
 #include <codex_hid/ble_backend.hpp>
-#include <fnk0104b/codex_ble.hpp>
 #include <fnk0104b/audio_input.hpp>
 #include <fnk0104b/usb_microphone.hpp>
 #include "voice_capture_gate.hpp"
@@ -66,6 +65,7 @@ constexpr size_t kRecordSamples = kSampleRate * kRecordSeconds;
 constexpr size_t kMaxStatusBytes = 8192;
 constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 constexpr char kCharacteristicUuid[] = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+constexpr char kExtendedSettingsUuid[] = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 constexpr uint16_t kBg = ui::monitor::kBackground;
 constexpr uint16_t kPanel = ui::monitor::kPanel;
 constexpr uint16_t kText = ui::monitor::kText;
@@ -102,8 +102,8 @@ int heldMicroKey = -1;
 bool microCommands = false;
 int selectedMicroSlot = -1;
 codex_hid::Transport previousTransport = codex_hid::Transport::None;
-uint32_t microHoldStarted = 0;
-bool pairingOpened = false;
+std::atomic<bool> compactMicroLayout{true};
+std::atomic<bool> microLayoutChanged{false};
 std::atomic<bool> voiceOrchestratorOnly{false};
 codex_hid::Status desktopStatus{};
 std::atomic<bool> usbMicroActive{false};
@@ -140,6 +140,7 @@ fnk0104b::TouchPoint touchPoint{0, 0, false};
 ui::avatar::Canvas avatarCanvas;
 uint16_t avatarScaled[96 * 96];
 BLECharacteristic* settingsCharacteristic = nullptr;
+BLECharacteristic* extendedSettingsCharacteristic = nullptr;
 SemaphoreHandle_t peripheralMutex = nullptr;
 SemaphoreHandle_t audioMutex = nullptr;
 SemaphoreHandle_t streamMutex = nullptr;
@@ -304,6 +305,15 @@ void drawVoiceControl() {
 
 }
 
+void drawMicroTile(unsigned i) {
+  const auto& slot = desktopStatus.slots[i];
+  const uint32_t c = slot.color;
+  const float b = slot.brightness;
+  const uint16_t color = ui::monitor::rgb(uint8_t((c >> 16) * b),
+      uint8_t(((c >> 8) & 255) * b), uint8_t((c & 255) * b));
+  ui::micro::tile(tft(), i, color, slot.present, selectedMicroSlot == int(i), microCommands);
+}
+
 void drawScreen() {
   if (!screenAwake) return;
   TFT_eSPI& d = tft();
@@ -333,14 +343,9 @@ void drawScreen() {
       d.drawString(microCommands ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" :
       usbMicroActive ? "USB MICRO / TAP MICRO FOR KEYS" : "BLE MICRO / SPEECH TO ORCHESTRATOR", 10, 45, 1);
     }
-    for (unsigned i = 0; i < 6; ++i) {
-      const auto& slot = desktopStatus.slots[i];
-      const uint32_t c = slot.color;
-      const float brightness = slot.brightness;
-      const uint16_t color = ui::monitor::rgb(uint8_t((c >> 16) * brightness),
-          uint8_t(((c >> 8) & 255) * brightness), uint8_t((c & 255) * brightness));
-      ui::micro::tile(d, i, color, slot.present, selectedMicroSlot == int(i), microCommands);
-    }
+    for (unsigned i = 0; i < (microCommands || !compactMicroLayout ? 6u : 3u); ++i)
+      drawMicroTile(i);
+    if (!microCommands && compactMicroLayout) ui::micro::directions(d);
     drawVoiceControl();
     return;
   }
@@ -390,15 +395,21 @@ void drawScreen() {
 
 void publishSettings() {
   if (!settingsCharacteristic) return;
-  uint8_t bytes[4] = {1, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
-                      static_cast<uint8_t>(screenTimeoutMinutes >> 8)};
-  settingsCharacteristic->setValue(bytes, sizeof(bytes));
+  uint8_t bytes[5] = {2, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
+                      static_cast<uint8_t>(screenTimeoutMinutes >> 8),
+                      static_cast<uint8_t>(compactMicroLayout ? 3 : 6)};
+  if (extendedSettingsCharacteristic) extendedSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+  // Keep the published setup page usable before it receives the new selector.
+  bytes[0] = 1;
+  settingsCharacteristic->setValue(bytes, 4);
 }
 
 class SettingsCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const auto raw = characteristic->getValue();
-    if (raw.length() != 4 || static_cast<uint8_t>(raw[0]) != 1) return;
+    const uint8_t version = raw.length() ? static_cast<uint8_t>(raw[0]) : 0;
+    if (!((version == 1 && raw.length() == 4) || (version == 2 && raw.length() == 5))) return;
+    if (version == 2 && raw[4] != 3 && raw[4] != 6) return;
     const uint8_t volume = static_cast<uint8_t>(raw[1]);
     const uint16_t timeout = static_cast<uint8_t>(raw[2]) |
                              (static_cast<uint16_t>(static_cast<uint8_t>(raw[3])) << 8);
@@ -406,18 +417,21 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
     volumePercent = volume; screenTimeoutMinutes = timeout;
     preferences.putUChar("volume", volumePercent);
     preferences.putUShort("timeout", screenTimeoutMinutes);
+    if (version == 2) {
+      compactMicroLayout = raw[4] == 3;
+      preferences.putUChar("microSlots", compactMicroLayout ? 3 : 6);
+      microLayoutChanged = true;
+    }
     publishSettings();
   }
 };
 
 class ServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer*, esp_ble_gatts_cb_param_t* p) override {
-    fnk0104b::codex_ble::connected(p->connect.conn_id, p->connect.remote_bda);
+  void onConnect(BLEServer*, esp_ble_gatts_cb_param_t*) override {
     bleConnected = true;
     Serial.println("monitor_ble connected");
   }
-  void onDisconnect(BLEServer*, esp_ble_gatts_cb_param_t* p) override {
-    fnk0104b::codex_ble::disconnected(p->disconnect.conn_id);
+  void onDisconnect(BLEServer*, esp_ble_gatts_cb_param_t*) override {
     bleConnected = false;
     Serial.println("monitor_ble disconnected restarting_advertising");
     BLEDevice::startAdvertising();
@@ -434,26 +448,26 @@ void bleGapDiagnostic(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* para
 }
 
 void startBle() {
-  BLEDevice::init("Codex Micro");
+  BLEDevice::init("FNK0104B-MONITOR");
   BLEDevice::setCustomGapHandler(bleGapDiagnostic);
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
-  const bool microBle = codex_hid::ble::begin() && fnk0104b::codex_ble::begin(server);
-  Serial.printf("codex_ble startup=%s pairing=hold_micro_3s\n", microBle ? "ready" : "failed");
+  Serial.println("monitor_ble role=settings hid=disabled");
   BLEService* service = server->createService(kServiceUuid);
   settingsCharacteristic = service->createCharacteristic(kCharacteristicUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   settingsCharacteristic->setCallbacks(new SettingsCallbacks());
   settingsCharacteristic->addDescriptor(new BLE2902());
+  extendedSettingsCharacteristic = service->createCharacteristic(kExtendedSettingsUuid,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  extendedSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   // Keep the full name in the primary advertisement for browser name filters.
   // Name + 128-bit service UUID cannot fit together in a legacy 31-byte packet.
   BLEAdvertisementData advertisement;
   advertisement.setFlags(ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT);
-  advertisement.setName("Codex Micro");
-  advertisement.setAppearance(0x03c0);
-  if (microBle) advertisement.setCompleteServices(BLEUUID(uint16_t(0x1812)));
+  advertisement.setName("FNK0104B-MONITOR");
   BLEAdvertisementData response;
   response.setCompleteServices(BLEUUID(kServiceUuid));
   advertising->setAdvertisementData(advertisement);
@@ -867,13 +881,6 @@ void touchLoop() {
       if (!wifiHoldStarted) wifiHoldStarted = millis();
       if (millis() - wifiHoldStarted >= 3000 && !voiceBusy.load()) monitor_wifi_setup::request();
     } else wifiHoldStarted = 0;
-    if (touchPoint.x >= 82 && touchPoint.x < 160 && touchPoint.y >= 4 && touchPoint.y <= 40) {
-      if (!microHoldStarted) microHoldStarted = millis();
-      if (!pairingOpened && millis() - microHoldStarted >= 3000) {
-        fnk0104b::codex_ble::pairFor(); pairingOpened = true;
-        setMessage("BLE pairing open for 60 seconds", 60000);
-      }
-    } else { microHoldStarted = 0; pairingOpened = false; }
     if (previousTouch || heldMicroKey >= 0) return;
     // Shared board helper already reports rotation-1 landscape coordinates.
     const int x = touchPoint.x;
@@ -889,7 +896,9 @@ void touchLoop() {
       else if (y >= 59 && y < 184 && showingStatus) { showingStatus = false; uiDirty = true; }
       else {
         const int slot = commandHelpVisible || voiceBusy ? -1 : ui::micro::tileAt(x, y);
-        if (slot >= 0) {
+        if (!microCommands && compactMicroLayout && !commandHelpVisible && !voiceBusy)
+          keyId = ui::micro::directionAt(x, y);
+        if (slot >= 0 && (microCommands || !compactMicroLayout || slot < 3)) {
           keyId = microCommands ? ui::micro::commandKeys[slot] : slot;
           if (!usbMicroActive && keyId == 10) { beginVoice(); keyId = -1; }
           if (!microCommands) selectedMicroSlot = slot;
@@ -925,7 +934,7 @@ void touchLoop() {
     }
   }
   if (!touchPoint.pressed) {
-    wifiHoldStarted = 0; microHoldStarted = 0; pairingOpened = false;
+    wifiHoldStarted = 0;
     if (heldMicroKey >= 0 && (codex_hid::key(heldMicroKey, false) || previousTransport == codex_hid::Transport::None)) {
       heldMicroKey = -1; desktopMicHeld = false; uiDirty = true;
     }
@@ -991,7 +1000,7 @@ void serialLoop() {
 void setup() {
   const bool hidStarted = codex_hid::begin();
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.0");
+  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.1");
   Serial.printf("monitor_startup reset_reason=%u\n", unsigned(esp_reset_reason()));
   if (lastAllocationFailure.magic == kAllocationFailureMagic)
     Serial.printf("monitor_heap previous_failure size=%lu caps=0x%lx\n",
@@ -1007,6 +1016,7 @@ void setup() {
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
+  compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
   volumePercent = preferences.getUChar("volume", 50);
   if (volumePercent > 100) volumePercent = 50;
   screenTimeoutMinutes = preferences.getUShort("timeout", kScreenTimeoutDefault);
@@ -1047,6 +1057,7 @@ void setup() {
 }
 
 void loop() {
+  if (microLayoutChanged.exchange(false)) uiDirty = true;
   const auto microLink = codex_hid::linkState();
   if (microLink != previousMicroLink) {
     if (!codex_hid::microConnected(microLink)) desktopMicHeld = false;
@@ -1078,16 +1089,19 @@ void loop() {
     for (unsigned i = 0; i < 6; ++i) {
       const auto& before = oldDesktopStatus.slots[i];
       const auto& after = desktopStatus.slots[i];
-      changed |= before.present != after.present || before.color != after.color || before.brightness != after.brightness;
+      const bool tileChanged = !codex_hid::sameAppearance(before, after);
+      changed |= tileChanged;
+      if (tileChanged && screenAwake && previousTransport != codex_hid::Transport::None &&
+          !microCommands && !commandHelpVisible && !showingStatus && !voiceBusy &&
+          (!compactMicroLayout || i < 3)) drawMicroTile(i);
     }
     if (changed && previousTransport != codex_hid::Transport::None) {
       idleTimer.activity(millis());
       if (!screenAwake && !screenManuallyOff) {
-        screenAwake = true; fnk0104b::display.setBacklight(true); resumeStatus();
+        screenAwake = true; fnk0104b::display.setBacklight(true); resumeStatus(); uiDirty = true;
       }
     }
     Serial.printf("codex_hid application=status_displayed revision=%lu\n", (unsigned long)desktopStatus.revision);
-    uiDirty = true;
   }
   const bool audioReady = fnk0104b::audio_input::ready(), usbStreaming = fnk0104b::usb_microphone::streaming();
   if (audioReady != previousAudioReady || usbStreaming != previousUsbStreaming) {

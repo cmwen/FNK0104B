@@ -123,6 +123,7 @@ wifiForm.addEventListener("submit", async event => {
 // Monitor settings use a separate service and do not share Wi-Fi provisioning.
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+const MONITOR_EXTENDED_SETTINGS_UUID = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 const monitorSupport = document.querySelector("#monitor-support");
 const monitorConnect = document.querySelector("#monitor-connect");
 const monitorForm = document.querySelector("#monitor-settings-form");
@@ -134,6 +135,8 @@ const monitorStatus = document.querySelector("#monitor-status");
 let monitorDevice = null;
 let monitorCharacteristic = null;
 let monitorBusy = false;
+let monitorSettingsVersion = 1;
+const monitorSlots = document.querySelector("#monitor-slots");
 
 function showMonitorStatus(message, error = false) {
   monitorStatus.hidden = false;
@@ -145,6 +148,7 @@ function setMonitorControls(connected) {
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
   monitorSave.disabled = !connected || monitorBusy;
+  monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
 }
 
 function updateMonitorVolumeLabel() {
@@ -153,9 +157,14 @@ function updateMonitorVolumeLabel() {
 }
 
 function decodeMonitorSettings(value) {
-  if (value.byteLength !== 4) throw new Error("The board returned an invalid settings packet.");
+  if (value.byteLength !== 4 && value.byteLength !== 5) throw new Error("The board returned an invalid settings packet.");
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (bytes[0] !== 1) throw new Error(`Unsupported settings version ${bytes[0]}.`);
+  if (!((bytes[0] === 1 && bytes.length === 4) || (bytes[0] === 2 && bytes.length === 5)))
+    throw new Error(`Unsupported settings version ${bytes[0]}.`);
+  if (bytes[0] === 2 && bytes[4] !== 3 && bytes[4] !== 6)
+    throw new Error("The board returned an invalid Micro layout.");
+  monitorSettingsVersion = bytes[0];
+  monitorSlots.value = String(bytes[0] === 2 ? bytes[4] : 6);
   const dimTimeout = bytes[2] | (bytes[3] << 8);
   if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120) {
     throw new Error("The board returned settings outside the supported range.");
@@ -197,7 +206,12 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);
     const server = await monitorDevice.gatt.connect();
     const service = await server.getPrimaryService(MONITOR_SERVICE_UUID);
-    monitorCharacteristic = await service.getCharacteristic(MONITOR_SETTINGS_UUID);
+    try {
+      monitorCharacteristic = await service.getCharacteristic(MONITOR_EXTENDED_SETTINGS_UUID);
+    } catch (error) {
+      if (error.name !== "NotFoundError") throw error;
+      monitorCharacteristic = await service.getCharacteristic(MONITOR_SETTINGS_UUID);
+    }
     if (!monitorCharacteristic.properties.read || !monitorCharacteristic.properties.write) {
       throw new Error("The monitor settings characteristic does not support read and write.");
     }
@@ -234,9 +248,15 @@ monitorForm.addEventListener("submit", async event => {
   monitorSave.disabled = true;
   showMonitorStatus("Saving settings to the board…");
   try {
-    const bytes = new Uint8Array([1, volume, dimTimeout & 0xff, dimTimeout >> 8]);
+    const slots = Number(monitorSlots.value);
+    if (monitorSettingsVersion === 2 && slots !== 3 && slots !== 6)
+      throw new Error("Choose three or six Micro agent slots.");
+    const bytes = new Uint8Array(monitorSettingsVersion === 2
+      ? [2, volume, dimTimeout & 0xff, dimTimeout >> 8, slots]
+      : [1, volume, dimTimeout & 0xff, dimTimeout >> 8]);
     await monitorCharacteristic.writeValue(bytes);
-    showMonitorStatus("Settings saved to the monitor.");
+    decodeMonitorSettings(await monitorCharacteristic.readValue());
+    showMonitorStatus("Settings saved and read back from the monitor.");
   } catch (error) {
     showMonitorStatus(`Could not save monitor settings: ${error instanceof Error ? error.message : String(error)}`, true);
   } finally {
