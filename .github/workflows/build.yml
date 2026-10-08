@@ -133,6 +133,8 @@ jobs:
           merge-multiple: true
       - name: Package flasher and firmware
         run: python scripts/package_web_firmware.py --reuse-dir .ci/firmware --output /tmp/fnk0104b-pages
+      - name: Verify links in the final Pages artifact
+        run: GUIDE_DIST_DIR=/tmp/fnk0104b-pages npm test --prefix site
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4

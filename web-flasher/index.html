@@ -115,7 +115,7 @@
               <ol>
                 <li>Turn on Bluetooth in Windows Settings and keep the board nearby and powered.</li>
                 <li>Open this page in Windows Chrome or Edge. A site served from WSL can use Windows Bluetooth through that browser.</li>
-                <li>Click <strong>Connect to monitor</strong> and look for <strong>Codex Micro</strong> in the browser picker.</li>
+                <li>Click <strong>Connect to monitor</strong> and look for <strong>FNK0104B-MONITOR</strong> in the browser picker. Older firmware may advertise Codex Micro.</li>
               </ol>
             </div>
             <div>
@@ -152,7 +152,8 @@
             <option value="3" selected>3 agent slots + Up / Down / Right / Left (default)</option>
             <option value="6">6 agent slots</option>
           </select>
-          <p>Direction buttons send joystick input. Customize their actions in Codex Desktop. Tap the board’s Micro indicator for the other Desktop keys. Older firmware needs an update to change this layout.</p>
+          <p>Choose three stable Desktop slots with four direction buttons, or all six slots. Click <strong>Save settings</strong> to apply the layout without reboot and keep it across restarts. This selects visible controls, not the number of running agents. Older firmware needs an update if this selector stays disabled.</p>
+          <p>Direction buttons send joystick input rather than keyboard arrow presses. Map their actions in Desktop’s <strong>Settings → Codex Micro</strong> under analog-stick directions. Tap the board’s Micro header indicator for the six command keys. <a href="monitor/#custom-actions">Follow the custom button mapping guide</a>.</p>
           <button id="monitor-save" class="cta" type="submit" disabled>Save settings</button>
         </form>
         <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>

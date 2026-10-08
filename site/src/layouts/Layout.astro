@@ -12,5 +12,5 @@ const links = [['', 'Overview'], ['features/', 'Capabilities'], ['firmware/', 'F
 <a class="skip" href="#main">Skip to content</a>
 <header class="header"><a class="brand" href={url()}><span class="mark">F</span><span>FNK0104B <small>FIELD GUIDE</small></span></a><nav aria-label="Main navigation">{links.map(([path, label]) => <a href={url(path)} aria-current={Astro.url.pathname.replace(/\/$/, '') === url(path).replace(/\/$/, '') ? 'page' : undefined}>{label}</a>)}</nav><a class="button compact" href={url('setup.html#flash')}>Flash & setup ↗</a></header>
 <main id="main"><slot /></main>
-<footer><p>A board. Many possibilities.<br /><small>Freenove FNK0104B · Built from repository evidence · Updated 4 October 2026</small></p><div><a href="https://github.com/cmwen/FNK0104B">Repository ↗</a><a href={url('sources/')}>Evidence & sources</a><a href={url('setup.html#setup')}>Device setup</a></div></footer>
+<footer><p>A board. Many possibilities.<br /><small>Freenove FNK0104B · Built from repository evidence · Updated 8 October 2026</small></p><div><a href="https://github.com/cmwen/FNK0104B">Repository ↗</a><a href={url('sources/')}>Evidence & sources</a><a href={url('setup.html#setup')}>Device setup</a></div></footer>
 </body></html>

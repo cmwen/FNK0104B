@@ -96,7 +96,7 @@ def package(output: Path, version: str, reuse_dir: Path = None):
         SITE,
         output,
         ignore=shutil.ignore_patterns(
-            "firmware", "node_modules", "package.json", "package-lock.json",
+            "node_modules", "package.json", "package-lock.json",
             "ble-client.js", "test",
         ),
     )
@@ -105,7 +105,8 @@ def package(output: Path, version: str, reuse_dir: Path = None):
     (output / OUTPUT_MARKER).touch()
     (output / ".nojekyll").touch()
     firmware_root = output / "firmware"
-    firmware_root.mkdir()
+    # Astro's catalog and detail pages share this directory with the images.
+    firmware_root.mkdir(exist_ok=True)
     boot_app0 = Path(os.environ.get("PLATFORMIO_CORE_DIR", Path.home() / ".platformio")) / "packages" / "framework-arduinoespressif32" / "tools" / "partitions" / "boot_app0.bin"
     if reuse_dir is None and not boot_app0.is_file():
         raise FileNotFoundError(f"PlatformIO boot_app0 image is missing: {boot_app0}")
@@ -120,7 +121,7 @@ def package(output: Path, version: str, reuse_dir: Path = None):
             image_version = metadata["version"]
         image_dir = (reuse_dir if reuse_dir is not None else BUILD) / environment
         target = firmware_root / environment
-        target.mkdir()
+        target.mkdir(exist_ok=True)
         parts = []
         image_parts = PARTS
         app_limit = 3 * 1024 * 1024

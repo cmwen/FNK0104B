@@ -25,12 +25,17 @@ Its BLE controls remain available in a compatible browser.
 ASTRO_TELEMETRY_DISABLED=1 npm run build --prefix site
 npm test --prefix site
 python3 scripts/package_web_firmware.py --output /tmp/fnk0104b-pages
+GUIDE_DIST_DIR=/tmp/fnk0104b-pages npm test --prefix site
 ```
 
 Packaging requires the published firmware environments to have already been
 built with `python3 scripts/build_firmware.py`. CI builds the guide and packages
 it with those images into one GitHub Pages artifact. The Astro base is `/FNK0104B`.
 There is no second hosting service.
+
+The packager preserves Astro's `firmware/` catalog and detail pages while adding
+images and manifests beside them. CI checks local links again in the final Pages
+artifact, so a successful Astro build alone cannot hide missing packaged pages.
 
 After building, `npm run test:browser --prefix site` starts a temporary local
 static server, checks desktop/mobile navigation, search, legacy setup links and

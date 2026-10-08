@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const root = fileURLToPath(new URL('../dist/', import.meta.url));
+const root = process.env.GUIDE_DIST_DIR
+ ? path.resolve(process.env.GUIDE_DIST_DIR)
+ : fileURLToPath(new URL('../dist/', import.meta.url));
 async function walk(dir) {
  const files=[];
  for(const entry of await readdir(dir,{withFileTypes:true})) {

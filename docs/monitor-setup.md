@@ -45,7 +45,7 @@ Copy the generated key into the ignored header. Example values:
 ```
 
 Do not commit this header. These values are compiled into the monitor firmware;
-Web BLE currently changes only alert volume and idle screen timeout. A public
+Web BLE changes alert volume, idle screen timeout and the USB Micro layout (three slots plus directions, or six slots). A public
 GitHub Pages monitor build has no private bridge host/key. Use your locally
 configured build for the real bridge. Changing host, port or key requires a new
 build/upload.

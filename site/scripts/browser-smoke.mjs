@@ -17,7 +17,9 @@ const server=createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const browser = await chromium.launch({headless:true, args:['--no-sandbox']});
 const origin=process.env.GUIDE_PREVIEW_URL||`http://127.0.0.1:${server.address().port}/FNK0104B/`;
-const captures=new URL('../../docs/site-previews/',import.meta.url);
+const captures=process.env.GUIDE_CAPTURE_DIR
+ ? new URL(`file://${process.env.GUIDE_CAPTURE_DIR.replace(/\/$/, '')}/`)
+ : new URL('../../docs/site-previews/',import.meta.url);
 await mkdir(captures,{recursive:true});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:1000},serviceWorkers:'block'});
@@ -33,7 +35,14 @@ try {
  await page.locator('#search').fill('USB');
  assert.equal(await page.locator('#capabilities .card:visible').count(),1);
  await page.locator('#capabilities .card:visible a').click();
- await page.getByRole('heading',{name:'USB HID & a number-pad prototype'}).waitFor();
+ await page.getByRole('heading',{name:'USB emoji and number-pad keyboard'}).waitFor();
+ await page.goto(`${origin}firmware/`);
+ await page.getByRole('heading',{name:'Find your next firmware.'}).waitFor();
+ await page.goto(`${origin}monitor/`);
+ await page.getByRole('heading',{name:'Map buttons to custom actions in Codex Desktop'}).waitFor();
+ await page.getByRole('link',{name:'Device setup → Monitor settings'}).click();
+ await page.locator('#monitor-slots option[value="3"]').waitFor({state:'attached'});
+ assert.equal(await page.locator('#monitor-slots option[value="6"]').textContent(),'6 agent slots');
  await page.goto(`${origin}monitor/`);
  await page.screenshot({path:new URL('monitor.png',captures).pathname,fullPage:true});
  await page.goto(`${origin}firmware/codex-monitor/`);
