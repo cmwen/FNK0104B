@@ -54,6 +54,14 @@ workflow name is temporarily recognized to pick up an in-flight migration build.
 
 ## Validation
 
+Local acceptance on 2026-10-10 passed 33 host packaging/routing tests, 65 bridge
+tests, eight browser protocol tests, two generated-guide tests, the Astro build
+and actionlint for all three workflows. Routing tests cover root/app/library
+documentation, browser controls, guide sources, firmware code, toolchain files,
+bridge changes and test-only updates. The first migration build establishes the
+new retained/published catalog; its hosted completion remains a separate check.
+
+
 Run `python3 -m unittest discover -s test/host` and
 `actionlint .github/workflows/*.yml`. Source-selection tests reject non-main,
 failed, unrelated, incomplete and expired sources, check every downloaded image,
