@@ -1,4 +1,5 @@
 #include <unity.h>
+#include "../../apps/codex-monitor/include/monitor_update_policy.hpp"
 #include <codex_hid/protocol.hpp>
 #include <codex_hid/backend.hpp>
 #include <codex_hid/voice_controls.hpp>
@@ -604,8 +605,23 @@ void test_monitor_settings_v3_validation_and_legacy_preservation() {
   TEST_ASSERT_FALSE(settings.separateVoice);
 }
 
+void test_monitor_ota_rejects_downgrades_and_malformed_identity() {
+  using namespace monitor_update_policy;
+  TEST_ASSERT_TRUE(newer("0.7.1", "0.7.0"));
+  TEST_ASSERT_TRUE(newer("1.0.0", "0.99.99"));
+  TEST_ASSERT_FALSE(newer("0.7.0", "0.7.0"));
+  TEST_ASSERT_FALSE(newer("0.6.99", "0.7.0"));
+  for (auto text : {"-1.0.0", "0.7.1-beta", "0.7", "0.7.1.1", "65536.0.0", "99999999999999.0.0", " 1.0.0", "0..1"})
+    TEST_ASSERT_FALSE(newer(text, "0.7.0"));
+  TEST_ASSERT_TRUE(hashValid("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
+  TEST_ASSERT_FALSE(hashValid("0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef"));
+  TEST_ASSERT_FALSE(hashValid("0123456789abcdef"));
+  TEST_ASSERT_FALSE(hashValid(nullptr));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_monitor_ota_rejects_downgrades_and_malformed_identity);
   RUN_TEST(test_usb_voice_default_hold_and_separate_toggle);
   RUN_TEST(test_monitor_settings_v3_validation_and_legacy_preservation);
   RUN_TEST(test_micro_six_keys_and_touch_gaps);

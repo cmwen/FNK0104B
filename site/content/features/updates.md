@@ -12,8 +12,17 @@ Firmware manifests list the bootloader, partition table, application and, for th
 ## Preserving settings
 Leave the erase choice unchecked for compatible updates. An erase deletes saved settings. A changed partition layout can overwrite data even without erase-all: the speech monitor replaces OTA/FATFS space with models. Read each firmware's storage note before switching.
 
-## OTA is a separate application
-The standalone `ota` demo asks the user to confirm an HTTPS update from a GitHub Release. Do not assume the speech monitor or recorder supports OTA: their current speech layouts do not provide the former OTA slots.
+## Monitor wireless updates
+Monitor 0.7.0 adds confirmed HTTPS OTA after a one-time full USB install. Connect
+to monitor settings in Device setup, then use **Check for update** and **Install
+update**. Bluetooth carries commands; the board downloads over saved Wi-Fi.
+The microphone is off during update work. A changed speech-model image or
+partition layout requires USB. Download failures keep the current app; failed
+first boots can roll back to the previous valid app. Physical monitor OTA and
+rollback verification are still pending.
+
+The standalone `ota` demo remains a separate GitHub Release update example.
+The recorder does not gain OTA from this monitor change.
 
 ## Local development
 Use PlatformIO Core CLI to discover the device, build its named environment, upload, then monitor serial at 115200 baud. Arduino IDE is not required. Public firmware has no personal bridge key; a live Codex monitor needs your locally configured build.

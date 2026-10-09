@@ -106,7 +106,7 @@
   {
     "id": "codex-monitor",
     "title": "Codex monitor",
-    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Arduino Wi-Fi storage and replaces OTA/FATFS data.",
+    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Wi-Fi storage and supports confirmed HTTPS OTA after a one-time USB migration.",
     "readme": "apps/codex-monitor/README.md",
     "installable": true,
     "status": "Implemented"

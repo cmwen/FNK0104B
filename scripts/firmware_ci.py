@@ -125,7 +125,7 @@ def image_names(environment):
     if environment in BUILD_ONLY_ENVIRONMENTS:
         return ()
     if environment == "codex-monitor":
-        return ("bootloader.bin", "partitions.bin", "firmware.bin", "srmodels/srmodels.bin")
+        return ("bootloader.bin", "partitions.bin", "firmware.bin", "srmodels/srmodels.bin", "ota_data_initial.bin")
     return tuple(name for name, _ in PARTS)
 
 
@@ -136,7 +136,7 @@ def image_layout(environment):
     if environment == 'codex-monitor':
         app_offset, app_limit, model_offset, model_limit = monitor_partitions()
         parts = (("bootloader.bin", 0), ("partitions.bin", 0x8000),
-                 ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
+                 ("ota_data_initial.bin", 0xe000), ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
     return {"parts": [{"path": name, "offset": offset} for name, offset in parts],
             "app_limit": app_limit, "model_limit": model_limit}
 
@@ -150,11 +150,15 @@ def verify(directory, environment, expected_fingerprint=None):
         raise ValueError("Firmware bundle lacks provenance")
     if expected_fingerprint and metadata["fingerprint"] != expected_fingerprint:
         raise ValueError("Firmware bundle input fingerprint mismatch")
-    if set(metadata["images"]) != set(image_names(environment)):
+    expected_images = set(image_names(environment))
+    # Accept already-published pre-OTA monitor catalogs until the next build.
+    if environment == "codex-monitor" and "ota_data_initial.bin" not in metadata["images"]:
+        expected_images.remove("ota_data_initial.bin")
+    if set(metadata["images"]) != expected_images:
         raise ValueError("Firmware bundle image list mismatch")
     layout = metadata.get("layout")
     if layout is not None:
-        if {part["path"] for part in layout["parts"]} != set(image_names(environment)):
+        if {part["path"] for part in layout["parts"]} != expected_images:
             raise ValueError("Firmware bundle flash layout mismatch")
         if any(type(part["offset"]) is not int or not 0 <= part["offset"] < 16 * 1024 * 1024
                for part in layout["parts"]):

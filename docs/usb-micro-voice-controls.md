@@ -42,11 +42,10 @@ its entry from the computer's Bluetooth devices and reconnect through the browse
 to refresh service discovery. No OS pairing is needed for browser preferences.
 A disabled selector does not turn off the physical Hold to talk control in 0.6.3.
 
-The monitor uses a single factory app plus speech-model partition and has no OTA
-updater or alternate app slot. Update it through the USB flasher or PlatformIO.
-Bluetooth saves preferences, not firmware. The independent `ota` learning demo
-still supports its HTTPS update path with the separate two-slot Arduino layout;
-it is not an update mechanism for the current monitor firmware.
+Monitor 0.7.0 adds wireless updates after a one-time full USB migration.
+Use Firmware updates in the BLE settings page: the board downloads over Wi-Fi,
+with the microphone off. Model or partition changes still require USB. See
+[monitor OTA](monitor-ota.md) for setup, compatibility and recovery.
 
 ## Board audio gate and indicators
 

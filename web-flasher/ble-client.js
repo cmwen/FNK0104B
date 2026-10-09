@@ -124,6 +124,7 @@ wifiForm.addEventListener("submit", async event => {
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
 const MONITOR_VOICE_SETTINGS_UUID = "4e4b0104-0004-4d20-8f4b-0104b0000001";
+const MONITOR_OTA_UUID = "4e4b0104-0005-4d20-8f4b-0104b0000001";
 const MONITOR_EXTENDED_SETTINGS_UUID = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 const monitorSupport = document.querySelector("#monitor-support");
 const monitorConnect = document.querySelector("#monitor-connect");
@@ -133,6 +134,14 @@ const monitorVolumeValue = document.querySelector("#monitor-volume-value");
 const monitorDimTimeout = document.querySelector("#monitor-dim-timeout");
 const monitorSave = document.querySelector("#monitor-save");
 const monitorStatus = document.querySelector("#monitor-status");
+const otaCheck = document.querySelector("#monitor-ota-check");
+const otaInstall = document.querySelector("#monitor-ota-install");
+const otaStatus = document.querySelector("#monitor-ota-status");
+let otaCharacteristic = null;
+let otaTimer = null;
+let otaPolling = false;
+let otaWorking = false;
+let otaState = "idle";
 let monitorDevice = null;
 let monitorCharacteristic = null;
 let monitorBusy = false;
@@ -148,9 +157,11 @@ function showMonitorStatus(message, error = false) {
 }
 
 function setMonitorControls(connected) {
+  otaCheck.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy;
+  otaInstall.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy || otaState !== "available";
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
-  monitorSave.disabled = !connected || monitorBusy;
+  monitorSave.disabled = !connected || monitorBusy || otaWorking;
   monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
   monitorVoice.disabled = !connected || monitorSettingsVersion < 3;
   updateVoiceHelp();
@@ -193,6 +204,12 @@ function decodeMonitorSettings(value) {
 }
 
 function monitorDisconnected() {
+  otaCharacteristic = null;
+  if (otaTimer !== null) { clearTimeout(otaTimer); otaTimer = null; }
+  otaStatus.textContent = otaState === "restarting" || otaState === "installing"
+    ? "Board disconnected during the update. Wait for it to restart, reconnect, then check the installed version."
+    : "Connect to read update support. Monitor 0.7.0 or newer needs a one-time USB install; updates download over Wi-Fi.";
+  otaWorking = false;
   monitorCharacteristic = null;
   monitorDevice = null;
   setMonitorControls(false);
@@ -232,6 +249,13 @@ monitorConnect.addEventListener("click", async () => {
     if (!monitorCharacteristic.properties.read || !monitorCharacteristic.properties.write) {
       throw new Error("The monitor settings characteristic does not support read and write.");
     }
+    try { otaCharacteristic = await service.getCharacteristic(MONITOR_OTA_UUID); }
+    catch (error) { if (error.name !== "NotFoundError") throw error; otaCharacteristic = null; }
+    if (otaCharacteristic) {
+      await readOtaStatus(true);
+    } else {
+      otaStatus.textContent = "Wireless updates are unavailable through this connection. Install monitor 0.7.0 or newer over USB once. If already installed, restart the board and browser; clear cached Bluetooth services if needed.";
+    }
     showMonitorStatus("Connected. Reading settings…");
     decodeMonitorSettings(await monitorCharacteristic.readValue());
     setMonitorControls(true);
@@ -242,6 +266,7 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice?.gatt?.disconnect();
     monitorDevice = null;
     monitorCharacteristic = null;
+    otaCharacteristic = null;
     setMonitorControls(false);
     showMonitorStatus(`Could not connect to or read monitor settings: ${error instanceof Error ? error.message : String(error)}`, true);
   } finally {
@@ -253,7 +278,7 @@ monitorConnect.addEventListener("click", async () => {
 
 monitorForm.addEventListener("submit", async event => {
   event.preventDefault();
-  if (monitorBusy || !monitorCharacteristic) {
+  if (monitorBusy || otaWorking || !monitorCharacteristic) {
     showMonitorStatus("Connect to the monitor before saving settings.", true);
     return;
   }
@@ -289,3 +314,46 @@ monitorForm.addEventListener("submit", async event => {
     monitorSave.disabled = !monitorCharacteristic;
   }
 });
+
+
+async function readOtaStatus(initial = false) {
+  if (!otaCharacteristic || otaPolling) return;
+  if (monitorBusy && !initial) {
+    otaTimer = setTimeout(() => { otaTimer = null; readOtaStatus(); }, 1500); return;
+  }
+  otaPolling = true;
+  const characteristic = otaCharacteristic;
+  try {
+    const value = await characteristic.readValue();
+    if (characteristic !== otaCharacteristic) return;
+    const status = JSON.parse(new TextDecoder().decode(value));
+    if (!status || typeof status.state !== "string" || typeof status.current !== "string") throw new Error("Invalid update status");
+    otaState = status.state;
+    otaWorking = ["checking", "installing", "restarting"].includes(otaState);
+    otaStatus.textContent = `Installed: ${status.current}${status.latest ? ` · Published: ${status.latest}` : ""}. ${status.message}${otaState === "installing" ? ` (${status.progress}%)` : ""}`;
+    setMonitorControls(Boolean(monitorCharacteristic));
+    if (otaWorking && otaState !== "restarting") otaTimer = setTimeout(() => { otaTimer = null; readOtaStatus(); }, 1500);
+  } catch (error) {
+    otaStatus.textContent = `Could not read update status: ${error.message}. Reconnect to check the board.`;
+    otaWorking = false;
+    setMonitorControls(Boolean(monitorCharacteristic));
+  } finally { otaPolling = false; }
+}
+async function commandOta(command) {
+  if (!otaCharacteristic || monitorBusy || otaWorking || otaPolling) return;
+  if (command === "install" && otaState !== "available") return;
+  otaWorking = true;
+  setMonitorControls(Boolean(monitorCharacteristic));
+  otaStatus.textContent = command === "install" ? "Install requested. Keep the board powered; microphone will stay off." : "Checking update support and Wi-Fi…";
+  try {
+    await otaCharacteristic.writeValue(new TextEncoder().encode(command));
+    // The board starts the worker on its next UI loop, after closing audio.
+    otaTimer = setTimeout(() => { otaTimer = null; readOtaStatus(); }, 1500);
+  } catch (error) {
+    otaWorking = false;
+    otaStatus.textContent = `Could not request update: ${error.message}`;
+    setMonitorControls(Boolean(monitorCharacteristic));
+  }
+}
+otaCheck.addEventListener("click", () => commandOta("check"));
+otaInstall.addEventListener("click", () => commandOta("install"));

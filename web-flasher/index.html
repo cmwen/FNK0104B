@@ -177,7 +177,7 @@
               <li>For the optional Voice button, enable <strong>Use separate microphone keys</strong>. Keep the first switch on <strong>Push to talk</strong> and assign the second to <strong>Voice Chat</strong>, if offered.</li>
               <li>Select <strong>Hold to talk + Voice toggle</strong> here and save. Tap Voice to open board audio and request a desktop voice chat. Tap again to close board audio and toggle the desktop microphone. Hold Voice to request ending the chat. Turn Voice off before dictating a prompt.</li>
             </ol>
-            <p class="mapping-note"><strong>Firmware updates use USB.</strong> Bluetooth here saves preferences; the monitor does not support OTA updates. The separate OTA demo remains available in the firmware catalog.</p>
+            <p class="mapping-note"><a href="#monitor-ota-heading">Firmware updates</a> below explain the one-time USB install and future wireless updates.</p>
             <p class="mapping-note"><strong>Saving here changes the board only.</strong> This page cannot set or verify Desktop's microphone mappings. If your app does not offer separate Voice Chat assignments, keep Hold to talk.</p>
             <details class="voice-detail">
               <summary>What do Mic ON and Mic OFF mean?</summary>
@@ -190,6 +190,15 @@
           </aside>
         </div>
         <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>
+        <div class="setup-help" aria-labelledby="monitor-ota-heading">
+          <h3 id="monitor-ota-heading">Firmware updates</h3>
+          <p>Connect to monitor settings above, then check for an update. Bluetooth controls the update; the board downloads firmware over Wi-Fi. Finish voice activity first. The microphone stays off while checking and installing. Keep power connected until the board restarts.</p>
+          <div class="monitor-ota-actions">
+          <button id="monitor-ota-check" class="cta" type="button" disabled>Check for update</button>
+          <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
+          </div>
+          <p id="monitor-ota-status" role="status" aria-live="polite">Install monitor 0.7.0 or newer over USB once to enable wireless updates. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p>
+        </div>
       </section>
 
       <section class="installer ble-setup" aria-labelledby="ble-heading">

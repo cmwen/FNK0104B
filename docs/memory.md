@@ -25,3 +25,13 @@ The selected layout provides FATFS for optional files. It is separate from NVS a
 ## SD card
 
 The board has a removable MicroSD slot on four-bit SDIO. Use the verified `SD_MMC` mapping in `docs/pins.md`; it is separate from internal flash and useful for larger user files, logs, and media.
+
+## Monitor 0.7.0 OTA layout
+
+The Codex monitor now uses its own two 4 MiB application slots, 8 KiB OTA metadata
+and a `0x7f0000`-byte speech-model region at `0x810000`. NVS stays at `0x9000`,
+size `0x5000`. This replaces the monitor's previous single 6 MiB factory slot
+and moves speech models from `0x610000`; a full one-time USB install is required.
+It may overwrite old app/model/filesystem contents while keeping compatible NVS.
+OTA updates only the inactive app; changed models/layouts require USB. See
+[monitor OTA](monitor-ota.md) for the exact map and recovery behavior.

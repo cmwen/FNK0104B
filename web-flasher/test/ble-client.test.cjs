@@ -4,8 +4,15 @@ const { readFileSync } = require('node:fs');
 const { runInNewContext } = require('node:vm');
 const source = readFileSync(`${__dirname}/../ble-client.js`, 'utf8').replace(/^import .*;\n/, '');
 
-function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3] } = {}) {
+function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ota = false } = {}) {
   let packet = Uint8Array.from(settingsPacket);
+  const timers = [];
+  const otaWrites = [];
+  let update = {state: 'idle', current: '0.7.0', message: 'Check for update'};
+  const otaCharacteristic = {
+    async readValue() { const bytes=new TextEncoder().encode(JSON.stringify(update)); return new DataView(bytes.buffer); },
+    async writeValue(bytes) { otaWrites.push(new TextDecoder().decode(bytes)); update={...update,state:'checking'}; },
+  };
   const writes = [];
   const characteristic = {
     properties: { read: true, write: true },
@@ -39,13 +46,18 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3] } =
     async sendCredentials() { this.sent++; }
   }
   runInNewContext(source, {
-    ESPProvisioner, Security1: class {}, TextEncoder, Error,
+    ESPProvisioner, Security1: class {}, TextEncoder, TextDecoder, Error,
+    setTimeout: fn => { timers.push(fn); return timers.length; }, clearTimeout() {},
     document: { querySelector: element },
     window: { isSecureContext: true, crypto: { subtle: {} } },
     navigator: { bluetooth: { async requestDevice() { return {
       addEventListener() {},
       gatt: { disconnect() {}, async connect() { return {
         async getPrimaryService() { return { async getCharacteristic(uuid) {
+          if (uuid.includes('0005')) {
+            if(ota) return otaCharacteristic;
+            const error=new Error('Characteristic not found'); error.name='NotFoundError'; throw error;
+          }
           if ((settingsPacket[0] < 3 && uuid.includes('0004')) ||
               (settingsPacket[0] === 1 && uuid.includes('0003'))) {
             const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
@@ -56,7 +68,11 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3] } =
     }; } } },
   });
   element('#ble-pop').value = '012345ABCDEF';
-  return { element, writes,
+  return { element, writes, otaWrites,
+    setUpdate: value => { update={...update,...value}; },
+    poll: async () => { const fn=timers.shift(); if(fn) { fn(); await new Promise(resolve => setImmediate(resolve)); } },
+    checkOta: () => element('#monitor-ota-check').listeners.click(),
+    installOta: () => element('#monitor-ota-install').listeners.click(),
     connectMonitor: () => element("#monitor-connect").listeners.click(),
     saveMonitor: () => element("#monitor-settings-form").listeners.submit({ preventDefault() {} }),
     client: () => client,
@@ -160,4 +176,29 @@ test('unsupported layout prevents settings controls from opening', async () => {
   await app.connectMonitor();
   assert.equal(app.element('#monitor-save').disabled, true);
   assert.match(app.element('#monitor-status').textContent, /invalid Micro layout/);
+});
+
+test('OTA needs newer firmware and an explicit compatible update before installation', async () => {
+  const old = setup(); await old.connectMonitor();
+  assert.equal(old.element('#monitor-ota-check').disabled, true);
+  assert.match(old.element('#monitor-ota-status').textContent, /0.7.0.*USB/);
+  const app = setup({ota:true,settingsPacket:[3,50,30,0,3,0]}); await app.connectMonitor();
+  assert.equal(app.element('#monitor-ota-check').disabled, false);
+  assert.equal(app.element('#monitor-ota-install').disabled, true);
+  await app.installOta(); assert.deepEqual(app.otaWrites, []);
+  await app.checkOta(); assert.deepEqual(app.otaWrites, ['check']);
+  assert.equal(app.element('#monitor-save').disabled, true);
+  app.setUpdate({state:'available',latest:'0.7.1',message:'Choose Install'}); await app.poll();
+  assert.equal(app.element('#monitor-ota-install').disabled, false);
+  await app.installOta(); assert.deepEqual(app.otaWrites,['check','install']);
+  app.setUpdate({state:'error',message:'Current firmware kept'}); await app.poll();
+  assert.equal(app.element('#monitor-ota-install').disabled,true);
+  assert.equal(app.element('#monitor-save').disabled,false);
+  assert.match(app.element('#monitor-ota-status').textContent,/Current firmware kept/);
+});
+test('incompatible speech models never enable the OTA install button', async () => {
+  const app=setup({ota:true}); await app.connectMonitor(); await app.checkOta();
+  app.setUpdate({state:'usb_required',message:'Speech models changed; USB required'}); await app.poll();
+  assert.equal(app.element('#monitor-ota-install').disabled,true);
+  await app.installOta(); assert.deepEqual(app.otaWrites,['check']);
 });

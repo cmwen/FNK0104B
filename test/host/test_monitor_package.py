@@ -1,3 +1,4 @@
+from ota_fixture import write_monitor_images
 import csv
 import configparser
 import importlib.util
@@ -79,12 +80,13 @@ class MonitorPackageTest(unittest.TestCase):
             (root / "platformio.ini").write_text(
                 "[env:codex-monitor]\nboard_build.partitions = partitions.csv\n")
             (root / "partitions.csv").write_text(
-                "factory,app,factory,0x10000,0x600000\nmodel,data,spiffs,0x710000,0x8f0000\n")
+                "ota_0,app,ota_0,0x10000,0x400000\nota_1,app,ota_1,0x410000,0x400000\nmodel,data,spiffs,0x810000,0x7f0000\n")
             build = root / "build"
             for name in ("bootloader.bin", "partitions.bin", "firmware.bin", "srmodels/srmodels.bin"):
                 image = build / "codex-monitor" / name
                 image.parent.mkdir(parents=True, exist_ok=True)
                 image.write_bytes(b"test")
+            write_monitor_images(build / "codex-monitor")
             core = root / "core"
             boot_app = core / "packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
             boot_app.parent.mkdir(parents=True)
@@ -103,7 +105,7 @@ class MonitorPackageTest(unittest.TestCase):
                 manifest = json.loads((output / "firmware/codex-monitor/manifest.json").read_text())
                 self.assertTrue(manifest["new_install_prompt_erase"])
                 parts = manifest["builds"][0]["parts"]
-                self.assertEqual([0, 0x8000, 0x10000, 0x710000], [part["offset"] for part in parts])
+                self.assertEqual([0, 0x8000, 0xe000, 0x10000, 0x810000], [part["offset"] for part in parts])
                 self.assertNotIn("boot_app0.bin", [part["path"] for part in parts])
                 self.assertEqual(b"test", (output / "firmware/codex-monitor/srmodels/srmodels.bin").read_bytes())
                 (build / "codex-monitor/srmodels/srmodels.bin").unlink()

@@ -41,9 +41,14 @@ try {
  await page.goto(`${origin}monitor/`);
  await page.getByRole('heading',{name:'Map buttons to custom actions in Codex Desktop'}).waitFor();
  await page.getByRole('link',{name:'Device setup → Monitor settings'}).click();
+ await page.waitForLoadState('load');
+ await page.evaluate(()=>document.fonts.ready);
  await page.locator('#monitor-slots option[value="3"]').waitFor({state:'attached'});
  assert.equal(await page.locator('#monitor-slots option[value="6"]').textContent(),'6 agent slots');
  assert.equal(await page.locator('#monitor-voice').inputValue(),'0');
+ assert.equal(await page.locator('#monitor-ota-check').isDisabled(),true);
+ assert.equal(await page.locator('#monitor-ota-install').isDisabled(),true);
+ await page.getByRole('heading',{name:'Firmware updates'}).waitFor();
  assert.equal(await page.locator('#monitor-voice option[value="1"]').textContent(),'Hold to talk + Voice toggle');
  // Settings controls and help must stay vertically ordered at every supported width.
  for (const width of [1440, 768, 390]) {

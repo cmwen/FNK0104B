@@ -15,4 +15,17 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
     idf_build_set_property(DEPENDENCIES_LOCK "${CMAKE_CURRENT_SOURCE_DIR}/dependencies.monitor.lock")
 endif()
 idf_build_set_property(FNK_APP "${FNK_APP}")
+if(FNK_APP STREQUAL "codex-monitor")
+    # Runtime and IDF image identity share one version. Future monitor bumps
+    # change only monitor inputs, preserving unrelated firmware cache keys.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${CMAKE_CURRENT_SOURCE_DIR}/apps/codex-monitor/include/monitor_ota.hpp")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/apps/codex-monitor/include/monitor_ota.hpp"
+         monitor_version_line REGEX "^constexpr char version")
+    string(REGEX MATCH "\"([0-9]+[.][0-9]+[.][0-9]+)\"" monitor_version_match "${monitor_version_line}")
+    if(NOT monitor_version_match)
+        message(FATAL_ERROR "Monitor version must be numeric major.minor.patch")
+    endif()
+    set(PROJECT_VER "${CMAKE_MATCH_1}")
+endif()
 project(fnk0104b_firmware)

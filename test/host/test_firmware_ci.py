@@ -1,3 +1,4 @@
+from ota_fixture import write_monitor_images
 import hashlib
 import importlib
 import json
@@ -158,6 +159,7 @@ class FirmwareBundleTest(unittest.TestCase):
                         source = build / env / name
                     source.parent.mkdir(parents=True, exist_ok=True)
                     source.write_bytes(b'image')
+            write_monitor_images(build / "codex-monitor")
             site.mkdir()
             (site / 'ble-client.bundle.js').write_text('bundle')
             (root / 'docs/images').mkdir(parents=True)

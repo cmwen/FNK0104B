@@ -69,3 +69,6 @@
 .voice-detail summary{cursor:pointer;color:var(--text);font-size:13px;font-weight:700}
 @media(max-width:900px){.monitor-workspace{grid-template-columns:minmax(0,1fr);gap:26px}.monitor-connection{align-items:start;flex-direction:column;gap:12px}}
 @media(max-width:620px){.monitor-workspace #monitor-settings-form{padding:17px}.monitor-workspace .control-preview>span{padding:12px 8px}.monitor-workspace .control-preview b{font-size:12px}}
+
+.monitor-ota-actions{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+.monitor-ota-actions .cta:disabled{opacity:.45;cursor:not-allowed}

@@ -5,6 +5,9 @@ import argparse
 import configparser
 import csv
 import json
+import hashlib
+import struct
+import re
 import os
 from pathlib import Path
 import shutil
@@ -48,7 +51,7 @@ NAMES = {
     "file-manager": ("SD file manager", "Touchscreen SD browser with storage capacity and read-only text and hex file viewing."),
     "mqtt": ("MQTT", "Placeholder only: does not connect to an MQTT broker yet."),
     "ota": ("OTA", "User-confirmed HTTPS firmware update from a GitHub Release, with touchscreen and serial controls."),
-    "codex-monitor": ("Codex monitor", "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Arduino Wi-Fi storage and replaces OTA/FATFS data."),
+    "codex-monitor": ("Codex monitor", "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Wi-Fi storage and supports confirmed HTTPS OTA after a one-time USB migration."),
     "audio-diag": ("Audio", "Captures one second of onboard microphone audio at a time and reports signal detection; it never prints or saves samples."),
     "speaker-diag": ("Speaker keyboard", "Plays notes from a touchscreen keyboard with an adjustable speaker volume."),
     "locallink": ("LocalLink", "Records speech with the onboard microphone, discovers a Speech Recognition service on your LAN, and shows the returned transcript. Requires Wi-Fi and a compatible service."),
@@ -83,6 +86,32 @@ def monitor_partitions():
     app = next(row for row in rows if row and row[1].strip() == "app")
     model = next(row for row in rows if row and row[0].strip() == "model")
     return int(app[3], 0), int(app[4], 0), int(model[3], 0), int(model[4], 0)
+
+
+def monitor_ota_manifest(directory):
+    """Publish app-only OTA metadata, derived from the actual IDF image."""
+    firmware = (directory / "firmware.bin").read_bytes()
+    models = (directory / "srmodels/srmodels.bin").read_bytes()
+    # ESP image header (24), first segment header (8), then esp_app_desc_t.
+    if len(firmware) < 112 or firmware[0] != 0xe9 or struct.unpack_from("<I", firmware, 32)[0] != 0xabcd5432:
+        raise ValueError("Monitor OTA image lacks an IDF application descriptor")
+    version = firmware[48:80].split(b"\0", 1)[0].decode("ascii")
+    project = firmware[80:112].split(b"\0", 1)[0].decode("ascii")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) or project != "fnk0104b_firmware":
+        raise ValueError("Monitor OTA application identity invalid")
+    # Obtain offsets from the bundled binary table, not today's source CSV.
+    table = (directory / "partitions.bin").read_bytes()
+    entries = {}
+    for offset in range(0, len(table) - 31, 32):
+        magic, kind, subtype, address, size, label, flags = struct.unpack_from("<HBBII16sI", table, offset)
+        if magic == 0x50aa:
+            entries[label.split(b"\0", 1)[0].decode()] = (kind, subtype, address, size)
+    if entries.get("ota_0") != (0, 0x10, 0x10000, 0x400000) or entries.get("ota_1") != (0, 0x11, 0x410000, 0x400000) or entries.get("model") != (1, 0x82, 0x810000, 0x7f0000):
+        raise ValueError("Monitor OTA partition identity invalid")
+    return {"schema": 1, "project": "codex-monitor", "version": version,
+            "layout": "monitor-ota4m-model810000-v1", "size": len(firmware),
+            "sha256": hashlib.sha256(firmware).hexdigest(), "models_size": len(models),
+            "models_sha256": hashlib.sha256(models).hexdigest()}
 
 
 def package(output: Path, version: str, reuse_dir: Path = None):
@@ -128,9 +157,13 @@ def package(output: Path, version: str, reuse_dir: Path = None):
         if environment == "codex-monitor":
             app_offset, app_limit, model_offset, model_limit = monitor_partitions()
             image_parts = (("bootloader.bin", 0), ("partitions.bin", 0x8000),
-                           ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
-            if (reuse_dir is None or not metadata.get("layout")) and (image_dir / "srmodels/srmodels.bin").stat().st_size > model_limit:
-                raise ValueError("Monitor models exceed their partition")
+                           ("ota_data_initial.bin", 0xe000), ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
+        if environment == "codex-monitor" and reuse_dir is not None and not metadata.get("layout"):
+            # Original catalog predates portable layout metadata and OTA support.
+            app_limit = 0x600000
+            model_limit = 0x9f0000
+            image_parts = (("bootloader.bin", 0), ("partitions.bin", 0x8000),
+                           ("firmware.bin", 0x10000), ("srmodels/srmodels.bin", 0x610000))
         if reuse_dir is not None and metadata.get("layout"):
             # Older firmware keeps its own offsets when current partitions change.
             layout = metadata["layout"]
@@ -138,6 +171,8 @@ def package(output: Path, version: str, reuse_dir: Path = None):
             app_limit = layout["app_limit"]
             if environment == "codex-monitor" and (image_dir / "srmodels/srmodels.bin").stat().st_size > layout["model_limit"]:
                 raise ValueError("Monitor models exceed their original partition")
+        if environment == "codex-monitor" and (reuse_dir is None or not metadata.get("layout")) and (image_dir / "srmodels/srmodels.bin").stat().st_size > model_limit:
+            raise ValueError("Monitor models exceed their partition")
         for name, offset in image_parts:
             source = boot_app0 if name == "boot_app0.bin" and reuse_dir is None else image_dir / name
             if not source.is_file() or not source.stat().st_size:
@@ -154,6 +189,9 @@ def package(output: Path, version: str, reuse_dir: Path = None):
             "builds": [{"chipFamily": "ESP32-S3", "parts": parts}],
         }
         (target / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+        if environment == "codex-monitor" and any(part["path"] == "ota_data_initial.bin" for part in parts):
+            ota = monitor_ota_manifest(target)
+            (target / "ota.json").write_text(json.dumps(ota, indent=2) + "\n")
         if reuse_dir is not None:
             # Keep verified provenance available after Actions artifacts expire.
             (target / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")

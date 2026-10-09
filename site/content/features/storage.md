@@ -17,7 +17,7 @@ Yes. **NVS means nonvolatile storage**: small persistent key/value data in the b
 The board has 16 MB flash and 8 MB PSRAM. These are different resources. Free PSRAM does not solve every internal DMA or task-stack allocation: monitor integration exposed failures that required early microphone DMA allocation and a reserved status-feed stack.
 
 ## Updates need compatible boundaries
-Leaving **Erase device** unchecked can preserve settings when the new firmware uses compatible NVS boundaries. It is not a universal guarantee. The current monitor preserves the Arduino 20 KiB NVS region but replaces OTA/FATFS storage with speech models. The standalone speech diagnostic and recorder use a different, 24 KiB NVS boundary; cross-layout interpretation is not guaranteed. Switching layouts can overwrite old app/data regions without a full-chip erase.
+Leaving **Erase device** unchecked can preserve settings when the new firmware uses compatible NVS boundaries. It is not a universal guarantee. The current monitor preserves the Arduino 20 KiB NVS region but provides two 4 MiB OTA app slots and a speech-model region; its 0.7.0 migration moves models and overwrites old app/data regions. The standalone speech diagnostic and recorder use a different, 24 KiB NVS boundary; cross-layout interpretation is not guaranteed. Switching layouts can overwrite old app/data regions without a full-chip erase.
 
 ## Files on SD
 The verified interface is four-bit SDIO/SD_MMC. The file manager views existing files without formatting. The recorder writes Ogg Opus to `/recordings/`, preserving existing names and keeping incomplete files marked `.part`. Never assume removing power halfway through a write leaves a valid file.

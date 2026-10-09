@@ -46,3 +46,8 @@ For additional Freenove tutorials and existing evidence see [docs/references.md]
 Device observations and unresolved acceptance checks are in [the audio validation record](../test/hardware/codex-audio-2026-10-04.md).
 
 - **P1:** [Retail Codex Micro technical dossier, pinned capture](https://github.com/arthurcolle/codex-micro-open/blob/3ea3db39c85ca3240e9bee8d1bb0551bf34b1e63/reports/technical-dossier.md): physical layout and exact-unit captured ACT10 + ACT11 microphone switch events. Combined with O1's independent-key setting, this supports the optional second microphone key contract. Acceptance of ACT11 and separate Voice Chat mappings on this FNK0104B host remains UNKNOWN; it supplies no Freenove GPIO facts.
+
+- **E13 — ESP-IDF 5.5 ESP32-S3 OTA:** https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/api-reference/system/ota.html
+  OTA metadata, inactive-slot updates and application boot validation/rollback.
+- **E14 — ESP-IDF 5.5 HTTP client:** https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/api-reference/protocols/esp_http_client.html
+  HTTPS certificate-bundle verification and streamed download API.

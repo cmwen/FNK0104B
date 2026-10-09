@@ -402,3 +402,46 @@ confirmed ready microphone capture, default USB mute and live Desktop status
 updates. Windows retains HID/audio for hands-on testing. See the
 [device record](../test/hardware/usb-micro-voice-2026-10-10.md); gesture and Voice
 Chat acceptance remain UNKNOWN pending the owner's test.
+
+## Monitor OTA 0.7.0 — 2026-10-10
+
+Monitor OTA is implemented with a one-time USB migration to two 4 MiB app slots.
+NVS remains `0x9000`/`0x5000`; models move to `0x810000`. See
+[monitor OTA](monitor-ota.md) for exact effects, controls and recovery.
+
+Validation:
+
+- PlatformIO `codex-monitor` and the affected `codex-audio-diag` build passed.
+  The final monitor application image is 3,318,480 bytes (about 79% of 4 MiB);
+  speech models are 3,518,070 bytes, SHA-256
+  `2911d0b98a3ac57eb523f67276741e9c370e7c134310de3b3d04789fb7d68499`.
+- PlatformIO uploaded all five monitor images to board `B81F3FC39F94`, verifying
+  their hashes and restarting through the supported watchdog reset. No full
+  erase was requested. Final uploaded application SHA-256:
+  `929c36a614c3de257282d5ef6ce289196d1353b1794859d38212cfbc038a477a`.
+- Post-flash PlatformIO serial monitoring at 115200 baud showed working audio,
+  saved Wi-Fi connected, both workers present and `usb_muted=1`. Desktop USB
+  status exchanges continued and were displayed. The initial bridge-mode check
+  exposed only about 10 KiB free internal heap and failed to allocate a separate
+  8 KiB update task. OTA now reuses the already-created idle voice worker, keeping
+  its internal-RAM stack available for flash operations.
+- After the correction, a serial `ota-check` progressed through preparation and
+  published-catalog checking without the allocation failure, then safely returned
+  `Update catalog unavailable; try again later` while `ota.json` was not yet
+  published. Status streaming resumed and outgoing USB audio remained muted.
+  The corrected check was observed in live Desktop USB mode (about 41 KiB heap);
+  a corrected low-heap bridge-mode download remains unverified.
+- Windows held the application USB interface during part of validation. A
+  temporary Windows COM9/115200 loopback relay let the PlatformIO monitor read
+  diagnostics while Desktop retained USB ownership. It is a test aid, not a
+  firmware or product dependency.
+- 30 native tests, 40 host packaging/workflow tests, 11 BLE client tests and two
+  site tests passed. Browser navigation and settings layout checks passed at
+  1440, 768 and 390 pixel widths. Actual-image packaging verified the compiled
+  version/partition map and generated both USB and app-only OTA manifests.
+
+Still **UNKNOWN**: successful monitor app download/install from published Pages,
+physical power-interruption recovery, pending-boot rollback and first-boot
+confirmation of an OTA-installed monitor. The standalone OTA demo's earlier
+success is separate evidence. The 0.7.0 baseline checks as current once published;
+a newer compatible version is needed to exercise an actual update.

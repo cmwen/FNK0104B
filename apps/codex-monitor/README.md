@@ -40,10 +40,12 @@ The SDK's optional Arduino cloud libraries are disabled and never initialized.
 Arduino component integration follows [Espressif's supported IDF 5.5 path](https://docs.espressif.com/projects/arduino-esp32/en/latest/esp-idf_component.html).
 
 **Flash layout changes:** this firmware preserves the Arduino NVS boundary:
-20 KiB NVS at `0x9000`, PHY at `0xf000`, a 6 MiB factory app at `0x10000`,
-and models at `0x610000` (0x9f0000 bytes). Uploading from the previous Arduino
-monitor replaces its OTA/FATFS layout and overwrites old FATFS files;
-back up required flash data first. There are no OTA slots. The speech
+20 KiB NVS at `0x9000`, two 4 MiB OTA apps at `0x10000`/`0x410000`,
+OTA metadata at `0xe000`, and models at `0x810000` (0x7f0000 bytes).
+Version 0.7.0 needs a one-time full USB migration from the single-slot monitor.
+It moves models and can overwrite old app/filesystem data; keep browser erasing
+unchecked to preserve compatible NVS. See [monitor OTA](../../docs/monitor-ota.md)
+for the migration, wireless update controls, recovery and hardware evidence. The speech
 diagnostic/recorder have a different NVS size; preservation from those layouts
 is not guaranteed. PlatformIO uploads the
 WakeNet10, VADNet and MultiNet model image automatically. The browser package
@@ -120,7 +122,7 @@ credentials can leave those new credentials saved even if connection failed.
 Browser manifests now ask whether to erase the device, with erasing unchecked.
 Leave it unchecked to preserve Wi-Fi and monitor preferences across compatible
 updates. The monitor keeps the Arduino NVS offset 0x9000 and size 0x5000; it still
-replaces OTA/FATFS with a 6 MiB app and speech models. Switching from diagnostic
+provides two 4 MiB OTA slots and moves speech models during the 0.7.0 migration. Switching from diagnostic
 firmware with a different NVS size is not a guaranteed preservation path. Already
 erased settings cannot be recovered: enter Wi-Fi once through setup.
 

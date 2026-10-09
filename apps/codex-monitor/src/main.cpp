@@ -26,6 +26,7 @@
 #include <fnk0104b/usb_microphone.hpp>
 #include "voice_capture_gate.hpp"
 #include "monitor_wifi_setup.hpp"
+#include "monitor_ota.hpp"
 
 #include <atomic>
 #include <errno.h>
@@ -465,7 +466,7 @@ void startBle() {
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
   Serial.println("monitor_ble role=settings hid=disabled");
-  BLEService* service = server->createService(BLEUUID(String(kServiceUuid)), 24);
+  BLEService* service = server->createService(BLEUUID(String(kServiceUuid)), 32);
   settingsCharacteristic = service->createCharacteristic(kCharacteristicUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   settingsCharacteristic->setCallbacks(new SettingsCallbacks());
@@ -476,6 +477,7 @@ void startBle() {
   voiceSettingsCharacteristic = service->createCharacteristic(kVoiceSettingsUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   voiceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
+  monitor_ota::attach(service);
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   // Keep the full name in the primary advertisement for browser name filters.
@@ -722,6 +724,7 @@ void voiceWorker(void*) {
   uint8_t* wav = nullptr;
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    if (monitor_ota::runPending()) { uiDirty = true; continue; }
     if (WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
       voicePreparing = false;
       recording = false; voiceBusy = false; uiDirty = true;
@@ -990,6 +993,8 @@ void serialLoop() {
     if (c == '\n') {
       command[length] = '\0';
       capture = strcmp(command, "screenshot") == 0;
+      if (!strcmp(command, "ota-check")) monitor_ota::request("check");
+      if (!strcmp(command, "ota-install")) monitor_ota::request("install");
       if (!strcmp(command, "hid-agent0"))
         Serial.printf("codex_hid input=%s\n", codex_hid::agent0Tap() ? "queued" : "unavailable");
       if (!strcmp(command, "health"))
@@ -1038,7 +1043,7 @@ void serialLoop() {
 void setup() {
   const bool hidStarted = codex_hid::begin();
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.3");
+  fnk0104b::board.printStartupInfo("codex-monitor", monitor_ota::version);
   Serial.printf("monitor_startup reset_reason=%u\n", unsigned(esp_reset_reason()));
   if (lastAllocationFailure.magic == kAllocationFailureMagic)
     Serial.printf("monitor_heap previous_failure size=%lu caps=0x%lx\n",
@@ -1072,7 +1077,7 @@ void setup() {
   const uint8_t wifiSetupRequest = preferences.getUChar("wifiSetup", 0);
   if (wifiSetupRequest) preferences.remove("wifiSetup");
   wifiSetupMode = monitor_wifi_setup::begin(wifiSetupRequest == 1, wifiSetupRequest == 2);
-  if (wifiSetupMode) return;
+  if (wifiSetupMode) { monitor_ota::begin(inputStarted && peripheralMutex && audioMutex); return; }
   Serial.printf("monitor_startup stage=wifi heap=%u\n", unsigned(ESP.getFreeHeap()));
   WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true); WiFi.begin();
   Serial.printf("monitor_startup stage=ble heap=%u\n", unsigned(ESP.getFreeHeap()));
@@ -1094,10 +1099,37 @@ void setup() {
   monitor_speech::setEnabled(codex_hid::transport() != codex_hid::Transport::Usb);
   if (!monitor_speech::begin(peripheralMutex, audioMutex, &voiceBusy))
     setMessage("Speech worker unavailable", 10000);
+  monitor_ota::begin(inputStarted && peripheralMutex && audioMutex && streamMutex);
   Serial.println("monitor_startup stage=complete");
 }
 
 void loop() {
+  monitor_ota::tick();
+  static bool updateQuiesced = false;
+  if (monitor_ota::requested()) {
+    const bool allowed = !recording && !voiceBusy && !voicePreparing && !desktopMicHeld && heldMicroKey < 0 && !usbVoiceControls.voiceOpen();
+    if (allowed) {
+      usbVoiceControls.reset(); fnk0104b::usb_microphone::setMuted(true);
+      fnk0104b::usb_microphone::setAllowed(false); monitor_speech::setEnabled(false);
+      pauseStatus(); updateQuiesced = true;
+    }
+    monitor_ota::start(allowed, voiceTask);
+  }
+  if (monitor_ota::busy()) {
+    fnk0104b::usb_microphone::setAllowed(false);
+    static uint32_t lastUpdateDraw = 0;
+    if (millis() - lastUpdateDraw >= 1000) {
+      lastUpdateDraw = millis(); setMessage("Firmware update / microphone off", 2000);
+    }
+    if (screenAwake && uiDirty) { drawScreen(); uiDirty = false; }
+    delay(20); return;
+  }
+  if (updateQuiesced) {
+    updateQuiesced = false;
+    monitor_speech::setEnabled(codex_hid::transport() != codex_hid::Transport::Usb);
+    if (screenAwake) resumeStatus();
+    uiDirty = true;
+  }
   if (microLayoutChanged.exchange(false)) uiDirty = true;
   if (voiceControlsChanged.exchange(false)) {
     usbVoiceControls.configure(separateVoiceButton);
