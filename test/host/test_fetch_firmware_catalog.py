@@ -108,5 +108,33 @@ class FirmwareSourceTest(unittest.TestCase):
             command.assert_not_called()
 
 
+    def test_initial_missing_catalog_defers_only_for_active_main_firmware(self):
+        pending = {**self.run, 'conclusion': None, 'status': 'in_progress'}
+        with patch.object(fetcher, 'fetch', side_effect=fetcher.CatalogUnavailable('missing')), \
+             patch.object(fetcher, 'api', return_value={'workflow_runs': [pending]}), \
+             patch.dict(fetcher.os.environ, {'GITHUB_STEP_SUMMARY': ''}):
+            self.assertFalse(fetcher.prepare('owner/repo', Path('unused'), defer_if_building=True))
+
+    def test_missing_catalog_without_active_build_still_fails(self):
+        with patch.object(fetcher, 'fetch', side_effect=fetcher.CatalogUnavailable('missing')), \
+             patch.object(fetcher, 'api', return_value={'workflow_runs': []}):
+            with self.assertRaises(fetcher.CatalogUnavailable):
+                fetcher.prepare('owner/repo', Path('unused'), defer_if_building=True)
+
+    def test_corrupt_catalog_never_defers_even_with_active_build(self):
+        with patch.object(fetcher, 'fetch', side_effect=ValueError('corrupt')), \
+             patch.object(fetcher, 'active_firmware_run') as active:
+            with self.assertRaisesRegex(ValueError, 'corrupt'):
+                fetcher.prepare('owner/repo', Path('unused'), defer_if_building=True)
+            active.assert_not_called()
+
+    def test_untrusted_or_finished_build_cannot_defer_publication(self):
+        for field, value in [('head_branch', 'feature'), ('event', 'pull_request'),
+                             ('path', '.github/workflows/pages.yml'), ('status', 'completed')]:
+            run = {**self.run, 'status': 'in_progress', field: value}
+            with self.subTest(field=field), patch.object(fetcher, 'api', return_value={'workflow_runs': [run]}):
+                self.assertIsNone(fetcher.active_firmware_run('owner/repo'))
+
+
 if __name__ == '__main__':
     unittest.main()

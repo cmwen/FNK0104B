@@ -46,6 +46,12 @@ publication rather than deploying a partial installer; existing Pages stays
 available. The old deployed site gains this fallback metadata on the first
 successful publication of the split workflow.
 
+During the first migration, a missing catalog is explicitly deferred if a trusted
+main firmware build is still queued or running. The Actions summary links that
+build, packaging/deployment are skipped, and successful firmware completion
+triggers a fresh publication. Missing catalogs without an active build, corrupt
+images, and other download errors still fail; they are not disguised as waiting.
+
 Firmware success on main triggers the publisher through `workflow_run`. The
 publisher checks out current main for that event, so finishing an older build
 cannot restore an older documentation checkout. Publication is serialized.
