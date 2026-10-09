@@ -120,7 +120,7 @@ entry. Cache misses never cause affected firmware to be skipped.
 `python scripts/build_firmware.py` still builds all apps locally. Inspect the CI
 plan with `python scripts/firmware_ci.py plan`. Run planner/bundle/package tests
 with `python -m unittest discover -s test/host`; validate workflow syntax with
-`actionlint .github/workflows/build.yml`.
+`actionlint .github/workflows/*.yml`.
 
 Validation for this change: 19 host tests pass, covering app/inherited/shared
 changes, source additions/deletions, docs-only changes, complete catalog reuse,
@@ -133,3 +133,12 @@ and eviction; download caches were consolidated before repeating acceptance. Bra
 
 Cache behavior follows the [official Actions cache contract](https://github.com/actions/cache/blob/main/README.md);
 the output matrix follows [GitHub's matrix job documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).
+
+## Independent guide publishing — 2026-10-10
+
+The combined workflow is now split into firmware builds, guide publishing and
+host checks. Guide/configuration/docs changes reuse the last complete successful
+main firmware catalog without a firmware matrix. Firmware success independently
+refreshes the published catalog. See [workflow triggers, artifact lifetime and
+manual recovery](ci-workflows.md). The fingerprint planner now tracks only the
+firmware workflow; changing the Pages workflow does not invalidate firmware.

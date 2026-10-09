@@ -11,7 +11,7 @@ import shutil
 import subprocess
 
 from package_web_firmware import (
-    ROOT, BUILD, BUILD_ONLY_ENVIRONMENTS, PARTS, firmware_environments,
+    ROOT, BUILD, BUILD_ONLY_ENVIRONMENTS, PARTS, firmware_environments, monitor_partitions,
 )
 
 SCHEMA = 1
@@ -58,7 +58,7 @@ def inputs(root, environment, files=None):
     section = f"env:{environment}"
     if not config.has_section(section):
         raise ValueError(f"Unknown environment: {environment}")
-    selected = {"platformio.ini", ".github/workflows/build.yml", "scripts/firmware_ci.py", "scripts/package_web_firmware.py"}
+    selected = {"platformio.ini", ".github/workflows/firmware.yml", "scripts/firmware_ci.py", "scripts/package_web_firmware.py"}
     settings = "\n".join(option(config, section, name) for name in (
         "framework", "build_flags", "extra_scripts", "board_build.partitions", "build_src_filter"))
     # Include local scripts/headers/partition files referred to by build options.
@@ -129,6 +129,18 @@ def image_names(environment):
     return tuple(name for name, _ in PARTS)
 
 
+def image_layout(environment):
+    parts = PARTS
+    app_limit = 3 * 1024 * 1024
+    model_limit = None
+    if environment == 'codex-monitor':
+        app_offset, app_limit, model_offset, model_limit = monitor_partitions()
+        parts = (("bootloader.bin", 0), ("partitions.bin", 0x8000),
+                 ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
+    return {"parts": [{"path": name, "offset": offset} for name, offset in parts],
+            "app_limit": app_limit, "model_limit": model_limit}
+
+
 def verify(directory, environment, expected_fingerprint=None):
     target = directory / environment
     metadata = json.loads((target / "metadata.json").read_text())
@@ -140,6 +152,17 @@ def verify(directory, environment, expected_fingerprint=None):
         raise ValueError("Firmware bundle input fingerprint mismatch")
     if set(metadata["images"]) != set(image_names(environment)):
         raise ValueError("Firmware bundle image list mismatch")
+    layout = metadata.get("layout")
+    if layout is not None:
+        if {part["path"] for part in layout["parts"]} != set(image_names(environment)):
+            raise ValueError("Firmware bundle flash layout mismatch")
+        if any(type(part["offset"]) is not int or not 0 <= part["offset"] < 16 * 1024 * 1024
+               for part in layout["parts"]):
+            raise ValueError("Firmware bundle flash offset invalid")
+        if type(layout["app_limit"]) is not int or layout["app_limit"] <= 0:
+            raise ValueError("Firmware bundle app limit invalid")
+        if environment == "codex-monitor" and (type(layout["model_limit"]) is not int or layout["model_limit"] <= 0):
+            raise ValueError("Firmware bundle model limit invalid")
     for name, expected in metadata["images"].items():
         image = target / name
         if not image.is_file() or not image.stat().st_size or hashlib.sha256(image.read_bytes()).hexdigest() != expected:
@@ -163,7 +186,8 @@ def collect(directory, environment, digest, version):
         shutil.copyfile(source, destination)
         images[name] = hashlib.sha256(destination.read_bytes()).hexdigest()
     metadata = {"schema": SCHEMA, "environment": environment, "fingerprint": digest,
-                "version": version, "images": images}
+                "version": version, "images": images,
+                "layout": image_layout(environment) if images else None}
     (target / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     verify(directory, environment, digest)
 

@@ -129,8 +129,15 @@ def package(output: Path, version: str, reuse_dir: Path = None):
             app_offset, app_limit, model_offset, model_limit = monitor_partitions()
             image_parts = (("bootloader.bin", 0), ("partitions.bin", 0x8000),
                            ("firmware.bin", app_offset), ("srmodels/srmodels.bin", model_offset))
-            if (image_dir / "srmodels/srmodels.bin").stat().st_size > model_limit:
+            if (reuse_dir is None or not metadata.get("layout")) and (image_dir / "srmodels/srmodels.bin").stat().st_size > model_limit:
                 raise ValueError("Monitor models exceed their partition")
+        if reuse_dir is not None and metadata.get("layout"):
+            # Older firmware keeps its own offsets when current partitions change.
+            layout = metadata["layout"]
+            image_parts = tuple((part["path"], part["offset"]) for part in layout["parts"])
+            app_limit = layout["app_limit"]
+            if environment == "codex-monitor" and (image_dir / "srmodels/srmodels.bin").stat().st_size > layout["model_limit"]:
+                raise ValueError("Monitor models exceed their original partition")
         for name, offset in image_parts:
             source = boot_app0 if name == "boot_app0.bin" and reuse_dir is None else image_dir / name
             if not source.is_file() or not source.stat().st_size:
@@ -147,6 +154,9 @@ def package(output: Path, version: str, reuse_dir: Path = None):
             "builds": [{"chipFamily": "ESP32-S3", "parts": parts}],
         }
         (target / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+        if reuse_dir is not None:
+            # Keep verified provenance available after Actions artifacts expire.
+            (target / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
         catalog["builds"].append({
             "id": environment,
             "name": NAMES[environment][0],

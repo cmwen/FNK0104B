@@ -1,0 +1,95 @@
+name: Publish board guide
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'web-flasher/**'
+      - 'docs/**'
+      - 'knowledge/**'
+      - '**/*.md'
+      - 'scripts/package_web_firmware.py'
+      - 'scripts/fetch_firmware_catalog.py'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'web-flasher/**'
+      - 'docs/**'
+      - 'knowledge/**'
+      - '**/*.md'
+      - 'scripts/package_web_firmware.py'
+      - 'scripts/fetch_firmware_catalog.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Build firmware', 'Build firmware and publish board guide']
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: board-guide-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  guide:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      ASTRO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            web-flasher/package-lock.json
+            site/package-lock.json
+      - name: Build BLE setup page
+        run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
+      - name: Build and verify Astro guide
+        run: npm ci --prefix site && npm run build --prefix site && npm test --prefix site
+      - name: Download previously verified main firmware
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/fetch_firmware_catalog.py --repository "$GITHUB_REPOSITORY" --output .ci/firmware --published-base https://cmwen.github.io/FNK0104B/
+      - name: Package flasher and firmware
+        run: python scripts/package_web_firmware.py --reuse-dir .ci/firmware --output /tmp/fnk0104b-pages --version "$(git rev-parse --short=12 HEAD)"
+      - name: Verify links in the final Pages artifact
+        run: GUIDE_DIST_DIR=/tmp/fnk0104b-pages npm test --prefix site
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: /tmp/fnk0104b-pages
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: guide
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

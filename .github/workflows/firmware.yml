@@ -1,14 +1,49 @@
-name: Build firmware and publish board guide
+name: Build firmware
 
 on:
   push:
+    paths:
+      - 'platformio.ini'
+      - 'CMakeLists.txt'
+      - 'dependencies*.lock'
+      - 'apps/**'
+      - '!apps/**/*.md'
+      - 'lib/**'
+      - '!lib/**/*.md'
+      - 'components/**'
+      - '!components/**/*.md'
+      - 'scripts/**'
+      - '!scripts/**/*.md'
+      - '!scripts/capture_monitor_screen.py'
+      - '!scripts/monitor_ui_preview.cpp'
+      - '!scripts/fetch_firmware_catalog.py'
+      - '.github/workflows/firmware.yml'
   pull_request:
+    paths:
+      - 'platformio.ini'
+      - 'CMakeLists.txt'
+      - 'dependencies*.lock'
+      - 'apps/**'
+      - '!apps/**/*.md'
+      - 'lib/**'
+      - '!lib/**/*.md'
+      - 'components/**'
+      - '!components/**/*.md'
+      - 'scripts/**'
+      - '!scripts/**/*.md'
+      - '!scripts/capture_monitor_screen.py'
+      - '!scripts/monitor_ui_preview.cpp'
+      - '!scripts/fetch_firmware_catalog.py'
+      - '.github/workflows/firmware.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
   firmware-plan:
     runs-on: ubuntu-latest
     outputs:
@@ -78,85 +113,38 @@ jobs:
         with:
           name: firmware-${{ matrix.environment }}
           path: .ci/firmware/
-          retention-days: 1
+          retention-days: 7
           include-hidden-files: true
           if-no-files-found: error
 
-  checks:
-    runs-on: ubuntu-latest
-    env:
-      PLATFORMIO_SETTING_ENABLE_TELEMETRY: 'No'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-      - uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.platformio/.cache
-          key: ${{ runner.os }}-native-${{ hashFiles('platformio.ini') }}
-      - name: Run host tests
-        run: |
-          python -m pip install 'platformio==6.2.0'
-          pio test -e native
-          python -m unittest discover -s test/host
-          python -m unittest discover -s monitor-server/tests
-
-  platformio:
+  catalog:
     needs: [firmware, checks]
     runs-on: ubuntu-latest
-    env:
-      ASTRO_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: |
-            web-flasher/package-lock.json
-            site/package-lock.json
-      - name: Build BLE setup page
-        run: npm ci --prefix web-flasher && npm test --prefix web-flasher && npm run build --prefix web-flasher
-      - name: Build and verify Astro guide
-        run: npm ci --prefix site && npm run build --prefix site && npm test --prefix site
-      - name: Assemble complete firmware catalog
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           pattern: firmware-*
           path: .ci/firmware/
           merge-multiple: true
-      - name: Package flasher and firmware
-        run: python scripts/package_web_firmware.py --reuse-dir .ci/firmware --output /tmp/fnk0104b-pages
-      - name: Verify links in the final Pages artifact
-        run: GUIDE_DIST_DIR=/tmp/fnk0104b-pages npm test --prefix site
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v4
+      - name: Verify complete catalog
+        run: |
+          python - <<'PYTHON'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from firmware_ci import verify
+          from package_web_firmware import firmware_environments
+          for environment in firmware_environments():
+              verify(Path('.ci/firmware'), environment)
+          PYTHON
+      - uses: actions/upload-artifact@v4
         with:
-          path: /tmp/fnk0104b-pages
-
-  deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: platformio
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: github-pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/configure-pages@v5
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: firmware-catalog
+          path: .ci/firmware/
+          include-hidden-files: true
+          retention-days: 90
+          if-no-files-found: error

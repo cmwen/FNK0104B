@@ -60,6 +60,13 @@ pio debug -e hello-debug
 
 On WSL, USB/IP reattachment can change `/dev/ttyACM0` to `/dev/ttyACM1` or another number. Use the board's persistent `/dev/serial/by-id/` path from `docs/flashing.md` for repeatable monitoring.
 
+## Independent publishing
+
+Documentation and browser configuration changes publish through the guide workflow
+without compiling firmware. Firmware source changes use a separate PlatformIO
+workflow; successful main builds refresh the installer catalog. Host checks also
+run independently. See [workflow triggers and manual runs](docs/ci-workflows.md).
+
 ## Repository map
 
 - `apps/` — independent firmware apps selected by PlatformIO environment.

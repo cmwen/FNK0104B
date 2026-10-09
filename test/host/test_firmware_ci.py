@@ -73,6 +73,14 @@ build_src_filter = +<02-display/src/>
             self.write(path, 'changed')
         self.assertEqual(set(), self.changed(before))
 
+    def test_pages_workflow_and_catalog_fetch_do_not_invalidate_firmware(self):
+        before = self.hashes()
+        self.write('.github/workflows/pages.yml', 'new publishing workflow')
+        self.write('scripts/fetch_firmware_catalog.py', 'new download logic')
+        self.assertEqual(set(), self.changed(before))
+        self.write('.github/workflows/firmware.yml', 'new build workflow')
+        self.assertEqual({'hello', 'hello-debug', 'display'}, self.changed(before))
+
     def test_new_and_deleted_source_files_change_fingerprint(self):
         before = self.hashes()
         self.write('apps/02-display/src/new.cpp', 'int x = 1;')
@@ -163,6 +171,14 @@ class FirmwareBundleTest(unittest.TestCase):
             with patch.object(package, 'SITE', site), patch.object(package, 'ROOT', root):
                 output = root / 'output'
                 self.assertEqual(len(environments), package.package(output, 'new-site', bundles))
+                # Packaging newer docs must preserve the previous firmware layout.
+                old_metadata = json.loads((bundles / 'codex-monitor/metadata.json').read_text())
+                old_model_offset = next(part['offset'] for part in old_metadata['layout']['parts'] if part['path'] == 'srmodels/srmodels.bin')
+                with patch.object(package, 'monitor_partitions', return_value=(0x10000, 4 * 1024 * 1024, 0x500000, 4 * 1024 * 1024)):
+                    package.package(output, 'newer-site', bundles)
+                manifest = json.loads((output / 'firmware/codex-monitor/manifest.json').read_text())
+                self.assertEqual(old_model_offset, manifest['builds'][0]['parts'][-1]['offset'])
+                self.assertEqual(old_metadata, json.loads((output / 'firmware/codex-monitor/metadata.json').read_text()))
                 catalog = json.loads((output / 'firmware/catalog.json').read_text())
                 self.assertEqual(set(environments), {item['id'] for item in catalog['builds']})
                 for env in environments:

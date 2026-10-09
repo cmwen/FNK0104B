@@ -29,8 +29,9 @@ GUIDE_DIST_DIR=/tmp/fnk0104b-pages npm test --prefix site
 ```
 
 Packaging requires the published firmware environments to have already been
-built with `python3 scripts/build_firmware.py`. CI builds the guide and packages
-it with those images into one GitHub Pages artifact. The Astro base is `/FNK0104B`.
+built with `python3 scripts/build_firmware.py`. The independent Pages workflow builds the guide and packages
+it with images from a previously successful main firmware build. It never
+compiles firmware. See [workflow triggers and retained catalog recovery](../docs/ci-workflows.md). The Astro base is `/FNK0104B`.
 There is no second hosting service.
 
 The packager preserves Astro's `firmware/` catalog and detail pages while adding
