@@ -5,6 +5,16 @@ reads the locally signed-in Codex app-server and optionally sends recorded audio
 to a separate speech service. GitHub Pages configures BLE settings; it does not
 host the bridge or carry board status/audio.
 
+## USB controls without a bridge
+
+For direct USB Micro control, no bridge or Wi-Fi setup is required. Connect the
+board to Desktop, select its TinyUSB UAC1 microphone input, and keep the first
+microphone key assigned to Push to talk. To enable continuous Voice Chat, map
+the second microphone key separately in Desktop and save Hold to talk + Voice
+toggle in the browser. See [the current voice-control guide](usb-micro-voice-controls.md)
+for exact setup, Mic ON/OFF meanings and availability limits. The instructions
+below configure the separate Wi-Fi bridge experience.
+
 ## 1. Prepare the computer and network
 
 Use Python 3 and this repository on Linux, macOS, or in WSL. The bridge's default
@@ -45,7 +55,8 @@ Copy the generated key into the ignored header. Example values:
 ```
 
 Do not commit this header. These values are compiled into the monitor firmware;
-Web BLE changes alert volume, idle screen timeout and the USB Micro layout (three slots plus directions, or six slots). A public
+Web BLE changes alert volume, idle screen timeout the USB Micro layout (three slots plus directions, or six slots), and the optional
+separate Voice button. Desktop key actions are configured in Desktop. A public
 GitHub Pages monitor build has no private bridge host/key. Use your locally
 configured build for the real bridge. Changing host, port or key requires a new
 build/upload.

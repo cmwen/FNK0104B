@@ -1,5 +1,7 @@
 # Connectivity modes plan
 
+**2026-10-10 update:** USB Micro defaults to Hold to talk with closed outgoing audio. Continuous audio uses an optional separate Voice button, manually mapped in Desktop. See [the current experience and implementation](usb-micro-voice-controls.md); the dated plan below does not supersede this control contract.
+
 **2026-10-08 update:** The monitor now reserves BLE for browser configuration and defaults USB Micro to three agent slots plus four joystick controls. See [the decision and implementation](usb-micro-controls.md); earlier BLE/six-slot sections below are historical.
 
 
