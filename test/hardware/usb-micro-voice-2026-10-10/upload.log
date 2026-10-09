@@ -5,20 +5,20 @@ CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devk
 PLATFORM: Espressif 32 (7.0.1) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
 HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
 DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
-PACKAGES: 
- - framework-espidf @ 4.50505.0 (5.5.5) 
- - tool-cmake @ 3.30.2 
- - tool-esp-rom-elfs @ 0.0.1+20241011 
- - tool-esptoolpy @ 2.41100.260830 (4.11.0) 
- - tool-mkfatfs @ 2.0.1 
- - tool-mklittlefs @ 1.203.210628 (2.3) 
- - tool-mkspiffs @ 2.230.0 (2.30) 
- - tool-ninja @ 1.7.1 
- - tool-openocd-esp32 @ 2.1100.20220706 (11.0) 
- - tool-riscv32-esp-elf-gdb @ 12.1.0+20221002 
- - tool-xtensa-esp-elf-gdb @ 12.1.0+20221002 
- - toolchain-esp32ulp @ 1.23800.240113 (2.38.0) 
- - toolchain-riscv32-esp @ 15.2.0+20251204 
+PACKAGES:
+ - framework-espidf @ 4.50505.0 (5.5.5)
+ - tool-cmake @ 3.30.2
+ - tool-esp-rom-elfs @ 0.0.1+20241011
+ - tool-esptoolpy @ 2.41100.260830 (4.11.0)
+ - tool-mkfatfs @ 2.0.1
+ - tool-mklittlefs @ 1.203.210628 (2.3)
+ - tool-mkspiffs @ 2.230.0 (2.30)
+ - tool-ninja @ 1.7.1
+ - tool-openocd-esp32 @ 2.1100.20220706 (11.0)
+ - tool-riscv32-esp-elf-gdb @ 12.1.0+20221002
+ - tool-xtensa-esp-elf-gdb @ 12.1.0+20221002
+ - toolchain-esp32ulp @ 1.23800.240113 (2.38.0)
+ - toolchain-riscv32-esp @ 15.2.0+20251204
  - toolchain-xtensa-esp-elf @ 14.2.0+20260121
 Reading CMake configuration...
 LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf

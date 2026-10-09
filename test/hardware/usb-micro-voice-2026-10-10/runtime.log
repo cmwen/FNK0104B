@@ -2,30 +2,30 @@
 --- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
 --- More details at https://bit.ly/pio-monitor-filters
 --- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
-codex_hid host=idle
+codex_hid host=idle
 monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=44095
-codex_hid host=active
+codex_hid host=active
 codex_hid rx report_id=6 bytes=63 reports=45
 codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=53
 codex_hid status_received revision=5
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 codex_hid application=status_displayed revision=5
 codex_hid protocol=decoded method=device.status reply_bytes=145
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=44095
 monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=44095
-codex_hid host=idle
-codex_hid host=active
+codex_hid host=idle
+codex_hid host=active
 codex_hid rx report_id=6 bytes=63 reports=56
 codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
 codex_hid status_received revision=6
 codex_hid application=status_displayed revision=6
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 codex_hid protocol=decoded method=device.status reply_bytes=145
-codex_hid tx=complete report_id=6
+codex_hid tx=complete report_id=6
 monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=44095
 monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=44095
