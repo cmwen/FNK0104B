@@ -50,6 +50,12 @@ partition requires the full USB upload; sending only `firmware.bin` is insuffici
    Keep power connected while it downloads and restarts. Reconnect to verify
    the installed version. Bluetooth disconnection alone does not prove success.
 
+Wireless updates install the public CI monitor build. Saved Wi-Fi and board
+preferences remain in NVS, but a private bridge host/key compiled into a custom
+firmware is not retained. If you depend on that custom local bridge, build and
+install your customized firmware over USB instead. USB Desktop mode needs no
+private bridge configuration.
+
 The board microphone is off during checks and installation and stays closed
 when work finishes. Normal Hold to talk/Voice controls resume afterward. Existing
 preferences remain unchanged. If firmware 0.7.0+ is installed but update controls
