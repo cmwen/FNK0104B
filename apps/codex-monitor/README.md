@@ -191,3 +191,50 @@ Monitor 0.6.1 disables integrated BLE HID so browser settings have their own BLE
 service. USB Micro defaults to three stable agent slots plus four joystick direction
 buttons; choose six slots on the setup page. Repeated Desktop lighting packets no
 longer clear the whole screen. See [the decision, setup steps and open checks](../../docs/usb-micro-controls.md).
+
+## USB control update 0.6.2 (2026-10-10)
+
+USB status survives receive-queue overflow: only framing resets at a packet gap.
+Actual USB disconnect still clears the session. RX runs while replies transmit;
+key gestures take priority over background replies. The Mic key forwards ACT10
+press/release unchanged, and only its footer redraws on press/release. Desktop
+owns push-to-talk, double-tap recording and Voice Chat settings.
+
+The bottom row is **Mic / X mute / Send**. X toggles the board USB output between
+live samples and silence, clearing queued audio and leaving the host stream open.
+It does not end a desktop chat, mute another selected host input, or power down
+the board microphone. Sampling continues locally. Mute survives mode changes
+until Unmute or reboot; boot starts unmuted, as before.
+
+Choose **Settings → Codex Micro → Microphone key → Voice Chat** in Desktop if
+offered. Tap Mic to start or toggle the chat microphone; hold to end. For
+dictation, choose Push to talk, hold/release or double-tap within 350 ms and press
+again to stop. The host must select TinyUSB UAC1 to use this board's audio. The
+board cannot infer voice-session or app-recording state from USB streaming.
+
+## Separate voice controls 0.6.3 (2026-10-10)
+
+The default is **Hold to talk / Voice (setup required) / Send**. Outgoing board
+USB audio starts closed and carries live samples only while Hold to talk is held.
+Release immediately restores silence, even if the host key release needs retry.
+This supersedes the 0.6.2 X mute toggle and its unmuted boot default. Desktop's
+first microphone key must be Push to talk; the board cannot configure or inspect
+host bindings. The desktop's double-tap dictation gesture does not keep board
+audio open under this strict hold/release policy. Review the prompt and press Send.
+
+Enable **Use separate microphone keys** in Desktop, keep the first switch on
+Push to talk and map the second to Voice Chat if offered. Then save **Hold to
+talk + Voice toggle** in browser settings. The Voice button forwards ACT11
+press/release, opens audio after a short tap and closes it immediately on an
+off press. A hold never briefly reopens closed audio. A one-second hold
+closes the local audio gate; Desktop owns the hold-to-end-chat interpretation.
+A second tap closes audio and requests a host microphone toggle; it does not
+guarantee the desktop chat has ended. Hold to talk is blocked while Voice audio
+is open. Actual desktop key acceptance remains UNKNOWN pending physical tests.
+
+Mic ON/OFF describe outgoing board audio, not microphone power or confirmed
+recording/session state. Waiting means no host audio stream is open. Local raw
+sampling continues. Save, reconnect and boot close the gate. Preferences persist,
+but an open gate does not. Version-3 BLE settings use a new characteristic;
+version-1 and version-2 reads/writes keep their existing shapes and preserve the
+new voice preference. See [the control contract](../../docs/usb-micro-voice-controls.md).

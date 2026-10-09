@@ -11,7 +11,8 @@
 namespace fnk0104b::codex_usb {
 namespace {
 QueueHandle_t rx = nullptr;
-std::atomic<uint32_t> generation{0}, lost{0};
+codex_hid::ReceiveEpochs generations;
+std::atomic<uint32_t> lost{0};
 class Vendor : public USBHIDDevice {
  public:
   USBHID hid;
@@ -23,11 +24,12 @@ class Vendor : public USBHIDDevice {
   }
   void _onOutput(uint8_t id, const uint8_t* data, uint16_t length) override {
     if (id != codex_hid::kReportId || !data || length < 2 || length > 63 || !rx) {
-      ++lost; return;
+      ++lost; generations.overflow(); return;
     }
     Report report{};
-    memcpy(report.body, data, length); report.length = length; report.epoch = generation.load();
-    if (xQueueSend(rx, &report, 0) != pdTRUE) { ++lost; ++generation; }
+    memcpy(report.body, data, length); report.length = length;
+    report.epoch = generations.connection(); report.fragments = generations.fragments();
+    if (xQueueSend(rx, &report, 0) != pdTRUE) { ++lost; generations.overflow(); }
   }
   // Arduino 3.3.12 routes SET_REPORT with explicit ID through this hook too.
   void _onSetFeature(uint8_t id, const uint8_t* data, uint16_t length) override {
@@ -37,7 +39,7 @@ class Vendor : public USBHIDDevice {
 Vendor vendor;
 void event(void*, esp_event_base_t, int32_t id, void*) {
   if (id == ARDUINO_USB_STARTED_EVENT || id == ARDUINO_USB_STOPPED_EVENT) {
-    ++generation;
+    generations.reconnect();
   }
 }
 }
@@ -51,7 +53,7 @@ bool begin() {
   return USB.begin();
 }
 bool mounted() { return tud_mounted(); }
-uint32_t epoch() { return generation.load(); }
+uint32_t epoch() { return generations.connection(); }
 uint32_t dropped() { return lost.load(); }
 bool receive(Report& report) { return rx && xQueueReceive(rx, &report, 0) == pdTRUE; }
 bool send(const uint8_t* body, size_t length) {

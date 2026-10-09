@@ -2,8 +2,20 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <atomic>
 
 namespace codex_hid {
+// A lost fragment invalidates framing, not the Desktop session or its slots.
+class ReceiveEpochs {
+ public:
+  uint32_t connection() const { return connection_.load(); }
+  uint32_t fragments() const { return fragments_.load(); }
+  void reconnect() { ++fragments_; ++connection_; }
+  void overflow() { ++fragments_; }
+ private:
+  std::atomic<uint32_t> connection_{0}, fragments_{0};
+};
+
 constexpr uint16_t kVid = 0x303a, kPid = 0x8360;
 constexpr uint8_t kReportId = 6;
 constexpr size_t kBodySize = 63, kChunkSize = 61, kMaxJson = 2048;

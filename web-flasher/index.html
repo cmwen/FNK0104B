@@ -133,29 +133,61 @@
         </details>
       </section>
 
-      <section class="installer ble-setup" aria-labelledby="monitor-heading">
-        <p class="eyebrow">For monitor firmware</p>
+      <section class="installer ble-setup monitor-setup" aria-labelledby="monitor-heading">
+        <p class="eyebrow">Make the board yours</p>
         <h2 id="monitor-heading">Monitor settings</h2>
-        <p class="ble-intro">Connect to a board running monitor firmware to read or save its alert volume, idle screen timeout and USB Micro layout. Choose FNK0104B-MONITOR in the browser picker; OS pairing is unnecessary. The screen stays on while agents are active or voice commands are in progress. Once idle, it turns off after the configured time; touch or new agent activity wakes it. Values are saved on the board and persist across reboots.</p>
-        <p class="setup-limit">These controls are unauthenticated: a nearby Bluetooth client can change these preferences. They do not accept Wi-Fi credentials. Use the protected Wi-Fi setup section below for passwords. Monitor bridge host/key are configured separately.</p>
-        <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
-        <div class="ble-fields">
+        <p class="ble-intro">Choose the controls you want to see, then map their actions in Desktop. Board preferences are saved over Bluetooth; microphone key assignments belong to the desktop app.</p>
+        <div class="monitor-connection">
           <button id="monitor-connect" class="cta" type="button">Connect to monitor</button>
+          <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
         </div>
-        <form id="monitor-settings-form" class="ble-fields" autocomplete="off">
-          <label for="monitor-volume">Volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
-          <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
-          <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
-          <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
-          <label for="monitor-slots">USB Micro controls</label>
-          <select id="monitor-slots" disabled>
-            <option value="3" selected>3 agent slots + Up / Down / Right / Left (default)</option>
-            <option value="6">6 agent slots</option>
-          </select>
-          <p>Choose three stable Desktop slots with four direction buttons, or all six slots. Click <strong>Save settings</strong> to apply the layout without reboot and keep it across restarts. This selects visible controls, not the number of running agents. Older firmware needs an update if this selector stays disabled.</p>
-          <p>Direction buttons send joystick input rather than keyboard arrow presses. Map their actions in Desktop’s <strong>Settings → Codex Micro</strong> under analog-stick directions. Tap the board’s Micro header indicator for the six command keys. <a href="monitor/#custom-actions">Follow the custom button mapping guide</a>.</p>
-          <button id="monitor-save" class="cta" type="submit" disabled>Save settings</button>
-        </form>
+        <p class="setup-limit">Choose FNK0104B-MONITOR in the browser picker. Keep USB connected if you use Desktop controls; OS Bluetooth pairing is unnecessary. These nearby Bluetooth preferences are unauthenticated. Wi-Fi passwords use the protected setup below.</p>
+        <div class="monitor-workspace">
+          <form id="monitor-settings-form" class="ble-fields" autocomplete="off">
+            <h3>1. Choose board controls</h3>
+            <label for="monitor-slots">Agent layout</label>
+            <select id="monitor-slots" disabled>
+              <option value="3" selected>3 slots + directions (recommended)</option>
+              <option value="6">6 agent slots</option>
+            </select>
+            <p class="field-help">Slots are Desktop shortcuts, not a count of running agents. Tap the board's Micro header to see command keys. Direction buttons follow Desktop's analog-stick mappings.</p>
+            <label for="monitor-voice">Microphone controls</label>
+            <select id="monitor-voice" aria-describedby="monitor-voice-help" disabled>
+              <option value="0" selected>Hold to talk (default)</option>
+              <option value="1">Hold to talk + Voice toggle</option>
+            </select>
+            <p id="monitor-voice-help" class="field-help" aria-live="polite">Connect to firmware 0.6.3 or newer to choose voice controls. Desktop mappings are configured separately.</p>
+            <label for="monitor-volume">Alert volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
+            <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
+            <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
+            <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
+            <p class="field-help">The screen stays awake during active work or open board audio. Once idle, touch wakes it after the selected timeout.</p>
+            <button id="monitor-save" class="cta" type="submit" disabled>Save board settings</button>
+          </form>
+          <aside class="desktop-controls" aria-labelledby="desktop-controls-heading">
+            <h3 id="desktop-controls-heading">2. Map the keys in Desktop</h3>
+            <div class="control-preview" aria-label="USB board microphone controls">
+              <span><b>Hold to talk</b><small>Hold: mic on<br>Release: mic off</small></span>
+              <span><b>Voice</b><small>Tap: mic on/off<br>Optional setup</small></span>
+              <span><b>Send</b><small>Review your prompt<br>Then send</small></span>
+            </div>
+            <ol class="desktop-key-steps">
+              <li>Connect the board over USB and let Desktop discover it. Select <strong>Microphone (TinyUSB UAC1)</strong> as the input and allow microphone access.</li>
+              <li>Open <strong>Settings → Codex Micro → Microphone key</strong>. Keep the first microphone key on <strong>Push to talk</strong>. This is Desktop's documented default, but check it if you previously remapped the key.</li>
+              <li>For the optional Voice button, enable <strong>Use separate microphone keys</strong>. Keep the first switch on <strong>Push to talk</strong> and assign the second to <strong>Voice Chat</strong>, if offered.</li>
+              <li>Select <strong>Hold to talk + Voice toggle</strong> here and save. Tap Voice to open board audio and request a desktop voice chat. Tap again to close board audio and toggle the desktop microphone. Hold Voice to request ending the chat. Turn Voice off before dictating a prompt.</li>
+            </ol>
+            <p class="mapping-note"><strong>Saving here changes the board only.</strong> This page cannot set or verify Desktop's microphone mappings. If your app does not offer separate Voice Chat assignments, keep Hold to talk.</p>
+            <details class="voice-detail">
+              <summary>What do Mic ON and Mic OFF mean?</summary>
+              <p>On monitor firmware 0.6.3 or newer, <strong>Mic OFF:</strong> the board sends silence over USB. <strong>Mic ON:</strong> the board is sending live microphone audio to a host stream. <strong>Waiting:</strong> audio is requested on the board but the host has not opened its stream.</p>
+              <p>The board does not confirm Desktop recording or voice-session state. Tap Voice again stops board audio; the chat may stay open. Hold to end it in Desktop. A one-second hold also closes the board audio gate.</p>
+              <p>The sensor still samples locally. Microphone off means outgoing board USB audio is silenced, not physical power-off. Saving settings, rebooting or disconnecting closes audio. Voice listening starts off after each reconnect.</p>
+              <p>Hold to talk uses a strict hold/release audio gate. Desktop's double-tap dictation gesture will not keep this board's audio open after release; use the separate Voice button for continuous conversation.</p>
+            </details>
+            <p><a href="https://learn.chatgpt.com/docs/features/codex-micro">Official microphone settings guide ↗</a> · <a href="monitor/#custom-actions">Other custom actions</a></p>
+          </aside>
+        </div>
         <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>
       </section>
 

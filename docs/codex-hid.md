@@ -90,8 +90,11 @@ Callbacks validate lengths and queue fixed-size reports without blocking. The
 worker has a 2 ms yield, fixed JSON documents, a 2048-byte receive ceiling,
 2-second partial-message expiry, bounded nesting and four queued responses.
 Quoted braces and escapes are handled correctly; multiple objects per report
-remain separate responses. Incoming queue overflow changes the transport epoch
-so partial streams cannot silently continue. Reconnect discards old epochs.
+remain separate responses. Incoming queue overflow changes only the fragment generation; the decoder resets
+at the gap while discovery, key releases and last valid slot lighting are retained.
+Only USB start/stop changes the transport epoch. Reconnect discards old epochs.
+RX drains while replies transmit, and queued input takes priority over background
+ACKs so microphone holds/double taps are not delayed by lighting bursts.
 Transmit advances only after TinyUSB accepts a packet, with a 500 ms bounded
 retry period. HID paths allocate queues once, not per message.
 

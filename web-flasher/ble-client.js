@@ -123,6 +123,7 @@ wifiForm.addEventListener("submit", async event => {
 // Monitor settings use a separate service and do not share Wi-Fi provisioning.
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+const MONITOR_VOICE_SETTINGS_UUID = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 const MONITOR_EXTENDED_SETTINGS_UUID = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 const monitorSupport = document.querySelector("#monitor-support");
 const monitorConnect = document.querySelector("#monitor-connect");
@@ -137,6 +138,8 @@ let monitorCharacteristic = null;
 let monitorBusy = false;
 let monitorSettingsVersion = 1;
 const monitorSlots = document.querySelector("#monitor-slots");
+const monitorVoice = document.querySelector("#monitor-voice");
+const monitorVoiceHelp = document.querySelector("#monitor-voice-help");
 
 function showMonitorStatus(message, error = false) {
   monitorStatus.hidden = false;
@@ -149,6 +152,8 @@ function setMonitorControls(connected) {
   monitorDimTimeout.disabled = !connected;
   monitorSave.disabled = !connected || monitorBusy;
   monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
+  monitorVoice.disabled = !connected || monitorSettingsVersion < 3;
+  updateVoiceHelp();
 }
 
 function updateMonitorVolumeLabel() {
@@ -156,22 +161,33 @@ function updateMonitorVolumeLabel() {
   monitorVolumeValue.textContent = `${monitorVolume.value}%`;
 }
 
+function updateVoiceHelp() {
+  monitorVoiceHelp.textContent = monitorSettingsVersion < 3
+    ? "Connect to firmware 0.6.3 or newer to choose voice controls. Desktop mappings are configured separately."
+    : monitorVoice.value === "1"
+      ? "Hold to talk stays available. Voice toggles the board microphone on/off. Map the two separate microphone keys in Desktop before using Voice. Saving closes the microphone."
+      : "Default: board USB audio is off until you hold Hold to talk, and off again on release. Desktop's first Mic key must use Push to talk. Saving closes the microphone.";
+}
+monitorVoice.addEventListener("change", updateVoiceHelp);
+
 function decodeMonitorSettings(value) {
-  if (value.byteLength !== 4 && value.byteLength !== 5) throw new Error("The board returned an invalid settings packet.");
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (!((bytes[0] === 1 && bytes.length === 4) || (bytes[0] === 2 && bytes.length === 5)))
-    throw new Error(`Unsupported settings version ${bytes[0]}.`);
-  if (bytes[0] === 2 && bytes[4] !== 3 && bytes[4] !== 6)
+  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 3 || bytes.length !== bytes[0] + 3)
+    throw new Error("The board returned an invalid settings packet.");
+  if (bytes[0] >= 2 && bytes[4] !== 3 && bytes[4] !== 6)
     throw new Error("The board returned an invalid Micro layout.");
-  monitorSettingsVersion = bytes[0];
-  monitorSlots.value = String(bytes[0] === 2 ? bytes[4] : 6);
+  if (bytes[0] === 3 && bytes[5] > 1)
+    throw new Error("The board returned an invalid voice control mode.");
   const dimTimeout = bytes[2] | (bytes[3] << 8);
-  if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120) {
+  if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120)
     throw new Error("The board returned settings outside the supported range.");
-  }
+  monitorSettingsVersion = bytes[0];
+  monitorSlots.value = String(bytes[0] >= 2 ? bytes[4] : 6);
+  monitorVoice.value = String(bytes[0] === 3 ? bytes[5] : 0);
   monitorVolume.value = String(bytes[1]);
   monitorDimTimeout.value = String(dimTimeout);
   updateMonitorVolumeLabel();
+  updateVoiceHelp();
 }
 
 function monitorDisconnected() {
@@ -206,12 +222,11 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);
     const server = await monitorDevice.gatt.connect();
     const service = await server.getPrimaryService(MONITOR_SERVICE_UUID);
-    try {
-      monitorCharacteristic = await service.getCharacteristic(MONITOR_EXTENDED_SETTINGS_UUID);
-    } catch (error) {
-      if (error.name !== "NotFoundError") throw error;
-      monitorCharacteristic = await service.getCharacteristic(MONITOR_SETTINGS_UUID);
+    for (const uuid of [MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
+      try { monitorCharacteristic = await service.getCharacteristic(uuid); break; }
+      catch (error) { if (error.name !== "NotFoundError") throw error; }
     }
+    if (!monitorCharacteristic) throw new Error("Monitor settings are unavailable.");
     if (!monitorCharacteristic.properties.read || !monitorCharacteristic.properties.write) {
       throw new Error("The monitor settings characteristic does not support read and write.");
     }
@@ -249,14 +264,20 @@ monitorForm.addEventListener("submit", async event => {
   showMonitorStatus("Saving settings to the board…");
   try {
     const slots = Number(monitorSlots.value);
-    if (monitorSettingsVersion === 2 && slots !== 3 && slots !== 6)
+    if (monitorSettingsVersion >= 2 && slots !== 3 && slots !== 6)
       throw new Error("Choose three or six Micro agent slots.");
-    const bytes = new Uint8Array(monitorSettingsVersion === 2
-      ? [2, volume, dimTimeout & 0xff, dimTimeout >> 8, slots]
-      : [1, volume, dimTimeout & 0xff, dimTimeout >> 8]);
+    const voice = Number(monitorVoice.value);
+    if (monitorSettingsVersion === 3 && voice !== 0 && voice !== 1)
+      throw new Error("Choose Hold to talk or Hold to talk + Voice.");
+    const packet = [monitorSettingsVersion, volume, dimTimeout & 0xff, dimTimeout >> 8];
+    if (monitorSettingsVersion >= 2) packet.push(slots);
+    if (monitorSettingsVersion === 3) packet.push(voice);
+    const bytes = new Uint8Array(packet);
     await monitorCharacteristic.writeValue(bytes);
     decodeMonitorSettings(await monitorCharacteristic.readValue());
-    showMonitorStatus("Settings saved and read back from the monitor.");
+    showMonitorStatus(monitorSettingsVersion === 3
+      ? "Board settings saved and read back. Microphone is off. Check the Desktop key mappings before using voice controls."
+      : "Settings saved and read back from the monitor.");
   } catch (error) {
     showMonitorStatus(`Could not save monitor settings: ${error instanceof Error ? error.message : String(error)}`, true);
   } finally {

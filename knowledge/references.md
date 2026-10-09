@@ -44,3 +44,5 @@ For additional Freenove tutorials and existing evidence see [docs/references.md]
 - **O1:** [Official Codex Micro guide](https://learn.chatgpt.com/docs/features/codex-micro): selected host microphone, Mic key mappings and Voice Chat behavior. This describes the supported retail product's user flow, not an official wire protocol or endorsement of this firmware's compatibility identity.
 
 Device observations and unresolved acceptance checks are in [the audio validation record](../test/hardware/codex-audio-2026-10-04.md).
+
+- **P1:** [Retail Codex Micro technical dossier, pinned capture](https://github.com/arthurcolle/codex-micro-open/blob/3ea3db39c85ca3240e9bee8d1bb0551bf34b1e63/reports/technical-dossier.md): physical layout and exact-unit captured ACT10 + ACT11 microphone switch events. Combined with O1's independent-key setting, this supports the optional second microphone key contract. Acceptance of ACT11 and separate Voice Chat mappings on this FNK0104B host remains UNKNOWN; it supplies no Freenove GPIO facts.

@@ -1,6 +1,8 @@
 #include <unity.h>
 #include <codex_hid/protocol.hpp>
 #include <codex_hid/backend.hpp>
+#include <codex_hid/voice_controls.hpp>
+#include <codex_hid/monitor_settings.hpp>
 #include <ui/micro_layout.hpp>
 #include <initializer_list>
 
@@ -423,6 +425,41 @@ void test_codex_hid_discovery_status_events_and_unknown_calls() {
   deserializeJson(response, output); TEST_ASSERT_EQUAL(0, response["p"]["act"].as<int>());
 }
 
+void test_usb_loss_preserves_connection_and_last_status() {
+  codex_hid::ReceiveEpochs epochs;
+  epochs.reconnect();
+  const auto connection = epochs.connection(), fragments = epochs.fragments();
+  codex_hid::Protocol protocol;
+  char reply[1024];
+  const char* status = "{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":0,\"c\":123},{\"id\":1,\"c\":456},{\"id\":2,\"c\":789}]}";
+  protocol.process(status, strlen(status), reply, sizeof(reply));
+  codex_hid::Decoder decoder;
+  auto handler = [](const char* json, size_t size, void* context) {
+    char output[1024];
+    static_cast<codex_hid::Protocol*>(context)->process(json, size, output, sizeof(output));
+  };
+  uint8_t body[codex_hid::kBodySize];
+  // Begin a long status update, lose its continuation, then receive a new update.
+  codex_hid::frame(status, strlen(status), 0, body);
+  TEST_ASSERT_TRUE(decoder.feed(body, sizeof(body), handler, &protocol));
+  // A lost report resets framing without entering the connection-reset branch.
+  epochs.overflow(); epochs.overflow();
+  TEST_ASSERT_EQUAL(connection, epochs.connection());
+  TEST_ASSERT_NOT_EQUAL(fragments, epochs.fragments());
+  decoder.reset();
+  for (unsigned i = 0; i < 3; ++i) TEST_ASSERT_TRUE(protocol.status.slots[i].present);
+  TEST_ASSERT_EQUAL(456, protocol.status.slots[1].color);
+  const char* update = "{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":1,\"c\":999}]}";
+  codex_hid::frame(update, strlen(update), 0, body);
+  TEST_ASSERT_TRUE(decoder.feed(body, sizeof(body), handler, &protocol));
+  TEST_ASSERT_EQUAL(2, protocol.status.revision);
+  TEST_ASSERT_EQUAL(123, protocol.status.slots[0].color);
+  TEST_ASSERT_EQUAL(999, protocol.status.slots[1].color);
+  TEST_ASSERT_EQUAL(789, protocol.status.slots[2].color);
+  epochs.reconnect();
+  TEST_ASSERT_NOT_EQUAL(connection, epochs.connection());
+}
+
 void test_monitor_micro_mode_requires_desktop_discovery() {
   TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Off));
   TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Usb));
@@ -438,6 +475,15 @@ void test_monitor_micro_mode_requires_desktop_discovery() {
 }
 
 void test_micro_six_keys_and_touch_gaps() {
+  TEST_ASSERT_EQUAL(10, ui::micro::bottomAt(4, 191));
+  TEST_ASSERT_EQUAL(10, ui::micro::bottomAt(115, 236));
+  TEST_ASSERT_EQUAL(-1, ui::micro::bottomAt(116, 200));
+  TEST_ASSERT_EQUAL(11, ui::micro::bottomAt(122, 191));
+  TEST_ASSERT_EQUAL(11, ui::micro::bottomAt(203, 236));
+  TEST_ASSERT_EQUAL(-1, ui::micro::bottomAt(204, 200));
+  TEST_ASSERT_EQUAL(12, ui::micro::bottomAt(210, 191));
+  TEST_ASSERT_EQUAL(12, ui::micro::bottomAt(315, 236));
+  TEST_ASSERT_EQUAL(-1, ui::micro::bottomAt(10, 237));
   char json[128]; StaticJsonDocument<256> event;
   for (unsigned key = 0; key <= 12; ++key) {
     for (bool pressed : {false, true}) {
@@ -486,9 +532,84 @@ void test_micro_six_keys_and_touch_gaps() {
   TEST_ASSERT_EQUAL(-1, ui::micro::tileAt(120, 200));
 }
 
+void test_usb_voice_default_hold_and_separate_toggle() {
+  codex_hid::VoiceControls controls;
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  TEST_ASSERT_FALSE(controls.pressVoice(0));
+  TEST_ASSERT_TRUE(controls.pressPtt());
+  TEST_ASSERT_TRUE(controls.audioOpen());
+  controls.releasePtt();
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  controls.configure(true);
+  TEST_ASSERT_TRUE(controls.pressVoice(100));
+  TEST_ASSERT_FALSE(controls.audioOpen()); // Holding to end must not reopen audio.
+  controls.releaseVoice(200);
+  TEST_ASSERT_TRUE(controls.audioOpen());
+  TEST_ASSERT_FALSE(controls.pressPtt()); // No overlapping dictation and voice.
+  TEST_ASSERT_TRUE(controls.pressVoice(300));
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  controls.releaseVoice(400);
+  TEST_ASSERT_TRUE(controls.pressPtt());
+  TEST_ASSERT_FALSE(controls.pressVoice(500));
+  controls.releasePtt();
+  TEST_ASSERT_TRUE(controls.pressVoice(600));
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  TEST_ASSERT_FALSE(controls.tick(1599));
+  TEST_ASSERT_TRUE(controls.tick(1600));
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  controls.releaseVoice(1600);
+  TEST_ASSERT_TRUE(controls.pressVoice(UINT32_MAX - 500));
+  TEST_ASSERT_TRUE(controls.tick(499)); // millis wrap.
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  controls.releaseVoice(600);
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  TEST_ASSERT_TRUE(controls.pressVoice(1000));
+  controls.reset(); // Disconnect or failed HID request closes all audio.
+  TEST_ASSERT_FALSE(controls.audioOpen());
+  TEST_ASSERT_TRUE(controls.voiceEnabled());
+  controls.configure(false);
+  TEST_ASSERT_FALSE(controls.pressVoice(1100));
+  char output[256]; StaticJsonDocument<256> event;
+  TEST_ASSERT_TRUE(codex_hid::keyEvent(11, true, output, sizeof(output)));
+  TEST_ASSERT_FALSE(deserializeJson(event, output));
+  TEST_ASSERT_EQUAL_STRING("ACT11", event["p"]["k"]);
+  TEST_ASSERT_EQUAL(1, event["p"]["act"].as<int>());
+  TEST_ASSERT_TRUE(codex_hid::keyEvent(11, false, output, sizeof(output)));
+  deserializeJson(event, output);
+  TEST_ASSERT_EQUAL(0, event["p"]["act"].as<int>());
+}
+
+void test_monitor_settings_v3_validation_and_legacy_preservation() {
+  codex_hid::MonitorSettings settings;
+  TEST_ASSERT_FALSE(settings.separateVoice);
+  const uint8_t enabled[]{3, 60, 120, 0, 6, 1};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(enabled, sizeof(enabled), settings));
+  TEST_ASSERT_TRUE(settings.separateVoice);
+  TEST_ASSERT_EQUAL(120, settings.timeout);
+  const uint8_t legacy[]{1, 25, 5, 0};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(legacy, sizeof(legacy), settings));
+  TEST_ASSERT_TRUE(settings.separateVoice);
+  TEST_ASSERT_EQUAL(6, settings.slots);
+  const uint8_t v2[]{2, 50, 30, 0, 3};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(v2, sizeof(v2), settings));
+  TEST_ASSERT_TRUE(settings.separateVoice);
+  TEST_ASSERT_EQUAL(3, settings.slots);
+  const uint8_t invalid[]{3, 70, 5, 0, 6, 2};
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(invalid, sizeof(invalid), settings));
+  TEST_ASSERT_EQUAL(50, settings.volume); // Invalid writes change nothing.
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(enabled, 5, settings));
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(nullptr, 6, settings));
+  const uint8_t disabled[]{3, 50, 30, 0, 3, 0};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(disabled, sizeof(disabled), settings));
+  TEST_ASSERT_FALSE(settings.separateVoice);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_usb_voice_default_hold_and_separate_toggle);
+  RUN_TEST(test_monitor_settings_v3_validation_and_legacy_preservation);
   RUN_TEST(test_micro_six_keys_and_touch_gaps);
+  RUN_TEST(test_usb_loss_preserves_connection_and_last_status);
   RUN_TEST(test_monitor_micro_mode_requires_desktop_discovery);
   RUN_TEST(test_codex_hid_descriptor_contract);
   RUN_TEST(test_codex_hid_framing_bounds_and_recovery);

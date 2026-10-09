@@ -43,6 +43,23 @@ try {
  await page.getByRole('link',{name:'Device setup → Monitor settings'}).click();
  await page.locator('#monitor-slots option[value="3"]').waitFor({state:'attached'});
  assert.equal(await page.locator('#monitor-slots option[value="6"]').textContent(),'6 agent slots');
+ assert.equal(await page.locator('#monitor-voice').inputValue(),'0');
+ assert.equal(await page.locator('#monitor-voice option[value="1"]').textContent(),'Hold to talk + Voice toggle');
+ // Settings controls and help must stay vertically ordered at every supported width.
+ for (const width of [1440, 768, 390]) {
+  await page.setViewportSize({width,height:1000});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Setup overflow: ${width}`);
+  const controls=page.locator('#monitor-settings-form');
+  const boxes=await controls.locator(':scope > *').evaluateAll(nodes=>nodes.map(n=>{
+   const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right};
+  }));
+  for(let i=1;i<boxes.length;i++)assert.ok(boxes[i].top>=boxes[i-1].bottom,`Settings overlap: ${width}, field ${i}`);
+  const formBox=await controls.boundingBox();
+  for(const box of boxes)assert.ok(box.left>=formBox.x && box.right<=formBox.x+formBox.width+1,`Control escapes form: ${width}`);
+  await page.getByRole('heading',{name:'2. Map the keys in Desktop'}).waitFor();
+  if(width!==768)await page.locator('[aria-labelledby="monitor-heading"]').screenshot({path:new URL(`setup-${width}.png`,captures).pathname});
+ }
+ await page.setViewportSize({width:1440,height:1000});
  await page.goto(`${origin}monitor/`);
  await page.screenshot({path:new URL('monitor.png',captures).pathname,fullPage:true});
  await page.goto(`${origin}firmware/codex-monitor/`);

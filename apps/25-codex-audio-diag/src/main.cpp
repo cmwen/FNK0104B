@@ -10,12 +10,17 @@ void setup() {
   const auto peripheral = xSemaphoreCreateMutex(), audio = xSemaphoreCreateMutex();
   const bool usb = fnk0104b::usb_microphone::begin();
   const bool input = fnk0104b::audio_input::begin(peripheral, audio);
-  Serial.printf("audio_diag usb=%d capture=%d; p/r send Micro mic press/release\n", usb, input);
+  Serial.printf("audio_diag usb=%d capture=%d; p/r ACT10, q/s ACT11 press/release; m/u mute/unmute USB audio\n", usb, input);
 }
 void loop() {
   if (Serial.available()) {
     const int key = Serial.read();
     if (key == 'p' || key == 'r') codex_hid::microphoneKey(key == 'p');
+    if (key == 'q' || key == 's') codex_hid::key(11, key == 'q');
+    if (key == 'm' || key == 'u') {
+      fnk0104b::usb_microphone::setMuted(key == 'm');
+      Serial.printf("audio_diag usb_muted=%d\n", fnk0104b::usb_microphone::muted());
+    }
   }
   delay(10);
 }

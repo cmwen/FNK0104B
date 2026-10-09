@@ -16,6 +16,8 @@
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
 #include <ui/micro_layout.hpp>
+#include <codex_hid/voice_controls.hpp>
+#include <codex_hid/monitor_settings.hpp>
 #include "monitor_speech.hpp"
 #include "monitor_commands.hpp"
 #include <codex_hid/backend.hpp>
@@ -66,6 +68,7 @@ constexpr size_t kMaxStatusBytes = 8192;
 constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 constexpr char kCharacteristicUuid[] = "4e4b0104-0002-4d20-8f4b-0104b0000001";
 constexpr char kExtendedSettingsUuid[] = "4e4b0104-0003-4d20-8f4b-0104b0000001";
+constexpr char kVoiceSettingsUuid[] = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 constexpr uint16_t kBg = ui::monitor::kBackground;
 constexpr uint16_t kPanel = ui::monitor::kPanel;
 constexpr uint16_t kText = ui::monitor::kText;
@@ -104,6 +107,8 @@ int selectedMicroSlot = -1;
 codex_hid::Transport previousTransport = codex_hid::Transport::None;
 std::atomic<bool> compactMicroLayout{true};
 std::atomic<bool> microLayoutChanged{false};
+std::atomic<bool> separateVoiceButton{false}, voiceControlsChanged{false};
+codex_hid::VoiceControls usbVoiceControls;
 std::atomic<bool> voiceOrchestratorOnly{false};
 codex_hid::Status desktopStatus{};
 std::atomic<bool> usbMicroActive{false};
@@ -141,6 +146,7 @@ ui::avatar::Canvas avatarCanvas;
 uint16_t avatarScaled[96 * 96];
 BLECharacteristic* settingsCharacteristic = nullptr;
 BLECharacteristic* extendedSettingsCharacteristic = nullptr;
+BLECharacteristic* voiceSettingsCharacteristic = nullptr;
 SemaphoreHandle_t peripheralMutex = nullptr;
 SemaphoreHandle_t audioMutex = nullptr;
 SemaphoreHandle_t streamMutex = nullptr;
@@ -301,7 +307,8 @@ void drawVoiceControl() {
   }
   ui::micro::voice(tft(), usbMicroActive, usbMicroActive ? fnk0104b::audio_input::ready() : monitor_speech::ready(),
       desktopMicHeld, fnk0104b::usb_microphone::streaming(), usbMicroActive ? drawnMicLevel : drawnVoiceLevel,
-      recording, voicePreparing, voiceBusy);
+      recording, voicePreparing, voiceBusy, fnk0104b::usb_microphone::muted(),
+      usbVoiceControls.voiceEnabled(), usbVoiceControls.voiceOpen());
 
 }
 
@@ -395,10 +402,13 @@ void drawScreen() {
 
 void publishSettings() {
   if (!settingsCharacteristic) return;
-  uint8_t bytes[5] = {2, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
+  uint8_t bytes[6] = {3, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
                       static_cast<uint8_t>(screenTimeoutMinutes >> 8),
-                      static_cast<uint8_t>(compactMicroLayout ? 3 : 6)};
-  if (extendedSettingsCharacteristic) extendedSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+                      static_cast<uint8_t>(compactMicroLayout ? 3 : 6),
+                      static_cast<uint8_t>(separateVoiceButton ? 1 : 0)};
+  if (voiceSettingsCharacteristic) voiceSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+  bytes[0] = 2;
+  if (extendedSettingsCharacteristic) extendedSettingsCharacteristic->setValue(bytes, 5);
   // Keep the published setup page usable before it receives the new selector.
   bytes[0] = 1;
   settingsCharacteristic->setValue(bytes, 4);
@@ -408,19 +418,21 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const auto raw = characteristic->getValue();
     const uint8_t version = raw.length() ? static_cast<uint8_t>(raw[0]) : 0;
-    if (!((version == 1 && raw.length() == 4) || (version == 2 && raw.length() == 5))) return;
-    if (version == 2 && raw[4] != 3 && raw[4] != 6) return;
-    const uint8_t volume = static_cast<uint8_t>(raw[1]);
-    const uint16_t timeout = static_cast<uint8_t>(raw[2]) |
-                             (static_cast<uint16_t>(static_cast<uint8_t>(raw[3])) << 8);
-    if (volume > 100 || timeout < 1 || timeout > 120) return;
-    volumePercent = volume; screenTimeoutMinutes = timeout;
+    codex_hid::MonitorSettings next{volumePercent, screenTimeoutMinutes,
+        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton};
+    if (!codex_hid::decodeMonitorSettings(reinterpret_cast<const uint8_t*>(raw.c_str()), raw.length(), next)) return;
+    volumePercent = next.volume; screenTimeoutMinutes = next.timeout;
     preferences.putUChar("volume", volumePercent);
     preferences.putUShort("timeout", screenTimeoutMinutes);
-    if (version == 2) {
-      compactMicroLayout = raw[4] == 3;
+    if (version >= 2) {
+      compactMicroLayout = next.slots == 3;
       preferences.putUChar("microSlots", compactMicroLayout ? 3 : 6);
       microLayoutChanged = true;
+    }
+    if (version == 3) {
+      separateVoiceButton = next.separateVoice;
+      preferences.putBool("usbVoice", separateVoiceButton);
+      voiceControlsChanged = true;
     }
     publishSettings();
   }
@@ -453,7 +465,7 @@ void startBle() {
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
   Serial.println("monitor_ble role=settings hid=disabled");
-  BLEService* service = server->createService(kServiceUuid);
+  BLEService* service = server->createService(BLEUUID(String(kServiceUuid)), 24);
   settingsCharacteristic = service->createCharacteristic(kCharacteristicUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   settingsCharacteristic->setCallbacks(new SettingsCallbacks());
@@ -461,6 +473,9 @@ void startBle() {
   extendedSettingsCharacteristic = service->createCharacteristic(kExtendedSettingsUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   extendedSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
+  voiceSettingsCharacteristic = service->createCharacteristic(kVoiceSettingsUuid,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  voiceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   // Keep the full name in the primary advertisement for browser name filters.
@@ -889,7 +904,8 @@ void touchLoop() {
     if (microConnected) {
       int keyId = -1;
       if (x >= 82 && x < 160 && y >= 4 && y <= 40) { microCommands = !microCommands; uiDirty = true; }
-      else if (y >= 191 && y <= 237 && x >= 4 && x < 204) {
+      else if (usbMicroActive && ui::micro::bottomAt(x, y) == 11) keyId = 11;
+      else if (y >= 191 && y < 237 && x >= 4 && x < (usbMicroActive ? 116 : 204)) {
         if (usbMicroActive) keyId = 10; else beginVoice();
       }
       else if (y >= 191 && y <= 237 && x >= 210 && x <= 315) keyId = 12;
@@ -905,9 +921,24 @@ void touchLoop() {
         }
       }
       if (keyId >= 0) {
+        if (usbMicroActive && keyId == 10 && !usbVoiceControls.pressPtt()) {
+          setMessage("Turn Voice off before hold-to-talk", 5000); previousTouch = true; return;
+        }
+        if (usbMicroActive && keyId == 11 && !usbVoiceControls.pressVoice(millis())) {
+          setMessage("Enable Voice in browser setup / map ACT11", 6000); previousTouch = true; return;
+        }
+        if (usbMicroActive && (keyId == 10 || keyId == 11))
+          fnk0104b::usb_microphone::setMuted(!usbVoiceControls.audioOpen());
         if (codex_hid::key(keyId, true)) {
-          heldMicroKey = keyId; desktopMicHeld = keyId == 10; uiDirty = true;
-        } else setMessage("Desktop HID unavailable", 6000);
+          heldMicroKey = keyId; desktopMicHeld = keyId == 10;
+          if (keyId == 10 || keyId == 11) drawVoiceControl(); else uiDirty = true;
+        } else {
+          if (keyId == 10 || keyId == 11) {
+            usbVoiceControls.reset(); fnk0104b::usb_microphone::setMuted(true);
+          }
+          setMessage((keyId == 10 || keyId == 11) ? "Desktop HID unavailable / mic off" :
+              "Desktop HID unavailable", 6000);
+        }
       }
     } else if (y >= 191 && y <= 237 && x >= 4 && x <= 315) beginVoice();
     else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load())) {
@@ -935,8 +966,15 @@ void touchLoop() {
   }
   if (!touchPoint.pressed) {
     wifiHoldStarted = 0;
+    // Close the audio gate on physical release even if HID release must retry.
+    if (usbMicroActive && heldMicroKey == 10) usbVoiceControls.releasePtt();
+    if (usbMicroActive && heldMicroKey == 11) usbVoiceControls.releaseVoice(millis());
+    if (usbMicroActive && fnk0104b::usb_microphone::muted() == usbVoiceControls.audioOpen())
+      fnk0104b::usb_microphone::setMuted(!usbVoiceControls.audioOpen());
     if (heldMicroKey >= 0 && (codex_hid::key(heldMicroKey, false) || previousTransport == codex_hid::Transport::None)) {
-      heldMicroKey = -1; desktopMicHeld = false; uiDirty = true;
+      const bool microphoneRelease = heldMicroKey == 10 || heldMicroKey == 11;
+      heldMicroKey = -1; desktopMicHeld = false;
+      if (microphoneRelease) drawVoiceControl(); else uiDirty = true;
     }
   }
   previousTouch = touchPoint.pressed;
@@ -1000,7 +1038,7 @@ void serialLoop() {
 void setup() {
   const bool hidStarted = codex_hid::begin();
   fnk0104b::board.begin();
-  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.1");
+  fnk0104b::board.printStartupInfo("codex-monitor", "0.6.3");
   Serial.printf("monitor_startup reset_reason=%u\n", unsigned(esp_reset_reason()));
   if (lastAllocationFailure.magic == kAllocationFailureMagic)
     Serial.printf("monitor_heap previous_failure size=%lu caps=0x%lx\n",
@@ -1017,6 +1055,9 @@ void setup() {
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
   compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
+  separateVoiceButton = preferences.getBool("usbVoice", false);
+  usbVoiceControls.configure(separateVoiceButton);
+  fnk0104b::usb_microphone::setMuted(true);
   volumePercent = preferences.getUChar("volume", 50);
   if (volumePercent > 100) volumePercent = 50;
   screenTimeoutMinutes = preferences.getUShort("timeout", kScreenTimeoutDefault);
@@ -1058,6 +1099,11 @@ void setup() {
 
 void loop() {
   if (microLayoutChanged.exchange(false)) uiDirty = true;
+  if (voiceControlsChanged.exchange(false)) {
+    usbVoiceControls.configure(separateVoiceButton);
+    fnk0104b::usb_microphone::setMuted(true);
+    uiDirty = true;
+  }
   const auto microLink = codex_hid::linkState();
   if (microLink != previousMicroLink) {
     if (!codex_hid::microConnected(microLink)) desktopMicHeld = false;
@@ -1076,6 +1122,8 @@ void loop() {
     commandHelpVisible = false; showingStatus = false; selectedAgent[0] = 0;
     selectedMicroSlot = -1; microCommands = false; heldMicroKey = -1; desktopMicHeld = false;
     desktopStatus = codex_hid::Status{};
+    usbVoiceControls.reset();
+    fnk0104b::usb_microphone::setMuted(true);
     monitor_speech::setEnabled(!usbMode);
     fnk0104b::usb_microphone::setAllowed(false);
     setMessage(usbMode ? "USB Micro connected" : transport == codex_hid::Transport::Ble ? "BLE Micro connected" : "Wi-Fi bridge mode", 4000);
@@ -1118,6 +1166,10 @@ void loop() {
     uiDirty = true;
   }
   touchLoop();
+  if (usbVoiceControls.tick(millis())) {
+    fnk0104b::usb_microphone::setMuted(true);
+    drawVoiceControl();
+  }
   refreshSelectedAgent();
   playPendingAttentionTone();
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
@@ -1141,7 +1193,9 @@ void loop() {
   activeAgents = status.total_agents;
   portEXIT_CRITICAL(&statusMux);
   // Pending input/error agents and voice work also keep the monitor visible.
-  const bool busy = desktopMicHeld || fnk0104b::usb_microphone::streaming() || monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
+  const bool busy = desktopMicHeld || usbVoiceControls.voiceOpen() ||
+      (fnk0104b::usb_microphone::streaming() && !fnk0104b::usb_microphone::muted()) ||
+      monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);
   if (busy && !screenAwake && !screenManuallyOff) {
     screenAwake = true;

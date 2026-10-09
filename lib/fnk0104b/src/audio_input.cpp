@@ -58,8 +58,8 @@ void worker(void*) {
     }
     if (millis() - lastLog >= 5000) {
       lastLog = millis();
-      Serial.printf("monitor_audio ready=%d reason=%s level=%u usb_stream=%d usb_dropped=%lu heap=%u\n",
-        available.load(), failure.load(), meter.load(), usb_microphone::streaming(),
+      Serial.printf("monitor_audio ready=%d reason=%s level=%u usb_stream=%d usb_muted=%d usb_dropped=%lu heap=%u\n",
+        available.load(), failure.load(), meter.load(), usb_microphone::streaming(), usb_microphone::muted(),
         (unsigned long)usb_microphone::droppedSamples(), unsigned(ESP.getFreeHeap()));
     }
   }

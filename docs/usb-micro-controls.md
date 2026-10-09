@@ -97,3 +97,9 @@ is connected; persistence after reboot; protected Wi-Fi provisioning; all four
 Desktop directions/remappings and neutral release; real LCD refresh comfort;
 USB microphone continuity. No new GPIOs, partition changes, erase or security
 settings are needed.
+
+## Follow-up, 2026-10-10
+
+Monitor 0.6.2 changes the bottom row to **Mic / X mute / Send**, preserves
+Desktop status across receive overflow, and explains host-owned voice gestures
+on the setup page. See [the update and validation record](usb-micro-voice-controls.md).

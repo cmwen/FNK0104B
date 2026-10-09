@@ -32,6 +32,13 @@ template<class Display> void directions(Display& d) {
 }
 constexpr uint8_t commandKeys[] = {6, 7, 8, 9, 10, 12};
 constexpr const char* commandNames[] = {"Fast", "Approve", "Reject", "Fork", "Mic", "Send"};
+constexpr int bottomAt(int x, int y) {
+  if (y < 191 || y >= 237) return -1;
+  if (x >= 4 && x < 116) return 10;
+  if (x >= 122 && x < 204) return 11; // The separate microphone switch.
+  if (x >= 210 && x < 316) return 12;
+  return -1;
+}
 template<class Display>
 void tile(Display& d, unsigned slot, uint16_t color, bool known, bool selected,
           bool commands = false) {
@@ -46,20 +53,29 @@ void tile(Display& d, unsigned slot, uint16_t color, bool known, bool selected,
 }
 template<class Display>
 void voice(Display& d, bool usb, bool ready, bool held, bool streaming, int level,
-           bool recording = false, bool preparing = false, bool busy = false) {
-  monitor::frame(d, 4, 191, 200, 46, held || recording ? monitor::kRed : monitor::kBorder);
+           bool recording = false, bool preparing = false, bool busy = false, bool muted = true,
+           bool separateVoice = false, bool voiceOpen = false) {
+  monitor::frame(d, 4, 191, usb ? 112 : 200, 46, held || recording ? monitor::kRed : monitor::kBorder);
   monitor::frame(d, 210, 191, 106, 46, monitor::kBorder);
   d.setTextColor(monitor::kText, monitor::kPanel);
-  d.drawString(usb ? "Micro voice" : "Orchestrator", 12, 199, 2);
+  d.drawString(usb ? "Hold to talk" : "Orchestrator", 12, 199, 2);
   d.drawString("Send", 224, 199, 2);
-  d.setTextColor(ready ? monitor::kMint : monitor::kMuted, monitor::kPanel);
-  d.drawString(!ready ? "Mic unavailable" : usb ? (held ? "Mic key held" : "Tap voice / hold PTT") :
+  d.setTextColor((usb ? !muted && ready && streaming : ready) ? monitor::kMint : monitor::kMuted, monitor::kPanel);
+  const char* audioState = muted ? "Mic OFF" : !ready ? "No input" : !streaming ? "Waiting" : "Mic ON";
+  d.drawString(usb ? (voiceOpen ? "Voice audio" : audioState) : !ready ? "Mic unavailable" :
     recording ? "Recording / tap to stop" : preparing ? "Preparing..." : busy ? "Sending..." : "Tap / Hi ESP", 12, 222, 1);
   d.drawString("Desktop key", 224, 222, 1);
+  if (usb) {
+    monitor::frame(d, 122, 191, 82, 46, voiceOpen ? monitor::kMint : monitor::kBorder);
+    d.setTextColor(separateVoice ? monitor::kText : monitor::kMuted, monitor::kPanel);
+    d.drawString("Voice", 130, 199, 2);
+    d.setTextColor(voiceOpen ? monitor::kMint : monitor::kMuted, monitor::kPanel);
+    d.drawString(!separateVoice ? "Setup" : voiceOpen ? audioState : "Mic OFF", 130, 222, 1);
+  }
   const int heights[] = {4,9,16,25,16,9,4};
   for (int i = 0; i < 7; ++i) {
-    const int h = held || streaming || recording ? 2 + heights[i] * level / 100 : 2;
-    d.drawFastVLine(170 + i * 4, 213 - h / 2, h, monitor::kCyan);
+    const int h = (usb ? streaming && !muted : recording) ? 2 + heights[i] * level / (usb ? 250 : 100) : 2;
+    d.drawFastVLine((usb ? 86 : 170) + i * 4, (usb ? 228 : 213) - h / 2, h, monitor::kCyan);
   }
 }
 }

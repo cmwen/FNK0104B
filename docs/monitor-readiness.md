@@ -380,3 +380,25 @@ and outstanding physical tests. This revision was subsequently uploaded successf
 Windows PCM capture passed; see the
 [device record](../test/hardware/connectivity-modes-2026-10-07.md). Other physical
 acceptance checks remain open.
+
+## USB status and voice-control update, 2026-10-10
+
+Monitor 0.6.2 separates USB packet loss from connection reset, reduces Mic key
+redraw latency, and adds an X mute control for board USB output. The browser
+settings layout and desktop dictation/Voice Chat instructions are updated.
+See [implementation and validation](usb-micro-voice-controls.md).
+Physical dropout recovery, gesture timing and USB silence/resume checks remain
+UNKNOWN; no device was visible for upload or serial verification in this session.
+
+Monitor 0.6.3 supersedes X mute with default Hold to talk and an optional separate
+Voice toggle. V3 browser preferences and manual Desktop mapping instructions are
+implemented; physical ACT11/Voice acceptance and audio-gate behavior remain
+UNKNOWN. The [current control contract](usb-micro-voice-controls.md) distinguishes
+outgoing audio state from unobservable Desktop recording/session state.
+
+The owner subsequently authorized flashing on 2026-10-10. PlatformIO uploaded
+0.6.3 with verified image hashes and the existing layout. Serial at 115200 baud
+confirmed ready microphone capture, default USB mute and live Desktop status
+updates. Windows retains HID/audio for hands-on testing. See the
+[device record](../test/hardware/usb-micro-voice-2026-10-10.md); gesture and Voice
+Chat acceptance remain UNKNOWN pending the owner's test.

@@ -51,6 +51,7 @@ void message(const char* json, size_t size, void*) {
 void worker(void*) {
   bool wasMounted = false, active = false;
   uint32_t lastRx = 0, loggedDrops = 0, lastReportLog = 0, reports = 0;
+  uint32_t fragmentEpoch = 0;
   for (;;) {
     ble::poll();
     const uint32_t epoch = usb::epoch();
@@ -70,8 +71,28 @@ void worker(void*) {
     if (millis() - lastRx > 2000) state->decoder.reset();
     const uint32_t drops = usb::dropped();
     if (drops != loggedDrops) {
-      loggedDrops = drops; state->decoder.reset();
+      loggedDrops = drops;
       Serial.printf("codex_hid reports_dropped=%lu\n", (unsigned long)drops);
+    }
+    usb::Report report{};
+    // Drain RX even while replies are transmitting, so status bursts do not
+    // starve framing or make the receive queue fill behind our own ACKs.
+    if (usb::receive(report) && mounted && report.epoch == epoch) {
+      // Reset exactly at the gap, after consuming any pre-gap reports.
+      // Keep discovery, pending key releases and last valid lighting intact.
+      if (report.fragments != fragmentEpoch) {
+        fragmentEpoch = report.fragments;
+        state->decoder.reset();
+      }
+      lastRx = millis();
+      if (!active) { active = true; Serial.println("codex_hid host=active"); }
+      ++reports;
+      if (millis() - lastReportLog >= 1000) {
+        lastReportLog = millis();
+        Serial.printf("codex_hid rx report_id=6 bytes=%u reports=%lu\n", report.length, (unsigned long)reports);
+      }
+      if (!state->decoder.feed(report.body, report.length, message, nullptr))
+        Serial.println("codex_hid framing=invalid_or_oversized");
     }
     if (txLength) {
       uint8_t body[kBodySize];
@@ -89,12 +110,6 @@ void worker(void*) {
       txDiscovery = false;
       txLength = keyEvent(releaseKey, false, tx, sizeof(tx)); txOffset = 0; txStarted = millis(); releasePending = false;
     } else {
-      static Reply reply;
-      if (xQueueReceive(replyQueue, &reply, 0) == pdTRUE) {
-        txDiscovery = reply.discovery;
-        memcpy(tx, reply.json, reply.length); txLength = reply.length; txOffset = 0; txStarted = millis();
-        continue;
-      }
       Input input{};
       if (mounted && xQueueReceive(inputQueue, &input, 0) == pdTRUE && input.epoch == epoch) {
         txDiscovery = false;
@@ -102,18 +117,10 @@ void worker(void*) {
         txOffset = 0; txStarted = millis(); releasePending = input.tap; releaseKey = input.key;
         Serial.printf("codex_hid key=%u action=%s\n", input.key, input.pressed ? "press" : "release");
       } else {
-        usb::Report report{};
-        // One report per pass, keeping callbacks and UI independent of host floods.
-        if (usb::receive(report) && mounted && report.epoch == epoch) {
-          lastRx = millis();
-          if (!active) { active = true; Serial.println("codex_hid host=active"); }
-          ++reports;
-          if (millis() - lastReportLog >= 1000) {
-            lastReportLog = millis();
-            Serial.printf("codex_hid rx report_id=6 bytes=%u reports=%lu\n", report.length, (unsigned long)reports);
-          }
-          if (!state->decoder.feed(report.body, report.length, message, nullptr))
-            Serial.println("codex_hid framing=invalid_or_oversized");
+        static Reply reply;
+        if (xQueueReceive(replyQueue, &reply, 0) == pdTRUE) {
+          txDiscovery = reply.discovery;
+          memcpy(tx, reply.json, reply.length); txLength = reply.length; txOffset = 0; txStarted = millis();
         }
       }
     }

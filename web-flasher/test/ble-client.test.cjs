@@ -46,7 +46,8 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3] } =
       addEventListener() {},
       gatt: { disconnect() {}, async connect() { return {
         async getPrimaryService() { return { async getCharacteristic(uuid) {
-          if (settingsPacket[0] === 1 && uuid.includes('0003')) {
+          if ((settingsPacket[0] < 3 && uuid.includes('0004')) ||
+              (settingsPacket[0] === 1 && uuid.includes('0003'))) {
             const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
           }
           return characteristic;
@@ -114,8 +115,33 @@ test('old firmware keeps four-byte settings and disables layout selection', asyn
   const app = setup({ settingsPacket: [1, 25, 5, 0] });
   await app.connectMonitor();
   assert.equal(app.element('#monitor-slots').disabled, true);
+  assert.equal(app.element('#monitor-voice').disabled, true);
   await app.saveMonitor();
   assert.deepEqual(app.writes, [[1, 25, 5, 0]]);
+});
+
+test('v3 defaults to hold-to-talk and saves optional independent Voice control', async () => {
+  const app = setup({ settingsPacket: [3, 50, 30, 0, 3, 0] });
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-voice').value, '0');
+  assert.equal(app.element('#monitor-voice').disabled, false);
+  app.element('#monitor-voice').value = '1';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes, [[3, 50, 30, 0, 3, 1]]);
+  assert.equal(app.element('#monitor-voice').value, '1');
+  assert.match(app.element('#monitor-status').textContent, /Desktop key mappings/);
+});
+
+test('invalid voice packets and unsupported saved modes cannot change settings', async () => {
+  const invalid = setup({ settingsPacket: [3, 50, 30, 0, 3, 2] });
+  await invalid.connectMonitor();
+  assert.equal(invalid.element('#monitor-save').disabled, true);
+  assert.match(invalid.element('#monitor-status').textContent, /invalid voice/);
+  const app = setup({ settingsPacket: [3, 50, 30, 0, 3, 0] });
+  await app.connectMonitor();
+  app.element('#monitor-voice').value = '9';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes, []);
 });
 
 test('unsupported layout prevents settings controls from opening', async () => {
