@@ -162,9 +162,11 @@ function updateMonitorVolumeLabel() {
 }
 
 function updateVoiceHelp() {
-  monitorVoiceHelp.textContent = monitorSettingsVersion < 3
-    ? "Connect to firmware 0.6.3 or newer to choose voice controls. Desktop mappings are configured separately."
-    : monitorVoice.value === "1"
+  monitorVoiceHelp.textContent = !monitorCharacteristic
+    ? "Connect to monitor settings to choose microphone controls. Use firmware 0.6.3 or newer; Desktop key mappings are configured separately."
+    : monitorSettingsVersion < 3
+      ? "Connected, but the board exposed older Bluetooth settings. This selector cannot change microphone behavior through that connection. If firmware 0.6.3 or newer is already installed, disconnect, restart the board and refresh this page. If it persists, remove the board from your computer's Bluetooth devices to clear cached services, then reconnect here. Otherwise update the monitor over USB."
+      : monitorVoice.value === "1"
       ? "Hold to talk stays available. Voice toggles the board microphone on/off. Map the two separate microphone keys in Desktop before using Voice. Saving closes the microphone."
       : "Default: board USB audio is off until you hold Hold to talk, and off again on release. Desktop's first Mic key must use Push to talk. Saving closes the microphone.";
 }
@@ -233,7 +235,9 @@ monitorConnect.addEventListener("click", async () => {
     showMonitorStatus("Connected. Reading settings…");
     decodeMonitorSettings(await monitorCharacteristic.readValue());
     setMonitorControls(true);
-    showMonitorStatus("Settings loaded. Adjust them and save to update the board.");
+    showMonitorStatus(monitorSettingsVersion < 3
+      ? "Settings loaded. Volume and supported layout controls are available; microphone controls need the newer Bluetooth settings. See the explanation below Microphone controls."
+      : "Settings loaded. Adjust them and save to update the board.");
   } catch (error) {
     monitorDevice?.gatt?.disconnect();
     monitorDevice = null;

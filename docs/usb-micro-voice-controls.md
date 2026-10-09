@@ -30,6 +30,24 @@ access. Review dictation, then press Send. There is no automatic sending:
 verified transcription-ready feedback is unavailable. Desktop's double-tap
 hands-free dictation does not bypass the board's strict hold/release gate.
 
+## Disabled microphone selector and firmware updates
+
+Connect using **Connect to monitor**, rather than the separate Wi-Fi provisioning
+connection. The selector enables only after the browser reads v3 voice settings.
+If volume/layout work but microphone selection remains disabled, that connection
+exposed older settings. This can indicate older firmware or cached BLE services;
+it does not establish which without checking the device. Firmware 0.6.3 includes
+v3. Disconnect, restart the board and refresh the page. If it persists, remove
+its entry from the computer's Bluetooth devices and reconnect through the browser
+to refresh service discovery. No OS pairing is needed for browser preferences.
+A disabled selector does not turn off the physical Hold to talk control in 0.6.3.
+
+The monitor uses a single factory app plus speech-model partition and has no OTA
+updater or alternate app slot. Update it through the USB flasher or PlatformIO.
+Bluetooth saves preferences, not firmware. The independent `ota` learning demo
+still supports its HTTPS update path with the separate two-slot Arduino layout;
+it is not an update mechanism for the current monitor firmware.
+
 ## Board audio gate and indicators
 
 - **Hold to talk:** opens audio on press; closes it immediately on physical

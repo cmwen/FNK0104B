@@ -120,6 +120,17 @@ test('old firmware keeps four-byte settings and disables layout selection', asyn
   assert.deepEqual(app.writes, [[1, 25, 5, 0]]);
 });
 
+test('older settings explain why microphone selection is disabled', async () => {
+  const app = setup({ settingsPacket: [2, 50, 30, 0, 3] });
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-volume').disabled, false);
+  assert.equal(app.element('#monitor-slots').disabled, false);
+  assert.equal(app.element('#monitor-voice').disabled, true);
+  assert.match(app.element('#monitor-voice-help').textContent, /older Bluetooth settings/);
+  assert.match(app.element('#monitor-voice-help').textContent, /cached services/);
+  assert.match(app.element('#monitor-status').textContent, /microphone controls need/);
+});
+
 test('v3 defaults to hold-to-talk and saves optional independent Voice control', async () => {
   const app = setup({ settingsPacket: [3, 50, 30, 0, 3, 0] });
   await app.connectMonitor();
