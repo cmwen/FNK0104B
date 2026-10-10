@@ -9,7 +9,13 @@ connecting or checking never installs firmware automatically.
 
 Install **Codex monitor 0.7.0 or newer** using the browser USB installer or
 PlatformIO. Earlier monitor versions have a single factory app and cannot acquire
-OTA through Bluetooth alone. Build before upload:
+OTA through Bluetooth alone. If you built an earlier monitor locally, first back
+up or remove the generated `sdkconfig.codex-monitor` file so PlatformIO applies
+the current defaults. For example, move it to `sdkconfig.codex-monitor.pre-ota`;
+the file is regenerated on the next build. The build rejects disabled rollback
+or an internal-only TLS allocator, since old generated settings can override
+updated defaults. This changes build configuration, not saved board preferences.
+Build before upload:
 
 ```sh
 pio run -e codex-monitor

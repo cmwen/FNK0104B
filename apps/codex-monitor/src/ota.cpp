@@ -13,6 +13,12 @@
 #include "monitor_speech.hpp"
 #include "monitor_update_policy.hpp"
 
+#if !defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE) || \
+    !defined(CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC)
+#error \
+    "Monitor OTA needs current SDK defaults: back up/remove sdkconfig.codex-monitor and rebuild"
+#endif
+
 namespace monitor_ota {
 namespace {
 constexpr char base[] =

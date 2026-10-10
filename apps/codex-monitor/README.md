@@ -43,6 +43,8 @@ Arduino component integration follows [Espressif's supported IDF 5.5 path](https
 20 KiB NVS at `0x9000`, two 4 MiB OTA apps at `0x10000`/`0x410000`,
 OTA metadata at `0xe000`, and models at `0x810000` (0x7f0000 bytes).
 Version 0.7.0 needs a one-time full USB migration from the single-slot monitor.
+For an existing local build, back up/remove generated `sdkconfig.codex-monitor`
+first so the new rollback and TLS-memory defaults apply.
 It moves models and can overwrite old app/filesystem data; keep browser erasing
 unchecked to preserve compatible NVS. See [monitor OTA](../../docs/monitor-ota.md)
 for the migration, wireless update controls, recovery and hardware evidence. The speech
