@@ -35,3 +35,10 @@ and moves speech models from `0x610000`; a full one-time USB install is required
 It may overwrite old app/model/filesystem contents while keeping compatible NVS.
 OTA updates only the inactive app; changed models/layouts require USB. See
 [monitor OTA](monitor-ota.md) for the exact map and recovery behavior.
+
+- Monitor 0.7.1 adds optional, unlabeled USB slot robots with stable random startup
+  identities; Agent numbers remain the default. BLE settings v4 uses characteristic
+  `4e4b0104-0006-4d20-8f4b-0104b0000001`, preserving v1–v3 reads/writes.
+- Monitor speech packing now sorts model/file entries without changing weights.
+  This removes CI/local raw-hash differences caused by upstream filesystem order;
+  0.7.0 needs USB once to install the canonical baseline.

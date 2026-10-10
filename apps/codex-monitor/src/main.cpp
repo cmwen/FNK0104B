@@ -69,6 +69,7 @@ constexpr size_t kMaxStatusBytes = 8192;
 constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 constexpr char kCharacteristicUuid[] = "4e4b0104-0002-4d20-8f4b-0104b0000001";
 constexpr char kExtendedSettingsUuid[] = "4e4b0104-0003-4d20-8f4b-0104b0000001";
+constexpr char kAppearanceSettingsUuid[] = "4e4b0104-0006-4d20-8f4b-0104b0000001";
 constexpr char kVoiceSettingsUuid[] = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 constexpr uint16_t kBg = ui::monitor::kBackground;
 constexpr uint16_t kPanel = ui::monitor::kPanel;
@@ -107,6 +108,8 @@ bool microCommands = false;
 int selectedMicroSlot = -1;
 codex_hid::Transport previousTransport = codex_hid::Transport::None;
 std::atomic<bool> compactMicroLayout{true};
+std::atomic<bool> microAvatars{false};
+uint32_t microAvatarSeeds[6]{};
 std::atomic<bool> microLayoutChanged{false};
 std::atomic<bool> separateVoiceButton{false}, voiceControlsChanged{false};
 codex_hid::VoiceControls usbVoiceControls;
@@ -148,6 +151,7 @@ uint16_t avatarScaled[96 * 96];
 BLECharacteristic* settingsCharacteristic = nullptr;
 BLECharacteristic* extendedSettingsCharacteristic = nullptr;
 BLECharacteristic* voiceSettingsCharacteristic = nullptr;
+BLECharacteristic* appearanceSettingsCharacteristic = nullptr;
 SemaphoreHandle_t peripheralMutex = nullptr;
 SemaphoreHandle_t audioMutex = nullptr;
 SemaphoreHandle_t streamMutex = nullptr;
@@ -319,7 +323,17 @@ void drawMicroTile(unsigned i) {
   const float b = slot.brightness;
   const uint16_t color = ui::monitor::rgb(uint8_t((c >> 16) * b),
       uint8_t(((c >> 8) & 255) * b), uint8_t((c & 255) * b));
-  ui::micro::tile(tft(), i, color, slot.present, selectedMicroSlot == int(i), microCommands);
+  ui::micro::tile(tft(), i, color, slot.present, selectedMicroSlot == int(i), microCommands, microAvatars);
+  if (microAvatars && !microCommands) {
+    // Decorative slot identity only: HID gives colors, not thread context.
+    ui::avatar::render(avatarCanvas, microAvatarSeeds[i], ui::avatar::Mood::Idle, 0);
+    for (int row = 0; row < 48; ++row)
+      for (int col = 0; col < 48; ++col)
+        avatarScaled[row * 48 + col] = avatarCanvas.pixels[(row * 32 / 48) * 32 + col * 32 / 48];
+    tft().setSwapBytes(true);
+    tft().pushImage(ui::micro::tileX(i) + 34, ui::micro::tileY(i) + 6, 48, 48, avatarScaled);
+    tft().setSwapBytes(false);
+  }
 }
 
 void drawScreen() {
@@ -403,11 +417,14 @@ void drawScreen() {
 
 void publishSettings() {
   if (!settingsCharacteristic) return;
-  uint8_t bytes[6] = {3, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
+  uint8_t bytes[7] = {4, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
                       static_cast<uint8_t>(screenTimeoutMinutes >> 8),
                       static_cast<uint8_t>(compactMicroLayout ? 3 : 6),
-                      static_cast<uint8_t>(separateVoiceButton ? 1 : 0)};
-  if (voiceSettingsCharacteristic) voiceSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+                      static_cast<uint8_t>(separateVoiceButton ? 1 : 0),
+                      static_cast<uint8_t>(microAvatars ? 1 : 0)};
+  if (appearanceSettingsCharacteristic) appearanceSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+  bytes[0] = 3;
+  if (voiceSettingsCharacteristic) voiceSettingsCharacteristic->setValue(bytes, 6);
   bytes[0] = 2;
   if (extendedSettingsCharacteristic) extendedSettingsCharacteristic->setValue(bytes, 5);
   // Keep the published setup page usable before it receives the new selector.
@@ -420,7 +437,7 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
     const auto raw = characteristic->getValue();
     const uint8_t version = raw.length() ? static_cast<uint8_t>(raw[0]) : 0;
     codex_hid::MonitorSettings next{volumePercent, screenTimeoutMinutes,
-        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton};
+        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars};
     if (!codex_hid::decodeMonitorSettings(reinterpret_cast<const uint8_t*>(raw.c_str()), raw.length(), next)) return;
     volumePercent = next.volume; screenTimeoutMinutes = next.timeout;
     preferences.putUChar("volume", volumePercent);
@@ -430,10 +447,15 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
       preferences.putUChar("microSlots", compactMicroLayout ? 3 : 6);
       microLayoutChanged = true;
     }
-    if (version == 3) {
+    if (version >= 3) {
       separateVoiceButton = next.separateVoice;
       preferences.putBool("usbVoice", separateVoiceButton);
       voiceControlsChanged = true;
+    }
+    if (version == 4) {
+      microAvatars = next.avatars;
+      preferences.putBool("microAvatars", next.avatars);
+      microLayoutChanged = true;
     }
     publishSettings();
   }
@@ -477,6 +499,9 @@ void startBle() {
   voiceSettingsCharacteristic = service->createCharacteristic(kVoiceSettingsUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   voiceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
+  appearanceSettingsCharacteristic = service->createCharacteristic(kAppearanceSettingsUuid,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  appearanceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   monitor_ota::attach(service);
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
@@ -993,6 +1018,11 @@ void serialLoop() {
     if (c == '\n') {
       command[length] = '\0';
       capture = strcmp(command, "screenshot") == 0;
+      if (!strcmp(command, "avatar-preview") || !strcmp(command, "avatar-labels")) {
+        microAvatars = !strcmp(command, "avatar-preview");
+        microLayoutChanged = true;
+        Serial.printf("monitor_appearance avatars=%d temporary=1\n", int(microAvatars.load()));
+      }
       if (!strcmp(command, "ota-check")) monitor_ota::request("check");
       if (!strcmp(command, "ota-install")) monitor_ota::request("install");
       if (!strcmp(command, "hid-agent0"))
@@ -1021,6 +1051,8 @@ void serialLoop() {
   idleTimer.activity(millis());
   drawScreen();
   Serial.println("monitor_screenshot begin width=320 height=240 format=rgb888");
+  // Windows CDC forwarding can take longer than the normal 250 ms per row.
+  Serial.setTxTimeoutMs(3000);
   constexpr char hex[] = "0123456789abcdef";
   bool ok = true;
   for (unsigned y = 0; y < 240; ++y) {
@@ -1036,6 +1068,7 @@ void serialLoop() {
   }
   free(buffer);
   Serial.println(ok ? "monitor_screenshot end" : "monitor_screenshot error=read_failed");
+  Serial.setTxTimeoutMs(250);
 }
 
 }  // namespace
@@ -1060,6 +1093,8 @@ void setup() {
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
   compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
+  microAvatars = preferences.getBool("microAvatars", false);
+  for (auto& seed : microAvatarSeeds) seed = esp_random();
   separateVoiceButton = preferences.getBool("usbVoice", false);
   usbVoiceControls.configure(separateVoiceButton);
   fnk0104b::usb_microphone::setMuted(true);

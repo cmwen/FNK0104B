@@ -41,10 +41,11 @@ constexpr int bottomAt(int x, int y) {
 }
 template<class Display>
 void tile(Display& d, unsigned slot, uint16_t color, bool known, bool selected,
-          bool commands = false) {
+          bool commands = false, bool avatars = false) {
   const int x = tileX(slot), y = tileY(slot);
   monitor::frame(d, x, y, 100, 60, selected ? monitor::kCyan : monitor::kBorder);
   d.fillRect(x + 7, y + 8, 5, 44, color ? color : monitor::kTrack);
+  if (avatars && !commands) return;
   char label[16]; snprintf(label, sizeof(label), "Agent %u", slot + 1);
   d.setTextColor(monitor::kText, monitor::kPanel);
   d.drawString(commands ? commandNames[slot] : label, x + 18, y + 13, 2);

@@ -1,4 +1,4 @@
-# Codex monitor wireless updates (0.7.0)
+# Codex monitor wireless updates (0.7.1+)
 
 Monitor 0.7.0 adds app-only HTTPS OTA. Bluetooth carries check/install commands;
 firmware downloads use the board's saved Wi-Fi connection. This works alongside
@@ -7,7 +7,7 @@ connecting or checking never installs firmware automatically.
 
 ## One-time USB migration
 
-Install **Codex monitor 0.7.0 or newer** using the browser USB installer or
+Install **Codex monitor 0.7.1 or newer** using the browser USB installer or
 PlatformIO. Earlier monitor versions have a single factory app and cannot acquire
 OTA through Bluetooth alone. If you built an earlier monitor locally, first back
 up or remove the generated `sdkconfig.codex-monitor` file so PlatformIO applies
@@ -79,7 +79,12 @@ The updater accepts newer numeric versions only, verifies HTTPS certificates
 using the IDF certificate bundle and requires a synchronized clock. It verifies
 exact downloaded size/SHA-256 and the IDF image before selecting the inactive
 slot. It compares the installed speech-model bytes with the published model hash.
-A changed model or layout requires USB; OTA never writes bootloader, partitions,
+Monitor 0.7.1 sorts the speech model and file entries into a canonical bundle:
+the upstream packer's filesystem order otherwise produced different hashes for
+identical weights on CI and local builds. Upgrading a 0.7.0 board requires one
+more full USB install to establish this canonical model baseline, even though
+the model contents are unchanged. Future identical model sets produce identical
+hashes. A changed model or layout requires USB; OTA never writes bootloader, partitions,
 NVS or speech models. A release that changes between check and install requires
 another explicit install action.
 
@@ -92,7 +97,9 @@ A first USB install has no previous OTA application to roll back to. A failure
 that does not restart the board still requires a reset or USB recovery.
 
 For future releases, bump `monitor_ota::version` in `apps/codex-monitor/include/monitor_ota.hpp`.
-CMake derives the IDF image version from that same declaration; unrelated firmware
+CMake derives the IDF image version from that same declaration. A PlatformIO
+pre-build hook detects version changes in cached CMake metadata and forces
+reconfiguration, because its normal dependency check ignores header changes; unrelated firmware
 keeps its cache keys. OTA does not replace same-version builds; use USB for
 those. Firmware CI publishes the application and metadata through the existing
 firmware catalog. Documentation-only publishing reuses that verified catalog

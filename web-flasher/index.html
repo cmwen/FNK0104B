@@ -151,6 +151,12 @@
               <option value="6">6 agent slots</option>
             </select>
             <p class="field-help">Slots are Desktop shortcuts, not a count of running agents. Tap the board's Micro header to see command keys. Direction buttons follow Desktop's analog-stick mappings.</p>
+            <label for="monitor-appearance">Agent appearance</label>
+            <select id="monitor-appearance" aria-describedby="monitor-appearance-help" disabled>
+              <option value="0" selected>Agent numbers (default)</option>
+              <option value="1">Robot avatars</option>
+            </select>
+            <p id="monitor-appearance-help" class="field-help">Requires monitor 0.7.1 or newer. Avatars replace all agent labels and keep Desktop's status strips. Robots are randomly assigned per slot at startup and stay stable until reboot; they do not identify threads or describe agent activity. Slot positions and shortcuts stay the same. Command keys keep their labels.</p>
             <label for="monitor-voice">Microphone controls</label>
             <select id="monitor-voice" aria-describedby="monitor-voice-help" disabled>
               <option value="0" selected>Hold to talk (default)</option>
@@ -198,7 +204,7 @@
           <button id="monitor-ota-check" class="cta" type="button" disabled>Check for update</button>
           <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
           </div>
-          <p id="monitor-ota-status" role="status" aria-live="polite">Install monitor 0.7.0 or newer over USB once to enable wireless updates. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p>
+          <p id="monitor-ota-status" role="status" aria-live="polite">Install monitor 0.7.1 or newer over USB once to enable wireless updates. A 0.7.0 board also needs USB once for its reproducible speech-model baseline. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p>
         </div>
       </section>
 

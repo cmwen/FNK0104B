@@ -123,6 +123,7 @@ wifiForm.addEventListener("submit", async event => {
 // Monitor settings use a separate service and do not share Wi-Fi provisioning.
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+const MONITOR_APPEARANCE_SETTINGS_UUID = "4e4b0104-0006-4d20-8f4b-0104b0000001";
 const MONITOR_VOICE_SETTINGS_UUID = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 const MONITOR_OTA_UUID = "4e4b0104-0005-4d20-8f4b-0104b0000001";
 const MONITOR_EXTENDED_SETTINGS_UUID = "4e4b0104-0003-4d20-8f4b-0104b0000001";
@@ -146,6 +147,7 @@ let monitorDevice = null;
 let monitorCharacteristic = null;
 let monitorBusy = false;
 let monitorSettingsVersion = 1;
+const monitorAppearance = document.querySelector("#monitor-appearance");
 const monitorSlots = document.querySelector("#monitor-slots");
 const monitorVoice = document.querySelector("#monitor-voice");
 const monitorVoiceHelp = document.querySelector("#monitor-voice-help");
@@ -162,6 +164,7 @@ function setMonitorControls(connected) {
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
   monitorSave.disabled = !connected || monitorBusy || otaWorking;
+  monitorAppearance.disabled = !connected || monitorSettingsVersion < 4;
   monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
   monitorVoice.disabled = !connected || monitorSettingsVersion < 3;
   updateVoiceHelp();
@@ -185,18 +188,21 @@ monitorVoice.addEventListener("change", updateVoiceHelp);
 
 function decodeMonitorSettings(value) {
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 3 || bytes.length !== bytes[0] + 3)
+  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 4 || bytes.length !== bytes[0] + 3)
     throw new Error("The board returned an invalid settings packet.");
   if (bytes[0] >= 2 && bytes[4] !== 3 && bytes[4] !== 6)
     throw new Error("The board returned an invalid Micro layout.");
-  if (bytes[0] === 3 && bytes[5] > 1)
+  if (bytes[0] >= 3 && bytes[5] > 1)
     throw new Error("The board returned an invalid voice control mode.");
+  if (bytes[0] === 4 && bytes[6] > 1)
+    throw new Error("The board returned an invalid slot appearance.");
+  monitorAppearance.value = String(bytes[0] === 4 ? bytes[6] : 0);
   const dimTimeout = bytes[2] | (bytes[3] << 8);
   if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120)
     throw new Error("The board returned settings outside the supported range.");
   monitorSettingsVersion = bytes[0];
   monitorSlots.value = String(bytes[0] >= 2 ? bytes[4] : 6);
-  monitorVoice.value = String(bytes[0] === 3 ? bytes[5] : 0);
+  monitorVoice.value = String(bytes[0] >= 3 ? bytes[5] : 0);
   monitorVolume.value = String(bytes[1]);
   monitorDimTimeout.value = String(dimTimeout);
   updateMonitorVolumeLabel();
@@ -241,7 +247,7 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);
     const server = await monitorDevice.gatt.connect();
     const service = await server.getPrimaryService(MONITOR_SERVICE_UUID);
-    for (const uuid of [MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
+    for (const uuid of [MONITOR_APPEARANCE_SETTINGS_UUID, MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
       try { monitorCharacteristic = await service.getCharacteristic(uuid); break; }
       catch (error) { if (error.name !== "NotFoundError") throw error; }
     }
@@ -296,15 +302,20 @@ monitorForm.addEventListener("submit", async event => {
     if (monitorSettingsVersion >= 2 && slots !== 3 && slots !== 6)
       throw new Error("Choose three or six Micro agent slots.");
     const voice = Number(monitorVoice.value);
-    if (monitorSettingsVersion === 3 && voice !== 0 && voice !== 1)
+    if (monitorSettingsVersion >= 3 && voice !== 0 && voice !== 1)
       throw new Error("Choose Hold to talk or Hold to talk + Voice.");
     const packet = [monitorSettingsVersion, volume, dimTimeout & 0xff, dimTimeout >> 8];
     if (monitorSettingsVersion >= 2) packet.push(slots);
-    if (monitorSettingsVersion === 3) packet.push(voice);
+    if (monitorSettingsVersion >= 3) packet.push(voice);
+    if (monitorSettingsVersion >= 4) {
+      const appearance = Number(monitorAppearance.value);
+      if (appearance !== 0 && appearance !== 1) throw new Error("Choose agent numbers or robot avatars.");
+      packet.push(appearance);
+    }
     const bytes = new Uint8Array(packet);
     await monitorCharacteristic.writeValue(bytes);
     decodeMonitorSettings(await monitorCharacteristic.readValue());
-    showMonitorStatus(monitorSettingsVersion === 3
+    showMonitorStatus(monitorSettingsVersion >= 3
       ? "Board settings saved and read back. Microphone is off. Check the Desktop key mappings before using voice controls."
       : "Settings saved and read back from the monitor.");
   } catch (error) {

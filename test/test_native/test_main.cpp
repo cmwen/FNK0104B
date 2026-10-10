@@ -603,6 +603,16 @@ void test_monitor_settings_v3_validation_and_legacy_preservation() {
   const uint8_t disabled[]{3, 50, 30, 0, 3, 0};
   TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(disabled, sizeof(disabled), settings));
   TEST_ASSERT_FALSE(settings.separateVoice);
+  TEST_ASSERT_FALSE(settings.avatars);
+  const uint8_t avatar[]{4, 50, 30, 0, 3, 0, 1};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(avatar, sizeof(avatar), settings));
+  TEST_ASSERT_TRUE(settings.avatars);
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(enabled, sizeof(enabled), settings));
+  TEST_ASSERT_TRUE(settings.avatars); // Old clients preserve the newer preference.
+  const uint8_t badAvatar[]{4, 50, 30, 0, 3, 0, 2};
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(badAvatar, sizeof(badAvatar), settings));
+  TEST_ASSERT_TRUE(settings.avatars);
+  TEST_ASSERT_TRUE(settings.separateVoice);
 }
 
 void test_monitor_ota_rejects_downgrades_and_malformed_identity() {

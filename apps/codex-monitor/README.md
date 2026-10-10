@@ -242,3 +242,24 @@ sampling continues. Save, reconnect and boot close the gate. Preferences persist
 but an open gate does not. Version-3 BLE settings use a new characteristic;
 version-1 and version-2 reads/writes keep their existing shapes and preserve the
 new voice preference. See [the control contract](../../docs/usb-micro-voice-controls.md).
+
+## Optional USB robot avatars (monitor 0.7.1+)
+
+The default remains Agent 1, 2 and 3 with direction keys. On the HTTPS configuration
+page, connect to **Monitor settings**, choose **Agent appearance → Robot avatars**,
+and **Save board settings**. The preference survives restart and also works with six
+slots. Choose **Agent numbers** to restore the labels. Older firmware leaves this
+selector disabled; install 0.7.1 or newer and reconnect (clear cached Bluetooth
+services if the new control remains unavailable).
+
+Avatar mode removes both lines of agent text and retains the overall status bar,
+each slot's host-controlled color strip, selection border and touch shortcut.
+Command keys keep their labels. Robots are random decorations assigned per slot
+at startup, stable through status packets and disconnect/reconnect, and may change
+on reboot. USB HID supplies no thread identity or semantic activity state; robot
+expressions do not imply that a particular agent is running. The bridge dashboard
+continues to use its actual agent IDs and status.
+
+For a temporary device check, PlatformIO serial at 115200 accepts `avatar-preview`
+and `avatar-labels`; these change only the current display preference, without
+writing NVS. `screenshot` captures the LCD. Reboot restores the saved BLE preference.

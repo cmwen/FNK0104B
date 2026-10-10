@@ -46,6 +46,8 @@ try {
  await page.locator('#monitor-slots option[value="3"]').waitFor({state:'attached'});
  assert.equal(await page.locator('#monitor-slots option[value="6"]').textContent(),'6 agent slots');
  assert.equal(await page.locator('#monitor-voice').inputValue(),'0');
+ assert.equal(await page.locator('#monitor-appearance').inputValue(),'0');
+ assert.equal(await page.locator('#monitor-appearance').isDisabled(),true);
  assert.equal(await page.locator('#monitor-ota-check').isDisabled(),true);
  assert.equal(await page.locator('#monitor-ota-install').isDisabled(),true);
  await page.getByRole('heading',{name:'Firmware updates'}).waitFor();

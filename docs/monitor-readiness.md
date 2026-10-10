@@ -445,3 +445,48 @@ physical power-interruption recovery, pending-boot rollback and first-boot
 confirmation of an OTA-installed monitor. The standalone OTA demo's earlier
 success is separate evidence. The 0.7.0 baseline checks as current once published;
 a newer compatible version is needed to exercise an actual update.
+
+## 2026-10-10 · Monitor 0.7.1 avatars and reproducible OTA models
+
+- Added optional USB slot avatars through BLE settings v4 (`0006`), retaining
+  numbered slots as default, Desktop color strips and touch/command mappings.
+  Robots are neutral decorations randomized at startup, with no host identity claim.
+- Native settings tests cover v4 range validation and older writes preserving
+  the avatar preference. Browser client tests cover preference read/write and
+  older firmware disabling the selector; responsive checks passed at 1440, 768
+  and 390 pixels. Native tests: 30; host checks: 44; BLE checks: 13.
+- Local and published speech files were byte-identical but their packed model
+  order differed. Canonical sorting produces the same 3,518,070-byte image for
+  both, SHA-256 `e0a43266597da7db07f066a80893ca093f6a9395e9c298af3941eaf6d3c3e833`.
+  0.7.0 requires USB once to install that canonical model baseline.
+- An incremental build exposed stale IDF image version metadata. The monitor
+  pre-build hook invalidates generated CMake metadata when its cached version
+  differs; regression checks cover both changed and unchanged versions.
+
+Physical verification for this change:
+
+- PlatformIO built `codex-monitor` and `codex-audio-diag`; the final monitor image
+  reports IDF application version 0.7.1, 3,319,312 bytes, SHA-256
+  `0593dda443d359ac6887a0c1dd613f707f301b3acb61090c0da0c6943fe284f8`.
+- Full USB upload verified bootloader, partitions, erased OTA initializer,
+  canonical models and app hashes. NVS was not erased. USB returned to Windows
+  for Desktop, with TinyUSB CDC/HID/UAC1 enumeration.
+- PlatformIO serial at 115200 recorded live Desktop status revisions, input
+  readiness and startup-muted outgoing audio. Health showed both workers
+  present, 42,427 free internal bytes and 8,338,272 free PSRAM bytes. Speech
+  recognition remained paused in USB mode (`starting`); loading the canonical
+  models into speech inference in bridge mode is not newly verified here.
+- Complete actual LCD readbacks confirmed the numbered three-slot default and
+  optional three unlabeled robots with unchanged header/status strips and voice
+  controls. A temporary serial preview was restored to numbered slots.
+  [Avatar LCD capture](images/usb-micro-avatars-screen.png) is a hardware image.
+- Windows CDC forwarding exceeded the original screenshot write timeout. The
+  screenshot diagnostic now temporarily allows 3 seconds per write and restores
+  the ordinary 250 ms timeout; both full readbacks then passed.
+- `ota-check` reused the existing worker, kept audio closed and reported
+  **Connect the board to Wi-Fi first**. Desktop statuses continued afterward.
+  This board was offline from Wi-Fi during the check. Actual monitor OTA
+  download/install, interrupted update and boot rollback remain **UNKNOWN**.
+- Saving the avatar setting over physical BLE and real touch acceptance remain
+  hands-on checks; automated packet/readback tests and the serial display
+  preview do not establish these interactions.

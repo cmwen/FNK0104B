@@ -58,7 +58,8 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
             if(ota) return otaCharacteristic;
             const error=new Error('Characteristic not found'); error.name='NotFoundError'; throw error;
           }
-          if ((settingsPacket[0] < 3 && uuid.includes('0004')) ||
+          if ((settingsPacket[0] < 4 && uuid.includes('0006')) ||
+              (settingsPacket[0] < 3 && uuid.includes('0004')) ||
               (settingsPacket[0] === 1 && uuid.includes('0003'))) {
             const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
           }
@@ -201,4 +202,19 @@ test('incompatible speech models never enable the OTA install button', async () 
   app.setUpdate({state:'usb_required',message:'Speech models changed; USB required'}); await app.poll();
   assert.equal(app.element('#monitor-ota-install').disabled,true);
   await app.installOta(); assert.deepEqual(app.otaWrites,['check']);
+});
+
+ test('avatar settings round trip without changing voice or layout', async () => {
+  const app = setup({settingsPacket: [4, 50, 30, 0, 3, 1, 0]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-appearance').disabled, false);
+  app.element('#monitor-appearance').value = '1';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes[0], [4, 50, 30, 0, 3, 1, 1]);
+  assert.equal(app.element('#monitor-appearance').value, '1');
+});
+ test('older firmware keeps appearance unavailable', async () => {
+  const app = setup({settingsPacket: [3, 50, 30, 0, 3, 0]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-appearance').disabled, true);
 });
