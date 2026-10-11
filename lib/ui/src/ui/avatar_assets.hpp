@@ -101,7 +101,9 @@ static inline uint32_t hashId(const char* text) {
 
 // Draws one opaque, floating robot portrait. Its stable identity chooses a
 // palette, headset module, and code crest; mood changes only the expression.
-static inline void render(Canvas& c, uint32_t identity, Mood mood, uint32_t tick) {
+static inline void render(Canvas& c, uint32_t identity, Mood mood, uint32_t tick,
+                          uint16_t background = detail::rgb(237, 241, 255),
+                          bool moodBorder = true) {
   using namespace detail;
   constexpr uint16_t ink = rgb(22, 17, 57);
   constexpr uint16_t rim = rgb(81, 51, 150);
@@ -110,7 +112,7 @@ static inline void render(Canvas& c, uint32_t identity, Mood mood, uint32_t tick
   constexpr uint16_t shellHighlight = rgb(255, 255, 255);
   constexpr uint16_t face = rgb(28, 25, 68);
   constexpr uint16_t faceShade = rgb(49, 37, 103);
-  constexpr uint16_t ground = rgb(237, 241, 255);
+  const uint16_t ground = background;
   constexpr uint16_t shadow = rgb(209, 197, 249);
   constexpr uint16_t error = rgb(248, 80, 139);
   const Palette& accent = kPalettes[identity % 4u];
@@ -119,7 +121,7 @@ static inline void render(Canvas& c, uint32_t identity, Mood mood, uint32_t tick
   const unsigned eyeStyle = (identity >> 20) % 3u;
   RobotPainter robot{c, static_cast<int>((tick / 6u) % 2u)};
 
-  // Pale tile and fixed shadow make the one-pixel hover motion visible.
+  // The caller chooses the tile background; the shadow shows hover motion.
   rect(c, 0, 0, 31, 31, ground);
   roundRect(c, 9, 28, 22, 30, 1, shadow);
   rect(c, 12, 29, 19, 29, rgb(177, 156, 237));
@@ -253,10 +255,12 @@ static inline void render(Canvas& c, uint32_t identity, Mood mood, uint32_t tick
     const uint16_t status = mood == Mood::Thinking ? rgb(42, 202, 237)
                             : mood == Mood::NeedsInput ? rgb(255, 179, 49)
                             : error;
-    rect(c, 0, 0, 31, 1, status);
-    rect(c, 0, 30, 31, 31, status);
-    rect(c, 0, 0, 1, 31, status);
-    rect(c, 30, 0, 31, 31, status);
+    if (moodBorder) {
+      rect(c, 0, 0, 31, 1, status);
+      rect(c, 0, 30, 31, 31, status);
+      rect(c, 0, 0, 1, 31, status);
+      rect(c, 30, 0, 31, 31, status);
+    }
     robot.roundRect(24, 2, 31, 11, 2, ink);
     robot.roundRect(25, 3, 30, 10, 1, shellHighlight);
     if (mood == Mood::Thinking) {

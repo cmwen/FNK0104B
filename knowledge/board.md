@@ -207,3 +207,17 @@ over five seconds, with peak 54 and 77,125 nonzero samples in a quiet run.
 This verifies live raw USB microphone delivery, not audible speech quality or
 Desktop dictation. The GPIO map and existing partition boundaries were retained.
 See [device evidence](../test/hardware/connectivity-modes-2026-10-07.md).
+
+## USB avatar status check (2026-10-11)
+
+The current local monitor build was uploaded with PlatformIO and verified image
+hashes, retaining the current partition layout and saved NVS preferences. Actual
+LCD readbacks showed three slot avatars with blended backgrounds and the four
+direction controls; live Desktop updates changed white/idle portraits to
+blue/thinking while preserving identities and visible strips. Serial at 115200
+showed stable heap, both workers present and zero USB audio drops in this short
+run. Monitor 0.7.2 also rendered six avatars on the actual LCD after a temporary
+serial layout change. Physical BLE setting writes showed a readback/display
+discrepancy; write acceptance, touch shortcuts and long-running dropout behavior
+remain UNKNOWN. See the
+[device record](../test/hardware/usb-avatar-status-2026-10-11.md).

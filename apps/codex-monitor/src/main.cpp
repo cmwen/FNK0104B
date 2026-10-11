@@ -13,6 +13,7 @@
 #include <locallink/protocol.hpp>
 #include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
+#include <ui/micro_avatar.hpp>
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
 #include <ui/micro_layout.hpp>
@@ -266,7 +267,15 @@ void drawAgentTile(const Agent& agent, int x, int y) {
       (!strcmp(agent.status, "error") ? "ERROR" : "RUNNING"), x + 70, y + 34, 1);
 }
 
+void drawMicroAvatar(unsigned i);
+unsigned microTileCount();
+
 void drawAnimatedAvatars() {
+  if (previousTransport != codex_hid::Transport::None && microAvatars &&
+      !microCommands && !showingStatus && !commandHelpVisible && !voiceBusy.load()) {
+    for (unsigned i = 0; i < microTileCount(); ++i) drawMicroAvatar(i);
+    return;
+  }
   MonitorStatus snapshot;
   portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
   if (previousTransport != codex_hid::Transport::None || !snapshot.count || showingStatus || commandHelpVisible || voiceBusy.load()) return;
@@ -317,23 +326,26 @@ void drawVoiceControl() {
 
 }
 
+unsigned microTileCount() {
+  return microCommands || !compactMicroLayout ? 6u : 3u;
+}
+
+void drawMicroAvatar(unsigned i) {
+  ui::avatar::render(avatarCanvas, microAvatarSeeds[i], ui::micro::mood(desktopStatus.slots[i]),
+      millis() / kAvatarFrameMs, ui::monitor::kPanel, false);
+  for (int row = 0; row < 48; ++row)
+    for (int col = 0; col < 48; ++col)
+      avatarScaled[row * 48 + col] = avatarCanvas.pixels[(row * 32 / 48) * 32 + col * 32 / 48];
+  tft().setSwapBytes(true);
+  tft().pushImage(ui::micro::tileX(i) + 34, ui::micro::tileY(i) + 6, 48, 48, avatarScaled);
+  tft().setSwapBytes(false);
+}
+
 void drawMicroTile(unsigned i) {
   const auto& slot = desktopStatus.slots[i];
-  const uint32_t c = slot.color;
-  const float b = slot.brightness;
-  const uint16_t color = ui::monitor::rgb(uint8_t((c >> 16) * b),
-      uint8_t(((c >> 8) & 255) * b), uint8_t((c & 255) * b));
-  ui::micro::tile(tft(), i, color, slot.present, selectedMicroSlot == int(i), microCommands, microAvatars);
-  if (microAvatars && !microCommands) {
-    // Decorative slot identity only: HID gives colors, not thread context.
-    ui::avatar::render(avatarCanvas, microAvatarSeeds[i], ui::avatar::Mood::Idle, 0);
-    for (int row = 0; row < 48; ++row)
-      for (int col = 0; col < 48; ++col)
-        avatarScaled[row * 48 + col] = avatarCanvas.pixels[(row * 32 / 48) * 32 + col * 32 / 48];
-    tft().setSwapBytes(true);
-    tft().pushImage(ui::micro::tileX(i) + 34, ui::micro::tileY(i) + 6, 48, 48, avatarScaled);
-    tft().setSwapBytes(false);
-  }
+  ui::micro::tile(tft(), i, ui::micro::statusColor(slot), slot.present,
+      selectedMicroSlot == int(i), microCommands, microAvatars);
+  if (microAvatars && !microCommands) drawMicroAvatar(i);
 }
 
 void drawScreen() {
@@ -365,7 +377,7 @@ void drawScreen() {
       d.drawString(microCommands ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" :
       usbMicroActive ? "USB MICRO / TAP MICRO FOR KEYS" : "BLE MICRO / SPEECH TO ORCHESTRATOR", 10, 45, 1);
     }
-    for (unsigned i = 0; i < (microCommands || !compactMicroLayout ? 6u : 3u); ++i)
+    for (unsigned i = 0; i < microTileCount(); ++i)
       drawMicroTile(i);
     if (!microCommands && compactMicroLayout) ui::micro::directions(d);
     drawVoiceControl();
@@ -458,6 +470,8 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
       microLayoutChanged = true;
     }
     publishSettings();
+    Serial.printf("monitor_settings accepted=1 version=%u slots=%u avatars=%u\n",
+        version, next.slots, unsigned(next.avatars));
   }
 };
 
@@ -942,7 +956,7 @@ void touchLoop() {
         const int slot = commandHelpVisible || voiceBusy ? -1 : ui::micro::tileAt(x, y);
         if (!microCommands && compactMicroLayout && !commandHelpVisible && !voiceBusy)
           keyId = ui::micro::directionAt(x, y);
-        if (slot >= 0 && (microCommands || !compactMicroLayout || slot < 3)) {
+        if (slot >= 0 && (unsigned(slot) < microTileCount())) {
           keyId = microCommands ? ui::micro::commandKeys[slot] : slot;
           if (!usbMicroActive && keyId == 10) { beginVoice(); keyId = -1; }
           if (!microCommands) selectedMicroSlot = slot;
@@ -1023,14 +1037,20 @@ void serialLoop() {
         microLayoutChanged = true;
         Serial.printf("monitor_appearance avatars=%d temporary=1\n", int(microAvatars.load()));
       }
+      if (!strcmp(command, "micro-three") || !strcmp(command, "micro-six")) {
+        compactMicroLayout = !strcmp(command, "micro-three");
+        microLayoutChanged = true;
+        Serial.printf("monitor_layout slots=%u temporary=1\n", compactMicroLayout ? 3u : 6u);
+      }
       if (!strcmp(command, "ota-check")) monitor_ota::request("check");
       if (!strcmp(command, "ota-install")) monitor_ota::request("install");
       if (!strcmp(command, "hid-agent0"))
         Serial.printf("codex_hid input=%s\n", codex_hid::agent0Tap() ? "queued" : "unavailable");
       if (!strcmp(command, "health"))
-        Serial.printf("monitor_health heap=%u psram=%u wifi=%d status_task=%d voice_task=%d speech=%d speech_reason=%s\n",
+        Serial.printf("monitor_health heap=%u psram=%u wifi=%d status_task=%d voice_task=%d speech=%d speech_reason=%s version=%s slots=%u avatars=%u\n",
           unsigned(ESP.getFreeHeap()), unsigned(ESP.getFreePsram()), int(WiFi.status()), statusTask != nullptr,
-          voiceTask != nullptr, monitor_speech::ready(), monitor_speech::error());
+          voiceTask != nullptr, monitor_speech::ready(), monitor_speech::error(),
+          monitor_ota::version, compactMicroLayout ? 3u : 6u, unsigned(microAvatars.load()));
       length = 0;
       if (capture) break;
     } else if (length < sizeof(command) - 1) command[length++] = c;
@@ -1208,7 +1228,7 @@ void loop() {
       changed |= tileChanged;
       if (tileChanged && screenAwake && previousTransport != codex_hid::Transport::None &&
           !microCommands && !commandHelpVisible && !showingStatus && !voiceBusy &&
-          (!compactMicroLayout || i < 3)) drawMicroTile(i);
+          (i < microTileCount())) drawMicroTile(i);
     }
     if (changed && previousTransport != codex_hid::Transport::None) {
       idleTimer.activity(millis());
@@ -1260,7 +1280,10 @@ void loop() {
   activeAgents = status.total_agents;
   portEXIT_CRITICAL(&statusMux);
   // Pending input/error agents and voice work also keep the monitor visible.
-  const bool busy = desktopMicHeld || usbVoiceControls.voiceOpen() ||
+  bool desktopWorking = false;
+  for (const auto& slot : desktopStatus.slots)
+    desktopWorking |= ui::micro::mood(slot) == ui::avatar::Mood::Thinking;
+  const bool busy = desktopWorking || desktopMicHeld || usbVoiceControls.voiceOpen() ||
       (fnk0104b::usb_microphone::streaming() && !fnk0104b::usb_microphone::muted()) ||
       monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);

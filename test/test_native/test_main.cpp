@@ -12,6 +12,7 @@
 #include <locallink/protocol.hpp>
 #include <locallink/sse.hpp>
 #include <ui/avatar_assets.hpp>
+#include <ui/micro_avatar.hpp>
 #include <ui/idle_timer.hpp>
 #include <ui/monitor_theme.hpp>
 #include <recorder/ogg.hpp>
@@ -89,6 +90,31 @@ void test_monitor_timeout_across_millis_wrap() {
   timer.activity(UINT32_MAX - 29999);
   TEST_ASSERT_FALSE(timer.expired(29999, 60000, false));
   TEST_ASSERT_TRUE(timer.expired(30000, 60000, false));
+}
+
+void test_micro_avatar_status_and_refresh() {
+  codex_hid::Protocol protocol;
+  char reply[1024];
+  auto update = [&](const char* json) {
+    TEST_ASSERT_TRUE(protocol.process(json, strlen(json), reply, sizeof(reply)));
+  };
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"c":3166206,"b":1},{"id":1,"c":16777215},{"id":2,"c":16739584},{"id":3,"c":16711731}]})");
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Thinking), int(ui::micro::mood(protocol.status.slots[0])));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Idle), int(ui::micro::mood(protocol.status.slots[1])));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::NeedsInput), int(ui::micro::mood(protocol.status.slots[2])));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Error), int(ui::micro::mood(protocol.status.slots[3])));
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"b":0},{"id":1,"e":4,"s":0.4}]})");
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Thinking), int(ui::micro::mood(protocol.status.slots[0])));
+  TEST_ASSERT_NOT_EQUAL(ui::monitor::kTrack, ui::micro::statusColor(protocol.status.slots[0]));
+  TEST_ASSERT_NOT_EQUAL(0, ui::micro::statusColor(protocol.status.slots[0]));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Idle), int(ui::micro::mood(protocol.status.slots[1])));
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"c":0}]})");
+  TEST_ASSERT_EQUAL(ui::monitor::kTrack, ui::micro::statusColor(protocol.status.slots[0]));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Idle), int(ui::micro::mood(protocol.status.slots[0])));
+  ui::avatar::Canvas canvas;
+  ui::avatar::render(canvas, 42, ui::avatar::Mood::Thinking, 12, ui::monitor::kPanel, false);
+  TEST_ASSERT_EQUAL(ui::monitor::kPanel, canvas.pixels[2 * 32 + 2]);
+  TEST_ASSERT_EQUAL(ui::monitor::kPanel, canvas.pixels[0]);
 }
 
 void test_avatar_rgb565_channel_order() {
@@ -651,6 +677,7 @@ int main() {
   RUN_TEST(test_monitor_timeout_starts_after_active_work_finishes);
   RUN_TEST(test_monitor_touch_and_timeout_setting);
   RUN_TEST(test_monitor_timeout_across_millis_wrap);
+  RUN_TEST(test_micro_avatar_status_and_refresh);
   RUN_TEST(test_avatar_rgb565_channel_order);
   RUN_TEST(test_avatar_identity_and_state_are_independent);
   RUN_TEST(test_avatar_animation_changes_frame);

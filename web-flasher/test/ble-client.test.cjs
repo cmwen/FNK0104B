@@ -218,3 +218,19 @@ test('incompatible speech models never enable the OTA install button', async () 
   await app.connectMonitor();
   assert.equal(app.element('#monitor-appearance').disabled, true);
 });
+
+test('six-slot layout and avatar appearance can change independently', async () => {
+  const app = setup({settingsPacket: [4, 50, 30, 0, 3, 1, 1]});
+  await app.connectMonitor();
+  app.element('#monitor-slots').value = '6';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes[0], [4, 50, 30, 0, 6, 1, 1]);
+  assert.equal(app.element('#monitor-appearance').value, '1');
+  app.element('#monitor-appearance').value = '0';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes[1], [4, 50, 30, 0, 6, 1, 0]);
+  assert.equal(app.element('#monitor-slots').value, '6');
+  app.element('#monitor-appearance').value = '1';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes[2], [4, 50, 30, 0, 6, 1, 1]);
+});

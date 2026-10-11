@@ -490,3 +490,42 @@ Physical verification for this change:
 - Saving the avatar setting over physical BLE and real touch acceptance remain
   hands-on checks; automated packet/readback tests and the serial display
   preview do not establish these interactions.
+
+## USB avatar status follow-up — 2026-10-11
+
+USB/BLE layout and appearance are independent: choose three slots plus four
+Desktop-mapped direction shortcuts or six slots, each with numbers or avatars.
+Avatars blend into their tile backgrounds.
+Desktop lighting colors select thinking (blue), needs input (orange), error
+(red), or neutral idle (white/green/unknown). Only the portrait pixels animate
+at 10 Hz; status strips and selection borders are preserved. A working HID
+slot also keeps the screen awake. The source and limitations of this lighting
+interpretation are recorded in the monitor README.
+
+Nonzero status colors retain a 25% LCD brightness floor, including when host
+lighting brightness is zero. Explicit black still clears the status. This
+addresses a possible disappearing-indicator cause without retaining stale
+working state after an explicit clear. The actual cause of the reported
+intermittent disappearance remains **UNKNOWN** pending live packet/device
+verification.
+
+Validation: PlatformIO `codex-monitor` build passed (3,319,541 flash bytes,
+152,548 static RAM bytes). 31 PlatformIO native tests passed, including status-color mappings,
+partial refresh persistence, zero-brightness visibility, explicit clearing,
+blended portrait background and existing slot/direction touch boundaries. The
+shared-theme host previews cover three portraits plus direction shortcuts and
+six portraits, both with bottom voice controls. All 14 browser BLE tests pass,
+including layout/appearance changes preserving the other preference.
+Physical status transitions, touch shortcuts, animation timing and the reported
+refresh issue required physical verification; the subsequent device check is
+recorded below.
+
+The owner authorized real-board testing on 2026-10-11. PlatformIO upload verified
+all image hashes, and post-flash PlatformIO serial at 115200 showed live Desktop
+status delivery, saved Wi-Fi and stable heap with zero USB audio drops. Two actual
+LCD readbacks verified the three-avatar/direction layout, blended backgrounds,
+stable identities and idle-to-thinking transitions without disappearing strips
+in the captured refreshes. The final 0.7.2 build also rendered six avatars
+on the actual LCD using a temporary serial layout command. Physical BLE saving
+showed a settings/display discrepancy; successful writes and touch interactions
+remain UNKNOWN; see the [hardware record](../test/hardware/usb-avatar-status-2026-10-11.md).

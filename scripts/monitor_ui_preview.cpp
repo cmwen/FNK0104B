@@ -37,12 +37,12 @@ public:
   }}
   void drawRightString(const char* text,int x,int y,int f){drawString(text,x-textWidth(text,f),y,f);}
   void drawCentreString(const char* text,int x,int y,int f){drawString(text,x-textWidth(text,f)/2,y,f);}
-  void avatar(int x,int y,int size,ui::avatar::Mood mood){ui::avatar::Canvas c;ui::avatar::render(c,42,mood,12);for(int j=0;j<size;++j)for(int i=0;i<size;++i)drawPixel(x+i,y+j,c.pixels[(j*32/size)*32+i*32/size]);}
+  void avatar(int x,int y,int size,ui::avatar::Mood mood, bool blended=false){ui::avatar::Canvas c;ui::avatar::render(c,42,mood,12,blended?ui::monitor::kPanel:ui::avatar::detail::rgb(237,241,255),!blended);for(int j=0;j<size;++j)for(int i=0;i<size;++i)drawPixel(x+i,y+j,c.pixels[(j*32/size)*32+i*32/size]);}
   void save(const std::string& path){std::ofstream f(path,std::ios::binary);f<<"P6\n320 240\n255\n";for(auto c:pixels){char rgb[3]={char(((c>>11)&31)*255/31),char(((c>>5)&63)*255/63),char((c&31)*255/31)};f.write(rgb,3);}}
 };
 int main(int argc,char**argv){
   const std::string base=argc>1?argv[1]:"/tmp/monitor";
-  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full","micro","micro-ptt","micro-voice","micro-six","micro-keys","micro-ble"}){
+  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full","micro","micro-ptt","micro-voice","micro-six","micro-keys","micro-ble","micro-avatars","micro-avatars-six"}){
     const bool micro = state.rfind("micro", 0) == 0;
     Display d;bool active=state=="active"||state=="attention";bool offline=state=="offline";bool recording=state=="recording";bool commands=state=="commands"||state=="commands-quiet";
     d.fillScreen(ui::monitor::kBackground);
@@ -53,12 +53,17 @@ int main(int argc,char**argv){
         offline?-1:(state=="empty"?0:(state=="full"?24:12)), micro ? "Linked" : nullptr);
     d.setTextColor(ui::monitor::kMuted,ui::monitor::kBackground);
     d.drawString(micro ? (state=="micro-ble" ? "BLE MICRO / SPEECH TO ORCHESTRATOR" : state=="micro-keys" ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" : "USB MICRO / TAP MICRO FOR KEYS") : offline?"Status HTTP -11":(commands?"Listening for device command":(recording?"Recording Codex message":(active?"ACTIVE AGENTS / QUOTA LEFT":"QUOTA LEFT"))),10,45,1);
-    if(micro) for(unsigned i=0;i<((state=="micro"||state=="micro-ptt"||state=="micro-voice")?3u:6u);++i) ui::micro::tile(d,i,i==2?ui::monitor::kAmber:ui::monitor::kCyan,true,i==1,state=="micro-keys");
+    if(state=="micro-avatars" || state=="micro-avatars-six") {
+      const ui::avatar::Mood moods[]={ui::avatar::Mood::Thinking,ui::avatar::Mood::Idle,ui::avatar::Mood::NeedsInput,ui::avatar::Mood::Error};
+      const uint16_t colors[]={ui::monitor::rgb(48,79,254),0xffff,ui::monitor::rgb(255,109,0),ui::monitor::rgb(255,0,51)};
+      for(unsigned i=0;i<(state=="micro-avatars-six"?6u:3u);++i){ui::micro::tile(d,i,colors[i%4],true,i==1,false,true);d.avatar(ui::micro::tileX(i)+34,ui::micro::tileY(i)+6,48,moods[i%4],true);}
+    }
+    else if(micro) for(unsigned i=0;i<((state=="micro"||state=="micro-ptt"||state=="micro-voice")?3u:6u);++i) ui::micro::tile(d,i,i==2?ui::monitor::kAmber:ui::monitor::kCyan,true,i==1,state=="micro-keys");
     else if(commands) ui::monitor::commandHelp(d,speech::kMonitorCommands,speech::kMonitorCommandCount);
     else if(recording) ui::monitor::messagePanel(d,true,false,false);
     else if(!active){ui::monitor::quotaCard(d,6,"5H left",fiveHour,false);ui::monitor::quotaCard(d,164,"Week left",weekly,true);}
     else{ui::monitor::frame(d,8,59,304,123,ui::monitor::kBorder);d.fillRoundRect(15,71,102,102,6,state=="attention"?ui::monitor::kAmber:ui::monitor::kMint);d.avatar(18,74,96,state=="attention"?ui::avatar::Mood::NeedsInput:ui::avatar::Mood::Thinking);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString("Fix display",128,70,2);d.setTextColor(state=="attention"?ui::monitor::kAmber:ui::monitor::kMint,ui::monitor::kPanel);d.drawString(state=="attention"?"Needs input":"Working",128,96,1);d.setTextColor(ui::monitor::kText,ui::monitor::kPanel);d.drawString(state=="attention"?"Which layout should I use?":"Codex is working",128,122,1);}
-    if (state=="micro"||state=="micro-ptt"||state=="micro-voice") ui::micro::directions(d);
+    if (state=="micro"||state=="micro-ptt"||state=="micro-voice"||state=="micro-avatars") ui::micro::directions(d);
     if (micro) ui::micro::voice(d,state!="micro-ble",true,state=="micro-ptt",true,75,false,false,false,
         state!="micro-ptt" && state!="micro-voice",state=="micro-voice",state=="micro-voice");
     else ui::monitor::voiceControl(d,recording,false,recording,false,commands,state=="commands-quiet"?0:75,true,true);

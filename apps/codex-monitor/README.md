@@ -247,19 +247,30 @@ new voice preference. See [the control contract](../../docs/usb-micro-voice-cont
 
 The default remains Agent 1, 2 and 3 with direction keys. On the HTTPS configuration
 page, connect to **Monitor settings**, choose **Agent appearance → Robot avatars**,
-and **Save board settings**. The preference survives restart and also works with six
-slots. Choose **Agent numbers** to restore the labels. Older firmware leaves this
-selector disabled; install 0.7.1 or newer and reconnect (clear cached Bluetooth
-services if the new control remains unavailable).
+and **Save board settings**. Layout and appearance are independent and survive
+restart. **Agent layout** chooses three slots plus four direction shortcuts or
+six slots; **Agent appearance** chooses numbers or avatars for either layout.
+Avatars blend into the tile background. Command keys keep their labels and the
+bottom voice controls remain available.
 
-Avatar mode removes both lines of agent text and retains the overall status bar,
-each slot's host-controlled color strip, selection border and touch shortcut.
-Command keys keep their labels. Robots are random decorations assigned per slot
-at startup, stable through status packets and disconnect/reconnect, and may change
-on reboot. USB HID supplies no thread identity or semantic activity state; robot
-expressions do not imply that a particular agent is running. The bridge dashboard
-continues to use its actual agent IDs and status.
+Robots retain their random per-slot identity through status updates. Their mood
+follows the Desktop lighting color: blue (`304FFE`) animates thinking, white and
+green show idle, orange (`FF6D00`) shows needs input, and red (`FF0033`) shows error.
+This is an interpretation of the [captured Desktop lighting contract](https://gist.github.com/GOROman/2044c3748f4d0c71fcb11b99666f09d5),
+not a thread identity or named-state field. Unknown colors remain neutral; lighting
+effects alone do not indicate working because idle selection can also breathe.
+Idle-to-thinking transitions were verified with live Desktop packets and LCD
+readbacks on 2026-10-11; orange/red transitions remain **UNKNOWN**.
+
+Status strips retain at least 25% brightness for nonzero colors, so dim lighting
+updates do not hide status on the LCD. Explicit black clears the indicator.
+Partial packets preserve unmentioned slots/fields. Cached working status keeps
+the display awake until a later status changes it or the transport disconnects.
+The bridge dashboard continues to use actual agent IDs and status.
 
 For a temporary device check, PlatformIO serial at 115200 accepts `avatar-preview`
 and `avatar-labels`; these change only the current display preference, without
-writing NVS. `screenshot` captures the LCD. Reboot restores the saved BLE preference.
+writing NVS. `micro-three` and `micro-six` temporarily select the layout,
+independently of appearance. `health` reports version, layout and appearance;
+accepted BLE writes log `monitor_settings`. `screenshot` captures the LCD.
+Reboot restores the saved BLE preferences.

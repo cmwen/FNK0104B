@@ -108,8 +108,9 @@ on the setup page. See [the update and validation record](usb-micro-voice-contro
 
 The default remains Agent 1, 2 and 3 with direction keys. On the HTTPS configuration
 page, connect to **Monitor settings**, choose **Agent appearance → Robot avatars**,
-and **Save board settings**. The preference survives restart and also works with six
-slots. Choose **Agent numbers** to restore the labels. Older firmware leaves this
+and **Save board settings**. Layout and appearance are independent: avatars
+work with either three slots plus directions or six slots. Both preferences
+survive restart. Choose **Agent numbers** to restore the labels. Older firmware leaves this
 selector disabled; install 0.7.1 or newer and reconnect (clear cached Bluetooth
 services if the new control remains unavailable).
 
@@ -117,9 +118,10 @@ Avatar mode removes both lines of agent text and retains the overall status bar,
 each slot's host-controlled color strip, selection border and touch shortcut.
 Command keys keep their labels. Robots are random decorations assigned per slot
 at startup, stable through status packets and disconnect/reconnect, and may change
-on reboot. USB HID supplies no thread identity or semantic activity state; robot
-expressions do not imply that a particular agent is running. The bridge dashboard
-continues to use its actual agent IDs and status.
+on reboot. USB HID supplies lighting rather than thread identity or named agent
+states. Expressions interpret Desktop status colors, as described in the
+[monitor README](../apps/codex-monitor/README.md#optional-usb-robot-avatars-monitor-071).
+The bridge dashboard continues to use its actual agent IDs and status.
 
 For a temporary device check, PlatformIO serial at 115200 accepts `avatar-preview`
 and `avatar-labels`; these change only the current display preference, without
