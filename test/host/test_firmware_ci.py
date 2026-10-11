@@ -112,7 +112,11 @@ build_src_filter = +<02-display/src/>
         self.assertIn('dependencies.monitor.lock', monitor)
         self.assertNotIn('dependencies.lock', monitor)
         self.assertNotIn('apps/01-hello/src/main.cpp', monitor)
-        self.assertNotIn('lib/ui/src/ui/micro_layout.hpp', ci.inputs(ROOT, 'hello', files))
+        hello = ci.inputs(ROOT, 'hello', files)
+        self.assertNotIn('apps/codex-monitor/src/main.cpp', hello)
+        # Shared board sources include the optional photo UI. The conservative
+        # scanner follows those includes even when their feature flag is off.
+        self.assertIn('lib/ui/src/ui/idle_photos.hpp', hello)
 
 
 class FirmwareBundleTest(unittest.TestCase):
