@@ -1,0 +1,126 @@
+--- forcing DTR active
+--- forcing RTS active
+--- Terminal on socket://127.0.0.1:18749 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=38047
+codex_hid host=idle
+monitor_health heap=38047 psram=8318392 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.0 slots=3 avatars=1
+sd_pins=configured mode=4-bit
+sd_status=mounted
+monitor_photos mounted=1 count=2 heap=36919 psram=8276328
+{"seq":0,"state":"ready","offset":0,"mounted":true,"files":["01-alpine-lake.fpf","02-red-poppy.fpf"]}
+monitor_photo_reply {"seq":1,"state":"cancelled","offset":0,"mounted":true,"files":["01-alpine-lake.fpf","02-red-poppy.fpf"]}
+monitor_photos mounted=1 count=2 heap=36919 psram=8276328
+monitor_photo_reply {"seq":2,"state":"ready","offset":0,"mounted":true,"files":["01-alpine-lake.fpf","02-red-poppy.fpf"]}
+monitor_photos mounted=1 count=2 heap=36919 psram=8276328
+monitor_photos idle=1 mode=0
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=89
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=9
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=9
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36651
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_photos frame=01-alpine-lake.fpf heap=36919 psram=8149348
+monitor_screenshot begin width=320 height=240 format=rgb888
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=100
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=10
+codex_hid tx=complete report_id=6
+codex_hid rx report_id=6 bytes=63 reports=110
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_screenshot end
+codex_hid application=status_displayed revision=10
+monitor_photos frame=02-red-poppy.fpf heap=36919 psram=8149348
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=111
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+monitor_health heap=36919 psram=8149348 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.0 slots=3 avatars=1
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=11
+codex_hid application=status_displayed revision=11
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_photos frame=01-alpine-lake.fpf heap=36919 psram=8149348
+monitor_screenshot begin width=320 height=240 format=rgb888
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=122
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=12
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid rx report_id=6 bytes=63 reports=132
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_screenshot end
+codex_hid application=status_displayed revision=12
+monitor_photos frame=02-red-poppy.fpf heap=36919 psram=8149372
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=133
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=53
+codex_hid status_received revision=13
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=13
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_photos idle=0 mode=0
+monitor_screenshot begin width=320 height=240 format=rgb888
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=144
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=14
+codex_hid tx=complete report_id=6
+monitor_screenshot end
+codex_hid rx report_id=6 bytes=63 reports=154
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=14
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=36919
+monitor_health heap=36919 psram=8276324 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.0 slots=3 avatars=1
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=155
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=15
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=15
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6

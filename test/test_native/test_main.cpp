@@ -1,10 +1,179 @@
 #include <unity.h>
+#include <storage/bmp.hpp>
+#include <image_codec/image.hpp>
+#include <image_codec/allocator.h>
+#include "../fixtures/photo-frame/encoded.hpp"
+
+void assert_red_photo(const uint8_t* data, size_t size, uint8_t alpha = 255) {
+  {
+    image_codec::Image image;
+    const char* error = nullptr;
+    TEST_ASSERT_TRUE_MESSAGE(image_codec::decode(data, size, image, error), error ? error : "decode");
+    TEST_ASSERT_EQUAL_INT(8, image.width);
+    TEST_ASSERT_EQUAL_INT(6, image.height);
+    TEST_ASSERT_NULL(error);
+    TEST_ASSERT_UINT8_WITHIN(5, 255, image.rgba[0]);
+    TEST_ASSERT_UINT8_WITHIN(5, 0, image.rgba[1]);
+    TEST_ASSERT_UINT8_WITHIN(5, 0, image.rgba[2]);
+    TEST_ASSERT_EQUAL_UINT8(alpha, image.rgba[3]);
+  }
+  TEST_ASSERT_EQUAL_UINT32(0, image_codec::allocatedBytes());
+}
+
+void test_photo_frame_real_decoders_and_cleanup() {
+  using namespace photo_fixtures;
+  for (int cycle = 0; cycle < 5; ++cycle) {
+    assert_red_photo(jpeg, sizeof(jpeg));
+    assert_red_photo(progressive, sizeof(progressive));
+    assert_red_photo(png, sizeof(png));
+    assert_red_photo(palette_png, sizeof(palette_png));
+    assert_red_photo(webp_lossy, sizeof(webp_lossy));
+    assert_red_photo(webp_lossless, sizeof(webp_lossless));
+    assert_red_photo(alpha_png, sizeof(alpha_png), 128);
+    assert_red_photo(alpha_webp, sizeof(alpha_webp), 128);
+  }
+  const uint8_t* large[] = {large_jpeg, large_png, large_webp};
+  const size_t sizes[] = {sizeof(large_jpeg), sizeof(large_png), sizeof(large_webp)};
+  for (unsigned i = 0; i < 3; ++i) {
+    image_codec::Image image;
+    const char* error = nullptr;
+    TEST_ASSERT_TRUE_MESSAGE(image_codec::decode(large[i], sizes[i], image, error), error ? error : "large decode");
+    TEST_ASSERT_EQUAL_INT(640, image.width);
+    TEST_ASSERT_EQUAL_INT(480, image.height);
+    auto fitted = image_codec::fit(image.width, image.height);
+    TEST_ASSERT_EQUAL_INT(320, fitted.width);
+    TEST_ASSERT_EQUAL_INT(240, fitted.height);
+    image.clear();
+    TEST_ASSERT_EQUAL_UINT32(0, image_codec::allocatedBytes());
+  }
+}
+
+void* fail_image_allocate(size_t) { return nullptr; }
+void* fail_image_reallocate(void*, size_t) { return nullptr; }
+void fail_image_release(void*) {}
+
+void test_photo_frame_rejects_invalid_and_exhausted_images() {
+  using namespace photo_fixtures;
+  image_codec::Image image;
+  const char* error = nullptr;
+  TEST_ASSERT_FALSE(image_codec::decode(animated_webp, sizeof(animated_webp), image, error));
+  TEST_ASSERT_EQUAL_STRING("animated_webp_unsupported", error);
+  TEST_ASSERT_FALSE(image_codec::decode(oversized_png, sizeof(oversized_png), image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(png, 16, image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(webp_lossless, sizeof(webp_lossless) - 12, image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(nullptr, 100, image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(jpeg, image_codec::kMaxEncodedBytes + 1, image, error));
+  TEST_ASSERT_NULL(image.rgba);
+  TEST_ASSERT_EQUAL_UINT32(0, image_codec::allocatedBytes());
+  image_codec::setAllocator({fail_image_allocate, fail_image_reallocate, fail_image_release});
+  TEST_ASSERT_FALSE(image_codec::decode(jpeg, sizeof(jpeg), image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(png, sizeof(png), image, error));
+  TEST_ASSERT_FALSE(image_codec::decode(webp_lossless, sizeof(webp_lossless), image, error));
+  TEST_ASSERT_EQUAL_UINT32(0, image_codec::allocatedBytes());
+  image_codec::setAllocator({malloc, realloc, free});
+  // Budget exhaustion must preserve a live allocation when realloc fails.
+  void* allocation = frame_image_malloc(1024);
+  TEST_ASSERT_NOT_NULL(allocation);
+  TEST_ASSERT_NULL(frame_image_realloc(allocation, image_codec::kMaxWorkingBytes + 1));
+  TEST_ASSERT_EQUAL_UINT32(1024, image_codec::allocatedBytes());
+  frame_image_free(allocation);
+  TEST_ASSERT_EQUAL_UINT32(0, image_codec::allocatedBytes());
+}
+
+void test_photo_frame_fit_and_alpha() {
+  auto landscape = image_codec::fit(1024, 512);
+  TEST_ASSERT_EQUAL_INT(320, landscape.width);
+  TEST_ASSERT_EQUAL_INT(160, landscape.height);
+  TEST_ASSERT_EQUAL_INT(40, landscape.y);
+  auto portrait = image_codec::fit(512, 1024);
+  TEST_ASSERT_EQUAL_INT(120, portrait.width);
+  TEST_ASSERT_EQUAL_INT(240, portrait.height);
+  TEST_ASSERT_EQUAL_INT(100, portrait.x);
+  auto exact = image_codec::fit(320, 240);
+  TEST_ASSERT_EQUAL_INT(0, exact.x);
+  TEST_ASSERT_EQUAL_INT(0, exact.y);
+  auto narrow = image_codec::fit(1, 1024);
+  TEST_ASSERT_EQUAL_INT(1, narrow.width);
+  TEST_ASSERT_EQUAL_INT(240, narrow.height);
+  uint8_t red[] = {255, 0, 0, 255};
+  TEST_ASSERT_EQUAL_HEX16(0xf800, image_codec::rgbaToRgb565(red));
+  red[3] = 128;
+  TEST_ASSERT_EQUAL_HEX16(0x8000, image_codec::rgbaToRgb565(red));
+  red[3] = 0;
+  TEST_ASSERT_EQUAL_HEX16(0, image_codec::rgbaToRgb565(red));
+}
+
+void test_photo_frame_bmp_validation_and_color() {
+  uint8_t header[54] = {'B', 'M'};
+  header[10] = 54; header[14] = 40;
+  header[18] = 3; header[22] = 2;
+  header[26] = 1; header[28] = 24;
+  storage::BmpInfo info{};
+  TEST_ASSERT_TRUE(storage::parseBmp(header, 54, 78, info));
+  TEST_ASSERT_EQUAL_UINT32(12, info.stride);  // Three padding bytes per row.
+  TEST_ASSERT_EQUAL_UINT32(66, info.rowOffset(0));
+  TEST_ASSERT_EQUAL_UINT32(54, info.rowOffset(1));
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 77, info));
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 53, 78, info));
+  header[22] = 0xfe; header[23] = header[24] = header[25] = 0xff;
+  TEST_ASSERT_TRUE(storage::parseBmp(header, 54, 78, info));
+  TEST_ASSERT_EQUAL_UINT32(54, info.rowOffset(0));
+  TEST_ASSERT_EQUAL_UINT32(66, info.rowOffset(1));
+  header[30] = 1;
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 78, info));
+  header[30] = 0; header[28] = 32;
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 78, info));
+  header[28] = 24; header[18] = 0;
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 78, info));
+  header[18] = 0x41; header[19] = 1; // 321 pixels.
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 2048, info));
+  header[18] = 3; header[19] = 0; header[10] = 20;
+  TEST_ASSERT_FALSE(storage::parseBmp(header, 54, 78, info));
+  const uint8_t red[] = {0, 0, 255}, green[] = {0, 255, 0}, blue[] = {255, 0, 0};
+  TEST_ASSERT_EQUAL_HEX16(0xf800, storage::bgrToRgb565(red));
+  TEST_ASSERT_EQUAL_HEX16(0x07e0, storage::bgrToRgb565(green));
+  TEST_ASSERT_EQUAL_HEX16(0x001f, storage::bgrToRgb565(blue));
+}
 #include "../../apps/codex-monitor/include/monitor_update_policy.hpp"
 #include <codex_hid/protocol.hpp>
 #include <codex_hid/backend.hpp>
 #include <codex_hid/voice_controls.hpp>
 #include <codex_hid/monitor_settings.hpp>
 #include <ui/micro_layout.hpp>
+#include <ui/idle_photos.hpp>
+#include <ui/idle_timer.hpp>
+
+void test_monitor_idle_photos_keep_screen_timeout_and_validate_files() {
+  ui::IdleTimer timer;
+  timer.activity(0xfffffff0u);
+  TEST_ASSERT_EQUAL_UINT32(32, timer.elapsed(16));
+  ui::photos::Settings settings;
+  const uint8_t valid[] = {1, 2, 5, 0, 10, 0};
+  TEST_ASSERT_TRUE(ui::photos::decode(valid, 6, settings));
+  TEST_ASSERT_FALSE(ui::photos::idle(settings, 4999, false, true));
+  TEST_ASSERT_TRUE(ui::photos::idle(settings, 5000, false, true));
+  TEST_ASSERT_FALSE(ui::photos::idle(settings, 6000, true, true));
+  TEST_ASSERT_FALSE(ui::photos::idle(settings, 6000, false, false));
+  TEST_ASSERT_FALSE(timer.expired(1000, 60000, true));
+  TEST_ASSERT_TRUE(ui::photos::idle(settings, timer.elapsed(6000), false, true));
+  TEST_ASSERT_TRUE(timer.expired(61000, 60000, false));
+  uint8_t invalid[] = {1, 3, 5, 0, 10, 0};
+  TEST_ASSERT_FALSE(ui::photos::decode(invalid, 6, settings));
+  invalid[1] = 2; invalid[2] = 4;
+  TEST_ASSERT_FALSE(ui::photos::decode(invalid, 6, settings));
+  TEST_ASSERT_TRUE(ui::photos::validName("lake-1.fpf"));
+  TEST_ASSERT_FALSE(ui::photos::validName("../lake.fpf"));
+  TEST_ASSERT_FALSE(ui::photos::validName(".fpf"));
+  TEST_ASSERT_FALSE(ui::photos::validName("lake.jpg"));
+  const uint8_t known[] = {'1','2','3','4','5','6','7','8','9'};
+  TEST_ASSERT_EQUAL_HEX32(0xcbf43926, ui::photos::crcUpdate(~0u, known, sizeof(known)) ^ ~0u);
+  uint8_t header[16] = {'F','P','F','1',64,1,196,0,0,0xea,1,0};
+  // 320*196*2 = 125440 = 0x1ea00.
+  TEST_ASSERT_TRUE(ui::photos::validHeader(header, ui::photos::fileBytes));
+  TEST_ASSERT_FALSE(ui::photos::validHeader(header, ui::photos::fileBytes - 1));
+  header[6] = 240;
+  TEST_ASSERT_FALSE(ui::photos::validHeader(header, ui::photos::fileBytes));
+}
 #include <initializer_list>
 
 #include <string.h>
@@ -682,6 +851,11 @@ int main() {
   RUN_TEST(test_avatar_identity_and_state_are_independent);
   RUN_TEST(test_avatar_animation_changes_frame);
   RUN_TEST(test_native_runner_smoke);
+  RUN_TEST(test_photo_frame_bmp_validation_and_color);
+  RUN_TEST(test_photo_frame_real_decoders_and_cleanup);
+  RUN_TEST(test_photo_frame_rejects_invalid_and_exhausted_images);
+  RUN_TEST(test_photo_frame_fit_and_alpha);
+  RUN_TEST(test_monitor_idle_photos_keep_screen_timeout_and_validate_files);
   RUN_TEST(test_selects_matching_dns_sd_service_and_txt_path);
   RUN_TEST(test_endpoint_falls_back_only_when_configured);
   RUN_TEST(test_service_instance_match_is_exact_and_configured);

@@ -36,6 +36,10 @@ CONFIG_ARDUINO_SELECTIVE_Zigbee=n
 CONFIG_ARDUINO_SELECTIVE_FS=y
 CONFIG_ARDUINO_SELECTIVE_SD=n
 CONFIG_ARDUINO_SELECTIVE_SD_MMC=y
+# SD photo directories and names exceed FAT's 8.3 format. Use a bounded,
+# temporary heap workspace instead of adding a large workspace to task stacks.
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=64
 CONFIG_ARDUINO_SELECTIVE_SPIFFS=n
 CONFIG_ARDUINO_SELECTIVE_FFat=n
 CONFIG_ARDUINO_SELECTIVE_LittleFS=n

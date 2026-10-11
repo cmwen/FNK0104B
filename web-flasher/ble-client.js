@@ -1,4 +1,5 @@
 import { ESPProvisioner, Security1 } from "esp-ble-prov";
+import {preparePhoto, crc32, photoRequest} from "./photo-client.js";
 
 // WiFiProv's UUID byte array is least-significant-byte first on the BLE wire.
 const SERVICE_UUID = "021a9004-0382-4aea-bff4-6b3f1c5adfb4";
@@ -151,6 +152,70 @@ const monitorAppearance = document.querySelector("#monitor-appearance");
 const monitorSlots = document.querySelector("#monitor-slots");
 const monitorVoice = document.querySelector("#monitor-voice");
 const monitorVoiceHelp = document.querySelector("#monitor-voice-help");
+const photoMode = document.querySelector("#monitor-idle-mode");
+const photoDelay = document.querySelector("#monitor-photo-delay");
+const photoInterval = document.querySelector("#monitor-photo-interval");
+const photoFile = document.querySelector("#monitor-photo-file");
+const photoPreview = document.querySelector("#monitor-photo-preview");
+const photoDescription = document.querySelector("#monitor-photo-description");
+const photoUpload = document.querySelector("#monitor-photo-upload");
+const photoCancel = document.querySelector("#monitor-photo-cancel");
+const photoRefresh = document.querySelector("#monitor-photo-refresh");
+const photoList = document.querySelector("#monitor-photo-list");
+const photoDelete = document.querySelector("#monitor-photo-delete");
+const photoStatus = document.querySelector("#monitor-photo-status");
+let photoConfigCharacteristic = null, photoTransferCharacteristic = null;
+let preparedPhoto = null, photoWorking = false, photoCancelled = false, photoSequence = 0;
+
+function photoControls() {
+  const available = Boolean(photoConfigCharacteristic && monitorCharacteristic);
+  const busy = photoWorking || monitorBusy || otaWorking;
+  photoMode.disabled = photoDelay.disabled = photoInterval.disabled = !available || busy;
+  photoFile.disabled = photoRefresh.disabled = !available || busy;
+  photoList.disabled = photoDelete.disabled = !available || busy || !photoList.value;
+  photoUpload.disabled = !available || busy || !preparedPhoto;
+  photoCancel.disabled = !photoWorking;
+}
+function showPhotoStatus(message) { photoStatus.textContent = message; }
+function readPhotoSettings(value) {
+  const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  const delay = bytes[2] | bytes[3] << 8, interval = bytes[4] | bytes[5] << 8;
+  if (bytes.length !== 6 || bytes[0] !== 1 || bytes[1] > 2 || delay < 5 || delay > 7200 || interval < 5 || interval > 3600)
+    throw new Error("Invalid idle photo settings from the board.");
+  photoMode.value = String(bytes[1]); photoDelay.value = String(delay); photoInterval.value = String(interval);
+}
+function photoSettingsPacket() {
+  const mode = Number(photoMode.value), delay = Number(photoDelay.value), interval = Number(photoInterval.value);
+  if (!Number.isInteger(mode) || mode < 0 || mode > 2 || !Number.isInteger(delay) || delay < 5 || delay > 7200 ||
+      !Number.isInteger(interval) || interval < 5 || interval > 3600)
+    throw new Error("Choose an idle delay of 5–7200 seconds and photo interval of 5–3600 seconds.");
+  if (mode && delay >= Number(monitorDimTimeout.value) * 60)
+    throw new Error("The idle-view delay must be shorter than the screen-off timeout.");
+  return new Uint8Array([1, mode, delay & 255, delay >> 8, interval & 255, interval >> 8]);
+}
+async function sendPhoto(op, payload = new Uint8Array()) {
+  const characteristic = photoTransferCharacteristic;
+  if (!characteristic) throw new Error("Photo connection was lost. Reconnect to the board.");
+  photoSequence = (photoSequence % 65535) + 1;
+  const result = await photoRequest(characteristic, op, photoSequence, payload);
+  if (characteristic !== photoTransferCharacteristic) throw new Error("Photo connection was lost.");
+  return result;
+}
+function updatePhotoList(result) {
+  const previous = photoList.value;
+  photoList.replaceChildren();
+  for (const name of result.files || []) {
+    const option = document.createElement("option"); option.value = name; option.textContent = name.replace(/\.fpf$/, "");
+    photoList.append(option);
+  }
+  if ((result.files || []).includes(previous)) photoList.value = previous;
+  else photoList.value = result.files?.[0] || "";
+  photoControls();
+}
+async function refreshPhotos() {
+  const result = await sendPhoto(4); updatePhotoList(result);
+  showPhotoStatus(result.mounted ? `${result.files.length} of 8 photo slots used.` : "SD card unavailable. Insert a FAT32 card, then restart the board.");
+}
 
 function showMonitorStatus(message, error = false) {
   monitorStatus.hidden = false;
@@ -159,11 +224,12 @@ function showMonitorStatus(message, error = false) {
 }
 
 function setMonitorControls(connected) {
-  otaCheck.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy;
-  otaInstall.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy || otaState !== "available";
+  photoControls();
+  otaCheck.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy || photoWorking;
+  otaInstall.disabled = !connected || !otaCharacteristic || otaWorking || monitorBusy || photoWorking || otaState !== "available";
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
-  monitorSave.disabled = !connected || monitorBusy || otaWorking;
+  monitorSave.disabled = !connected || monitorBusy || otaWorking || photoWorking;
   monitorAppearance.disabled = !connected || monitorSettingsVersion < 4;
   monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
   monitorVoice.disabled = !connected || monitorSettingsVersion < 3;
@@ -185,6 +251,72 @@ function updateVoiceHelp() {
       : "Default: board USB audio is off until you hold Hold to talk, and off again on release. Desktop's first Mic key must use Push to talk. Saving closes the microphone.";
 }
 monitorVoice.addEventListener("change", updateVoiceHelp);
+
+let preparationRevision = 0;
+photoFile.addEventListener("change", async () => {
+  const revision = ++preparationRevision;
+  preparedPhoto = null; photoPreview.hidden = true; photoControls();
+  const file = photoFile.files?.[0];
+  if (!file) return;
+  try {
+    const result = await preparePhoto(file, photoPreview);
+    if (revision !== preparationRevision) return;
+    preparedPhoto = result; photoPreview.hidden = false;
+    photoDescription.textContent = `${file.name} → ${result.name.replace(/\.fpf$/, "")} · 320 × 196 · ${Math.ceil(result.bytes.length / 1024)} KB. Uploading the same name replaces its previous photo.`;
+    showPhotoStatus("Preview ready. The usage bar remains above this image.");
+  } catch (error) { showPhotoStatus(`Could not prepare photo: ${error.message}`); }
+  photoControls();
+});
+
+photoUpload.addEventListener("click", async () => {
+  if (!preparedPhoto || !photoTransferCharacteristic || photoWorking || monitorBusy || otaWorking) return;
+  photoWorking = true; photoCancelled = false; setMonitorControls(true);
+  const prepared = preparedPhoto;
+  let started = false;
+  try {
+    const name = new TextEncoder().encode(prepared.name);
+    const metadata = new Uint8Array(8 + name.length);
+    const view = new DataView(metadata.buffer);
+    view.setUint32(0, prepared.bytes.length, true); view.setUint32(4, crc32(prepared.bytes), true); metadata.set(name, 8);
+    showPhotoStatus("Starting upload…");
+    const begin = await sendPhoto(1, metadata); started = true;
+    if (begin.offset !== 0) throw new Error("Board did not start a fresh upload.");
+    for (let offset = 0; offset < prepared.bytes.length;) {
+      if (photoCancelled) throw new Error("Upload cancelled.");
+      const chunk = prepared.bytes.subarray(offset, offset + 180);
+      const payload = new Uint8Array(4 + chunk.length);
+      new DataView(payload.buffer).setUint32(0, offset, true); payload.set(chunk, 4);
+      const result = await sendPhoto(2, payload);
+      if (result.offset !== offset + chunk.length) throw new Error("Board reported an unexpected upload offset.");
+      offset += chunk.length;
+      showPhotoStatus(`Uploading ${Math.floor(offset * 100 / prepared.bytes.length)}%…`);
+    }
+    if (photoCancelled) throw new Error("Upload cancelled.");
+    const result = await sendPhoto(3);
+    if (result.state !== "complete") throw new Error("Board did not finish the photo.");
+    updatePhotoList(result);
+    showPhotoStatus("Photo saved and verified on the SD card.");
+  } catch (error) {
+    if (started && photoTransferCharacteristic) { try { await sendPhoto(6); } catch {} }
+    showPhotoStatus(`Photo was not saved: ${error.message}`);
+  } finally { photoWorking = false; setMonitorControls(Boolean(monitorCharacteristic)); }
+});
+photoCancel.addEventListener("click", () => { photoCancelled = true; showPhotoStatus("Cancelling after the current chunk…"); });
+photoRefresh.addEventListener("click", async () => {
+  if (!photoTransferCharacteristic || photoWorking || monitorBusy || otaWorking) return;
+  photoWorking = true; setMonitorControls(true);
+  try { await refreshPhotos(); } catch (error) { showPhotoStatus(`Could not list photos: ${error.message}`); }
+  finally { photoWorking = false; setMonitorControls(Boolean(monitorCharacteristic)); }
+});
+photoDelete.addEventListener("click", async () => {
+  if (!photoTransferCharacteristic || !photoList.value || photoWorking || monitorBusy || otaWorking) return;
+  photoWorking = true; setMonitorControls(true);
+  try {
+    const result = await sendPhoto(5, new TextEncoder().encode(photoList.value));
+    updatePhotoList(result); showPhotoStatus("Photo deleted from the SD card.");
+  } catch (error) { showPhotoStatus(`Could not delete photo: ${error.message}`); }
+  finally { photoWorking = false; setMonitorControls(Boolean(monitorCharacteristic)); }
+});
 
 function decodeMonitorSettings(value) {
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
@@ -210,6 +342,9 @@ function decodeMonitorSettings(value) {
 }
 
 function monitorDisconnected() {
+  photoConfigCharacteristic = photoTransferCharacteristic = null;
+  photoCancelled = true;
+  showPhotoStatus("Photo connection disconnected. Reconnect before uploading.");
   otaCharacteristic = null;
   if (otaTimer !== null) { clearTimeout(otaTimer); otaTimer = null; }
   otaStatus.textContent = otaState === "restarting" || otaState === "installing"
@@ -262,6 +397,16 @@ monitorConnect.addEventListener("click", async () => {
     } else {
       otaStatus.textContent = "Wireless updates are unavailable through this connection. Install monitor 0.7.0 or newer over USB once. If already installed, restart the board and browser; clear cached Bluetooth services if needed.";
     }
+    try {
+      photoConfigCharacteristic = await service.getCharacteristic("4e4b0104-0007-4d20-8f4b-0104b0000001");
+      photoTransferCharacteristic = await service.getCharacteristic("4e4b0104-0008-4d20-8f4b-0104b0000001");
+      readPhotoSettings(await photoConfigCharacteristic.readValue());
+      photoSequence = Math.floor(Math.random() * 60000) + 1;
+      await refreshPhotos();
+    } catch (error) {
+      photoConfigCharacteristic = photoTransferCharacteristic = null;
+      showPhotoStatus(error.name === "NotFoundError" ? "Photo support requires monitor 0.8.0 or newer." : `Photos unavailable: ${error.message}`);
+    }
     showMonitorStatus("Connected. Reading settings…");
     decodeMonitorSettings(await monitorCharacteristic.readValue());
     setMonitorControls(true);
@@ -313,7 +458,22 @@ monitorForm.addEventListener("submit", async event => {
       packet.push(appearance);
     }
     const bytes = new Uint8Array(packet);
+    const photoBytes = photoConfigCharacteristic ? photoSettingsPacket() : null;
     await monitorCharacteristic.writeValue(bytes);
+    if (photoBytes) {
+      const characteristic = photoConfigCharacteristic;
+      await characteristic.writeValue(photoBytes);
+      let matched = false;
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const value = await characteristic.readValue();
+        const actual = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+        if (actual.length === photoBytes.length && actual.every((byte, i) => byte === photoBytes[i])) {
+          readPhotoSettings(value); matched = true; break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (!matched) throw new Error("Idle photo settings were not accepted. Finish voice or firmware-update activity and retry.");
+    }
     decodeMonitorSettings(await monitorCharacteristic.readValue());
     showMonitorStatus(monitorSettingsVersion >= 3
       ? "Board settings saved and read back. Microphone is off. Check the Desktop key mappings before using voice controls."
@@ -323,6 +483,7 @@ monitorForm.addEventListener("submit", async event => {
   } finally {
     monitorBusy = false;
     monitorSave.disabled = !monitorCharacteristic;
+    photoControls();
   }
 });
 

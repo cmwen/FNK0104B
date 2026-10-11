@@ -15,7 +15,8 @@ const server=createServer(async(req,res)=>{
  } catch {res.writeHead(404);res.end();}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const browser = await chromium.launch({headless:true, args:['--no-sandbox']});
+const browser = await chromium.launch({headless:true, args:['--no-sandbox'],
+ executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined});
 const origin=process.env.GUIDE_PREVIEW_URL||`http://127.0.0.1:${server.address().port}/FNK0104B/`;
 const captures=process.env.GUIDE_CAPTURE_DIR
  ? new URL(`file://${process.env.GUIDE_CAPTURE_DIR.replace(/\/$/, '')}/`)
@@ -50,6 +51,9 @@ try {
  assert.equal(await page.locator('#monitor-appearance').isDisabled(),true);
  assert.equal(await page.locator('#monitor-ota-check').isDisabled(),true);
  assert.equal(await page.locator('#monitor-ota-install').isDisabled(),true);
+ assert.equal(await page.locator('#monitor-idle-mode').inputValue(),'0');
+ assert.equal(await page.locator('#monitor-photo-upload').isDisabled(),true);
+ await page.getByRole('heading',{name:'Photos on the SD card'}).waitFor();
  await page.getByRole('heading',{name:'Firmware updates'}).waitFor();
  assert.equal(await page.locator('#monitor-voice option[value="1"]').textContent(),'Hold to talk + Voice toggle');
  // Settings controls and help must stay vertically ordered at every supported width.

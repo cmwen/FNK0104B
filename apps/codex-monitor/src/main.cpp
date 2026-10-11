@@ -28,6 +28,7 @@
 #include "voice_capture_gate.hpp"
 #include "monitor_wifi_setup.hpp"
 #include "monitor_ota.hpp"
+#include "monitor_photos.hpp"
 
 #include <atomic>
 #include <errno.h>
@@ -102,6 +103,7 @@ uint32_t lastAvatarFrame = 0, lastResetCheck = 0;
 int drawnFiveHourReset = -1, drawnWeeklyReset = -1;
 bool screenAwake = true, previousTouch = false;
 bool screenManuallyOff = false;
+bool idleUi = false;
 bool showingStatus = false, commandHelpVisible = false;
 bool desktopMicHeld = false;
 int heldMicroKey = -1;
@@ -271,6 +273,7 @@ void drawMicroAvatar(unsigned i);
 unsigned microTileCount();
 
 void drawAnimatedAvatars() {
+  if (idleUi) return;
   if (previousTransport != codex_hid::Transport::None && microAvatars &&
       !microCommands && !showingStatus && !commandHelpVisible && !voiceBusy.load()) {
     for (unsigned i = 0; i < microTileCount(); ++i) drawMicroAvatar(i);
@@ -312,6 +315,7 @@ void drawStatusBar(const MonitorStatus& snapshot) {
 }
 
 void drawVoiceControl() {
+  if (idleUi) return;
   drawnVoiceLevel = monitor_speech::level();
   drawnMicLevel = fnk0104b::audio_input::level();
   if (!codex_hid::microConnected(previousMicroLink)) {
@@ -355,6 +359,10 @@ void drawScreen() {
   portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
   d.fillScreen(kBg);
   drawStatusBar(snapshot);
+  if (idleUi) {
+    if (monitor_photos::settings().mode == 2 || monitor_photos::preview()) monitor_photos::draw();
+    return;
+  }
   char message[sizeof(transientMessage)];
   uint32_t messageExpiry;
   portENTER_CRITICAL(&messageMux);
@@ -481,6 +489,7 @@ class ServerCallbacks : public BLEServerCallbacks {
     Serial.println("monitor_ble connected");
   }
   void onDisconnect(BLEServer*, esp_ble_gatts_cb_param_t*) override {
+    monitor_photos::disconnected();
     bleConnected = false;
     Serial.println("monitor_ble disconnected restarting_advertising");
     BLEDevice::startAdvertising();
@@ -502,7 +511,8 @@ void startBle() {
   BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
   Serial.println("monitor_ble role=settings hid=disabled");
-  BLEService* service = server->createService(BLEUUID(String(kServiceUuid)), 32);
+  BLEDevice::setMTU(247);
+  BLEService* service = server->createService(BLEUUID(String(kServiceUuid)), 48);
   settingsCharacteristic = service->createCharacteristic(kCharacteristicUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   settingsCharacteristic->setCallbacks(new SettingsCallbacks());
@@ -517,6 +527,7 @@ void startBle() {
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   appearanceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   monitor_ota::attach(service);
+  monitor_photos::attach(service);
   publishSettings(); service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   // Keep the full name in the primary advertisement for browser name filters.
@@ -923,7 +934,14 @@ void touchLoop() {
   if (!gotTouch) return;
   if (touchPoint.pressed) {
     idleTimer.activity(millis());
+    if (idleUi && screenAwake) {
+      monitor_photos::cancelPreview();
+      idleUi = false; monitor_photos::setIdle(false); uiDirty = true;
+      drawScreen(); previousTouch = true; return;
+    }
     if (!screenAwake) {
+      monitor_photos::cancelPreview();
+      idleUi = false; monitor_photos::setIdle(false);
       // Do not show cached quotas as current after an unattended interval.
       markOffline();
       screenAwake = true;
@@ -1023,7 +1041,7 @@ void touchLoop() {
 }
 
 void serialLoop() {
-  static char command[24]{};
+  static char command[416]{};
   static size_t length = 0;
   bool capture = false;
   while (Serial.available()) {
@@ -1051,6 +1069,7 @@ void serialLoop() {
           unsigned(ESP.getFreeHeap()), unsigned(ESP.getFreePsram()), int(WiFi.status()), statusTask != nullptr,
           voiceTask != nullptr, monitor_speech::ready(), monitor_speech::error(),
           monitor_ota::version, compactMicroLayout ? 3u : 6u, unsigned(microAvatars.load()));
+      monitor_photos::diagnostic(command);
       length = 0;
       if (capture) break;
     } else if (length < sizeof(command) - 1) command[length++] = c;
@@ -1112,6 +1131,7 @@ void setup() {
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
+  monitor_photos::begin(preferences);
   compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
   microAvatars = preferences.getBool("microAvatars", false);
   for (auto& seed : microAvatarSeeds) seed = esp_random();
@@ -1227,6 +1247,7 @@ void loop() {
       const bool tileChanged = !codex_hid::sameAppearance(before, after);
       changed |= tileChanged;
       if (tileChanged && screenAwake && previousTransport != codex_hid::Transport::None &&
+          !idleUi &&
           !microCommands && !commandHelpVisible && !showingStatus && !voiceBusy &&
           (i < microTileCount())) drawMicroTile(i);
     }
@@ -1285,8 +1306,19 @@ void loop() {
     desktopWorking |= ui::micro::mood(slot) == ui::avatar::Mood::Thinking;
   const bool busy = desktopWorking || desktopMicHeld || usbVoiceControls.voiceOpen() ||
       (fnk0104b::usb_microphone::streaming() && !fnk0104b::usb_microphone::muted()) ||
-      monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load();
+      monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load() || monitor_photos::uploading();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);
+  const auto photoSettings = monitor_photos::settings();
+  const bool showIdle = screenAwake && !idleExpired && !monitor_ota::busy() &&
+      (monitor_photos::preview() || ui::photos::idle(photoSettings, idleTimer.elapsed(millis()),
+          busy || messageVisible || commandHelpVisible, true));
+  if (showIdle != idleUi) {
+    idleUi = showIdle; monitor_photos::setIdle(idleUi); uiDirty = true;
+    Serial.printf("monitor_photos idle=%u mode=%u\n", idleUi, photoSettings.mode);
+  }
+  monitor_photos::tick(!recording && !voiceBusy && !voicePreparing && !desktopMicHeld &&
+      !usbVoiceControls.voiceOpen() && !monitor_ota::busy());
+  if (monitor_photos::changed()) uiDirty = true;
   if (busy && !screenAwake && !screenManuallyOff) {
     screenAwake = true;
     fnk0104b::display.setBacklight(true);

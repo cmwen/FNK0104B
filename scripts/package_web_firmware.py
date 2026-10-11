@@ -36,6 +36,7 @@ PARTS = (
 )
 
 NAMES = {
+    "photo-frame": ("SD photo frame", "JPEG, PNG, still WebP and BMP slideshow from /photos on the SD card. Scales compressed images to fit 320x240. Tap to advance; rotates every ten seconds."),
     "hid-diag": ("USB HID diagnostic", "Composite USB keyboard and serial diagnostic. Types only when commanded over serial; switches USB from Serial/JTAG to TinyUSB."),
     "keyboard": ("Emoji and numpad keyboard", "USB touchscreen number pad and OS-specific emoji shortcuts. Windows emoji search, Mac Character Viewer, and Linux GTK Unicode entry. Uses TinyUSB HID plus serial."),
     "hello": ("Hello", "USB serial diagnostic. Reports the chip, flash, PSRAM, and free heap; it does not initialize the display."),

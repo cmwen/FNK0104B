@@ -1,5 +1,10 @@
 # Codex monitor firmware
 
+Firmware 0.8.0 includes optional [idle photos and blank mode](../../docs/monitor-photos.md),
+configured from the BLE web page. Photos retain the live usage bar and respect
+the existing screen-off timeout. The browser prepares JPEG, PNG and WebP images
+before uploading them to SD. The feature defaults to the normal monitor UI.
+
 The FNK0104B shows Codex five-hour and weekly remaining quota on an idle landscape page. The angular cyan status strip shows Wi-Fi signal strength, Codex state, and segmented remaining-quota bars (`5H` and `WK`). A tiny bar between each label and percentage counts down to its reset: full width is five hours for `5H` or seven days for `WK`; half width is 2.5 hours or 3.5 days. Gray shows elapsed time; cyan/mint shows time still remaining. Both bars use the same high-contrast gray track. Missing reset/time data shows a muted dash. The countdown uses the bridge timestamp plus cache age and elapsed device time, and refreshes only the header when its fill changes. When an agent runs, the two quota cards give way to a larger avatar view; remaining percentages stay visible in the header, and up to four agents appear at once. Tap any visible agent to read its short detail and explicitly target the next voice message to that thread, including an agent that is still running. The bridge adds messages to a running turn through its existing steering path. A voice message without a selected agent starts a new Codex thread through the local bridge. Completed agents disappear on the next successful status poll. HTTP polling runs separately from touch and drawing so a bridge request does not pause the voice button. The screen redraws only when visible state changes.
 
 ![Host-rendered idle screen using the firmware drawing helpers](preview.png)

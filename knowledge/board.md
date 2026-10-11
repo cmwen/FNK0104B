@@ -1,5 +1,21 @@
 # Board facts
 
+## Photo-frame startup (2026-10-11)
+
+The owner subsequently confirmed BMP playback works. Photo-frame 0.2.0 then
+built and uploaded with verified hashes, retaining the Arduino flash layout.
+At 115200 baud it continued rendering both BMP samples. Its JPEG/PNG/WebP
+decoders pass native fixture/memory tests; those formats have not yet been
+placed on the card, so their physical playback remains UNKNOWN. See the
+[codec update record](../test/hardware/photo-frame-codecs-2026-10-11.md).
+
+Standalone Arduino `photo-frame` 0.1.0 built and uploaded with PlatformIO and
+verified hashes, replacing the monitor layout with the documented Arduino
+layout. Serial at 115200 confirmed touch-controller detection and four-bit SD
+mounting. The inserted card lacks `/photos`; image rendering, touch events,
+colors and sustained slideshow remain UNKNOWN. See the
+[device record](../test/hardware/photo-frame-2026-10-11.md).
+
 ## Adaptive monitor UI check (2026-10-07)
 
 The existing monitor was flashed successfully through PlatformIO with all image
@@ -221,3 +237,16 @@ serial layout change. Physical BLE setting writes showed a readback/display
 discrepancy; write acceptance, touch shortcuts and long-running dropout behavior
 remain UNKNOWN. See the
 [device record](../test/hardware/usb-avatar-status-2026-10-11.md).
+
+## Monitor SD photos checked (2026-10-11)
+
+Monitor 0.8.0 wrote and committed two 125,456-byte prepared RGB565 frames to
+SD_MMC using the shared board pins. The first monitor build mounted SD but
+rejected the long photo directory with EINVAL; enabling bounded heap-based FAT
+long filenames fixed creation and writes. Actual LCD readback verified a
+320 × 196 photo below the live 44-pixel usage bar. Free internal heap remained
+about 36,900 bytes, with about 127,000 bytes of PSRAM used while a frame was displayed,
+in USB Micro mode with recognition paused. USB audio was available during SD
+writes with zero reported drops. Physical BLE transfer/settings, touch/idle
+acceptance and coexistence with active Wi-Fi speech recognition remain UNKNOWN.
+See [device evidence](../test/hardware/monitor-photos-2026-10-11.md).

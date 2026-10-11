@@ -28,6 +28,9 @@ class DisplaySupport {
   void setBacklight(bool on);
   bool readRowRgb(uint16_t y, uint8_t* pixels, size_t capacity);
   TFT_eSPI& driver();
+#if defined(FNK0104B_ENABLE_PHOTO_FRAME)
+  bool drawPhoto(fs::File& file, const char*& error);
+#endif
 };
 
 extern DisplaySupport display;

@@ -2,9 +2,10 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { runInNewContext } = require('node:vm');
-const source = readFileSync(`${__dirname}/../ble-client.js`, 'utf8').replace(/^import .*;\n/, '');
+const source = readFileSync(`${__dirname}/../photo-client.js`, 'utf8').replace(/^export /gm, '') + '\n' +
+  readFileSync(`${__dirname}/../ble-client.js`, 'utf8').replace(/^import .*;\n/gm, '');
 
-function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ota = false } = {}) {
+function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ota = false, photos = false, failPhotoChunk = false } = {}) {
   let packet = Uint8Array.from(settingsPacket);
   const timers = [];
   const otaWrites = [];
@@ -14,6 +15,27 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     async writeValue(bytes) { otaWrites.push(new TextDecoder().decode(bytes)); update={...update,state:'checking'}; },
   };
   const writes = [];
+  let photoSettings = Uint8Array.from([1, 0, 60, 0, 10, 0]);
+  let photoReply = {seq: 0, state: 'ready', offset: 0, mounted: true, files: []};
+  const photoWrites = [];
+  const photoConfig = {
+    async readValue() { return new DataView(photoSettings.buffer); },
+    async writeValue(value) { photoSettings = Uint8Array.from(value); },
+  };
+  const photoTransfer = {
+    async readValue() { const value = new TextEncoder().encode(JSON.stringify(photoReply)); return new DataView(value.buffer); },
+    async writeValue(value) {
+      const bytes = Uint8Array.from(value); photoWrites.push(bytes);
+      const sequence = bytes[1] | bytes[2] << 8;
+      let state = 'ready', offset = photoReply.offset, files = photoReply.files;
+      if (bytes[0] === 1) { state = 'receiving'; offset = 0; }
+      if (bytes[0] === 2) { state = failPhotoChunk ? 'write_failed' : 'receiving'; if (!failPhotoChunk) offset += bytes.length - 7; }
+      if (bytes[0] === 3) { state = 'complete'; files = ['test.fpf']; }
+      if (bytes[0] === 5) { state = 'deleted'; files = []; }
+      if (bytes[0] === 6) { state = 'cancelled'; offset = 0; }
+      photoReply = {seq: sequence, state, offset, mounted: true, files};
+    },
+  };
   const characteristic = {
     properties: { read: true, write: true },
     async readValue() { return new DataView(packet.buffer); },
@@ -24,6 +46,12 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     if (!elements.has(id)) elements.set(id, {
       value: '', disabled: false, hidden: true, textContent: '',
       listeners: {}, classList: { add() {}, toggle() {} }, focus() {},
+      replaceChildren() {}, append() {},
+      getContext() { return { fillRect() {}, drawImage() {}, getImageData() {
+        const data = new Uint8ClampedArray(320 * 196 * 4);
+        for (let i = 0; i < data.length; i += 4) { data[i] = 255; data[i + 3] = 255; }
+        return {data};
+      } }; },
       addEventListener(name, fn) { this.listeners[name] = fn; },
     });
     return elements.get(id);
@@ -47,13 +75,18 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
   }
   runInNewContext(source, {
     ESPProvisioner, Security1: class {}, TextEncoder, TextDecoder, Error,
+    createImageBitmap: async () => ({width: 800, height: 600, close() {}}),
     setTimeout: fn => { timers.push(fn); return timers.length; }, clearTimeout() {},
-    document: { querySelector: element },
+    document: { querySelector: element, createElement: () => ({}) },
     window: { isSecureContext: true, crypto: { subtle: {} } },
     navigator: { bluetooth: { async requestDevice() { return {
       addEventListener() {},
       gatt: { disconnect() {}, async connect() { return {
         async getPrimaryService() { return { async getCharacteristic(uuid) {
+          if (uuid.includes('0007') || uuid.includes('0008')) {
+            if (photos) return uuid.includes('0007') ? photoConfig : photoTransfer;
+            const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
+          }
           if (uuid.includes('0005')) {
             if(ota) return otaCharacteristic;
             const error=new Error('Characteristic not found'); error.name='NotFoundError'; throw error;
@@ -69,7 +102,7 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     }; } } },
   });
   element('#ble-pop').value = '012345ABCDEF';
-  return { element, writes, otaWrites,
+  return { element, writes, otaWrites, photoWrites,
     setUpdate: value => { update={...update,...value}; },
     poll: async () => { const fn=timers.shift(); if(fn) { fn(); await new Promise(resolve => setImmediate(resolve)); } },
     checkOta: () => element('#monitor-ota-check').listeners.click(),
@@ -87,6 +120,44 @@ test('wrong proof never enables credential submission', async () => {
   assert.equal(app.element('#ble-password').disabled, true);
   await app.submit();
   assert.equal(app.client().sent, 0);
+});
+
+test('idle-photo preferences round trip and require a delay before screen-off', async () => {
+  const app = setup({photos:true, settingsPacket:[4,50,30,0,3,0,0]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-idle-mode').disabled, false);
+  app.element('#monitor-idle-mode').value = '2';
+  app.element('#monitor-photo-delay').value = '20';
+  app.element('#monitor-photo-interval').value = '15';
+  await app.saveMonitor();
+  assert.equal(app.element('#monitor-idle-mode').value, '2');
+  app.element('#monitor-photo-delay').value = '1800';
+  await app.saveMonitor();
+  assert.match(app.element('#monitor-status').textContent, /shorter than the screen-off/);
+});
+
+test('photo uploads prepare pixels, verify every offset, then commit', async () => {
+  const app = setup({photos:true, settingsPacket:[4,50,30,0,3,0,0]});
+  await app.connectMonitor();
+  app.element('#monitor-photo-file').files = [{name:'test.jpg',size:100}];
+  await app.element('#monitor-photo-file').listeners.change();
+  await app.element('#monitor-photo-upload').listeners.click();
+  assert.match(app.element('#monitor-photo-status').textContent, /saved and verified/);
+  assert.equal(app.photoWrites.at(-1)[0],3);
+  const chunks = app.photoWrites.filter(packet => packet[0] === 2);
+  assert.equal(chunks.reduce((total,packet) => total + packet.length - 7,0),125456);
+  assert.ok(chunks.every(packet => packet.length <= 187));
+});
+
+test('failed photo chunk cancels without committing a partial image', async () => {
+  const app = setup({photos:true,failPhotoChunk:true,settingsPacket:[4,50,30,0,3,0,0]});
+  await app.connectMonitor();
+  app.element('#monitor-photo-file').files = [{name:'test.png',size:100}];
+  await app.element('#monitor-photo-file').listeners.change();
+  await app.element('#monitor-photo-upload').listeners.click();
+  assert.match(app.element('#monitor-photo-status').textContent, /not saved/);
+  assert.ok(app.photoWrites.some(packet => packet[0] === 6));
+  assert.ok(!app.photoWrites.some(packet => packet[0] === 3));
 });
 
 test('successful setup clears password and cannot submit again', async () => {

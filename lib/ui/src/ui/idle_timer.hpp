@@ -6,6 +6,7 @@ namespace ui {
 class IdleTimer {
  public:
   void activity(uint32_t now) { lastActivity_ = now; }
+  uint32_t elapsed(uint32_t now) const { return now - lastActivity_; }
   bool expired(uint32_t now, uint32_t timeoutMs, bool busy) {
     if (busy) activity(now);
     return !busy && static_cast<uint32_t>(now - lastActivity_) >= timeoutMs;

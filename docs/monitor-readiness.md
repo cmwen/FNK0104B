@@ -529,3 +529,16 @@ in the captured refreshes. The final 0.7.2 build also rendered six avatars
 on the actual LCD using a temporary serial layout command. Physical BLE saving
 showed a settings/display discrepancy; successful writes and touch interactions
 remain UNKNOWN; see the [hardware record](../test/hardware/usb-avatar-status-2026-10-11.md).
+
+## Optional idle photos — 2026-10-11
+
+Monitor 0.8.0 adds normal/blank/photo idle choices, browser JPEG/PNG/WebP
+preparation and SD uploads, while retaining the live usage bar and existing
+screen-off countdown. It defaults to the normal UI. Two prepared photos were
+written through the transfer processor and rendered on the actual LCD in USB
+Micro mode with stable internal heap and zero reported USB audio drops.
+36 native tests, 19 browser tests, site checks, the monitor build and the shared
+SDK audio diagnostic build pass. Physical BLE upload/settings, touch and idle
+acceptance, and coexistence with active Wi-Fi speech recognition remain UNKNOWN.
+See [setup](monitor-photos.md) and the
+[hardware record](../test/hardware/monitor-photos-2026-10-11.md).

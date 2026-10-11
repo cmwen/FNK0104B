@@ -168,8 +168,35 @@
             <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
             <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
             <p class="field-help">The screen stays awake during active work or open board audio. Once idle, touch wakes it after the selected timeout.</p>
+            <label for="monitor-idle-mode">When idle</label>
+            <select id="monitor-idle-mode" disabled>
+              <option value="0">Keep the normal monitor</option>
+              <option value="1">Clear the area below the usage bar</option>
+              <option value="2">Show photos below the usage bar</option>
+            </select>
+            <label for="monitor-photo-delay">Show idle view after (seconds)</label>
+            <input id="monitor-photo-delay" type="number" min="5" max="7200" value="60" disabled>
+            <label for="monitor-photo-interval">Change photo every (seconds)</label>
+            <input id="monitor-photo-interval" type="number" min="5" max="3600" value="10" disabled>
+            <p class="field-help">Requires monitor 0.8.0. The usage bar stays live. Activity or touch restores the monitor. Screen-off still counts from the last activity, so choose an idle delay shorter than its timeout.</p>
             <button id="monitor-save" class="cta" type="submit" disabled>Save board settings</button>
           </form>
+          <div class="setup-help photo-manager" aria-labelledby="monitor-photos-heading">
+            <h3 id="monitor-photos-heading">Photos on the SD card</h3>
+            <p>Choose JPEG, PNG or WebP images. This browser crops and resizes them to the photo area; the preview shows what will appear below the usage bar. Up to eight photos are stored on the board’s SD card. Finish voice or firmware-update activity before uploading.</p>
+            <input id="monitor-photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" disabled>
+            <canvas id="monitor-photo-preview" width="320" height="196" hidden aria-label="Photo preview"></canvas>
+            <p id="monitor-photo-description" class="field-help"></p>
+            <div class="photo-actions">
+            <button id="monitor-photo-upload" class="cta" type="button" disabled>Upload photo</button>
+            <button id="monitor-photo-cancel" type="button" disabled>Cancel upload</button>
+            <button id="monitor-photo-refresh" type="button" disabled>Refresh photos</button>
+            </div>
+            <label for="monitor-photo-list">Stored photos</label>
+            <select id="monitor-photo-list" disabled></select>
+            <button id="monitor-photo-delete" type="button" disabled>Delete selected photo</button>
+            <p id="monitor-photo-status" role="status" aria-live="polite">Connect to monitor 0.8.0 or newer to manage photos.</p>
+          </div>
           <aside class="desktop-controls" aria-labelledby="desktop-controls-heading">
             <h3 id="desktop-controls-heading">2. Map the keys in Desktop</h3>
             <div class="control-preview" aria-label="USB board microphone controls">

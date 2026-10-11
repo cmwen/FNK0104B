@@ -72,3 +72,9 @@
 
 .monitor-ota-actions{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
 .monitor-ota-actions .cta:disabled{opacity:.45;cursor:not-allowed}
+.photo-manager canvas{display:block;max-width:100%;height:auto;margin-top:16px;border-radius:6px}
+.photo-manager input,.photo-manager select{max-width:100%;width:100%;min-width:0;margin:8px 0;color:var(--text);background:var(--surface);font:inherit}
+.photo-manager label{display:block;margin-top:16px;font-size:13px}
+.photo-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
+.photo-manager button:not(.cta){border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--surface);color:var(--text);cursor:pointer}
+.photo-manager button:disabled{opacity:.45;cursor:not-allowed}

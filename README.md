@@ -30,6 +30,7 @@ pio run -e locallink
 pio run -e ota
 pio run -e sd
 pio run -e file-manager
+pio run -e photo-frame
 pio run -e button-diag
 pio run -e speech-diag
 pio run -e recorder-io-diag
@@ -53,6 +54,9 @@ pio debug -e hello-debug
 `wifi-ble` pairs with the GitHub Pages flasher to save Wi-Fi credentials over a secure Bluetooth session. See `apps/15-wifi-ble/README.md`. `audio-diag` checks the onboard ES8311 microphone path by reporting signal presence without printing samples. `speaker-diag` plays notes through the PH1.25 speaker connector and provides a touchscreen volume slider. `locallink` combines mic capture, Wi-Fi/DNS-SD, HTTP transcription, and an LVGL touchscreen UI; configure private Wi-Fi values and see `apps/12-locallink/README.md` before flashing.
 `ota` is a user-confirmed HTTPS update demo with touchscreen and serial controls. It downloads an `ota.bin` asset from the latest GitHub Release. See `apps/08-ota/README.md` for the release and install steps.
 `sd` is the serial-only SDIO diagnostic. `file-manager` combines the shared SD, display, and touch support to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
+`photo-frame` displays a full-screen SD slideshow every ten seconds; tap to advance. Sample photos and preparation instructions are in [the photo-frame guide](apps/27-photo-frame/README.md).
+
+The monitor also offers optional [idle photos below its live usage bar](docs/monitor-photos.md), browser image preparation/upload, blank mode, and idle timing combined with screen-off settings.
 `button-diag` reads a momentary button on GPIO14 and reports debounced press/release events over USB serial. See `apps/18-button-diag/README.md`.
 `speech-diag` tests offline WakeNet10 (“Hi ESP”) followed by English MultiNet7 commands with an on-screen guide, listening countdown, last result, microphone meter and VADNet speech/silence indicator. USB serial also reports details. It uses an isolated ESP-IDF environment and a dedicated model partition; read [the speech diagnostic guide](apps/19-speech-diag/README.md) for the flash-layout effect before upload.
 `recorder` records offline after “Hi ESP”, saves Ogg Opus clips to SD after silence, and provides touchscreen Record/Stop, file selection and speaker playback. `recorder-io-diag` checks its new IDF SD/touch/full-duplex audio combination. Read [the recorder guide](apps/20-recorder/README.md) for controls, validation limits and flash-layout effects.
