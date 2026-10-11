@@ -22,6 +22,18 @@ Leaving **Erase device** unchecked can preserve settings when the new firmware u
 ## Files on SD
 The verified interface is four-bit SDIO/SD_MMC. The file manager views existing files without formatting. The recorder writes Ogg Opus to `/recordings/`, preserving existing names and keeping incomplete files marked `.part`. Never assume removing power halfway through a write leaves a valid file.
 
+## Photo storage
+The standalone [SD photo frame](../../firmware/photo-frame/) reads BMP, JPEG,
+PNG and still WebP from `/photos`. BMP playback is owner-confirmed; compressed
+formats pass native decoder tests but still need playback checks on the board.
+
+Monitor 0.8.0 uses a separate `/monitor-photos` directory. Its browser prepares
+320 × 196 RGB565 frames before upload, and the board caches one frame in PSRAM.
+Two prepared files were written and rendered in USB Micro mode with stable
+internal heap; physical BLE transfer and active Wi-Fi speech coexistence remain
+unverified. See [configuration and file details](https://github.com/cmwen/FNK0104B/blob/main/docs/monitor-photos.md)
+and [the ordered journey](https://github.com/cmwen/FNK0104B/blob/main/docs/photo-frame-journey.md).
+
 ## Brief your coding agent
 > Save a small user preference in NVS with a sensible default and validation. Write only when it changes. Explain update compatibility. Keep recordings on SD and preserve existing files; never format automatically.
 

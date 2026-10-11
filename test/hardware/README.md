@@ -13,7 +13,9 @@ Record the board revision, firmware commit, PlatformIO environment, USB port, re
 | Wi-Fi / BLE provisioning | OTA confirms saved Wi-Fi connection; setup paths have no saved end-to-end result. | Provision a test network and confirm reconnect after reboot without logging its password. |
 | LVGL combined screen | Apps implemented; no saved sustained run. | Exercise touch and Wi-Fi updates while watching heap, redraw, and responsiveness. |
 | Speaker | Piano diagnostic implemented; no saved audible result. | Connect a speaker and check notes, release-to-silence, and volume control. |
-| SD / file manager | Apps implemented; no saved card run. | Mount a FAT card, inspect capacity and files; test any write operation separately with disposable data. |
+| SD / file manager | Photo-frame and monitor photo records verify SD mounting, reads and prepared-file writes; the touchscreen file manager itself has no saved run. | Check file-manager capacity reporting and read-only navigation separately. |
+| SD photo frame | [Initial startup](photo-frame-2026-10-11.md), followed by owner-confirmed BMP playback and [codec update](photo-frame-codecs-2026-10-11.md). | Test JPEG/PNG/WebP playback from SD, physical scaling/alpha and sustained PSRAM use. |
+| Monitor idle photos | [Two prepared SD uploads, actual LCD readback and released PSRAM](monitor-photos-2026-10-11.md) in USB Micro mode. | Verify physical BLE upload/settings, touch/idle timing and coexistence with active Wi-Fi speech. |
 | Screen timeout / calculator | Apps implemented; no saved result. | Check wake-on-touch and calculator input on the panel if these behaviors will be reused. |
 | NVS / MQTT | Buildable placeholders. | Add small standalone diagnostics only when their behavior is needed. |
 | Codex monitor | [Mock board run](codex-monitor-mock-2026-09-29.md): build and USB upload passed; serial confirmed quota, agent, attention, completion, offline, and recovery transitions; owner confirmed stable landscape view. | Check touch targets, actual voice upload, BLE settings, audible tone, and live Codex bridge. |

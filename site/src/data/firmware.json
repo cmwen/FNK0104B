@@ -88,6 +88,14 @@
     "status": "Implemented"
   },
   {
+    "id": "photo-frame",
+    "title": "SD photo frame",
+    "summary": "Full-screen SD slideshow with BMP, JPEG, PNG and still WebP support. BMP playback is owner-confirmed; compressed formats pass native tests and still need physical playback checks.",
+    "readme": "apps/27-photo-frame/README.md",
+    "installable": true,
+    "status": "Implemented"
+  },
+  {
     "id": "mqtt",
     "title": "MQTT",
     "summary": "Placeholder only: does not connect to an MQTT broker yet.",
@@ -106,7 +114,7 @@
   {
     "id": "codex-monitor",
     "title": "Codex monitor",
-    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Wi-Fi storage and supports confirmed HTTPS OTA after a one-time USB migration.",
+    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Wi-Fi storage and supports confirmed HTTPS OTA after a one-time USB migration. Optional idle photos retain the live usage bar, with browser image preparation and configurable idle/screen-off timing.",
     "readme": "apps/codex-monitor/README.md",
     "installable": true,
     "status": "Implemented"

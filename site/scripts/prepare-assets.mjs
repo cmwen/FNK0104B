@@ -8,3 +8,5 @@ for (const asset of assets) {
   await cp(new URL(`web-flasher/${asset}`, root), new URL(asset === 'index.html' ? 'setup.html' : asset, target));
 }
 await cp(new URL('docs/images/', root), new URL('docs/images/', target), { recursive: true });
+
+await cp(new URL('test/hardware/monitor-photos-2026-10-11/photo-1.png', root), new URL('docs/images/monitor-idle-photo.png', target));

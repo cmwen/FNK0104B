@@ -1,5 +1,8 @@
 # SD photo frame
 
+See the [development journey](../../docs/photo-frame-journey.md) for the initial
+BMP experiment, later codec support and optional monitor integration, in order.
+
 Full-screen landscape slideshow for the FNK0104B's verified 320×240 display.
 Reads `/photos` on the SD card, sorts filenames, and rotates every ten seconds.
 Tap anywhere to advance. Serial commands at 115200 baud: `n` next, `p` pause/resume,

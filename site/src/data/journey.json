@@ -1,0 +1,284 @@
+[
+  {
+    "timestamp": "2026-10-11T23:00:14+11:00",
+    "sha": "ea00021",
+    "title": "From an SD photo frame to optional monitor idle photos",
+    "paragraphs": [
+      "First, standalone 0.1.0 mounted SD and showed setup instructions because /photos was absent. The owner then confirmed BMP playback using the two generated samples. Firmware 0.2.0 added JPEG, PNG and still WebP; native decoder tests passed, while compressed-image playback on the card remained unverified.",
+      "Next, monitor 0.8.0 retained its live usage bar above photos, added normal/blank/photo idle choices, and combined configurable delays with the existing screen-off countdown. The browser prepares images before SD upload, keeping image decoders out of the monitor. A mounted card still rejected the new directory because the monitor disabled long FAT filenames; bounded filename support fixed the writes.",
+      "Two prepared frames committed and rendered through the monitor transfer processor. Actual LCD readback and memory checks confirmed the photo area, return to controls and released PSRAM in USB Micro mode. Serial transfer timings are not BLE timings. Physical BLE upload/settings, real touch/idle behavior and active Wi-Fi speech coexistence remain unverified, so idle photos default off. Lesson: progress from a small diagnostic to integration, measure the combined resource cost, and preserve the limits of each test."
+    ],
+    "links": [
+      {
+        "label": "Photo-frame development sequence",
+        "path": "docs/photo-frame-journey.md"
+      },
+      {
+        "label": "Idle-photo configuration",
+        "path": "docs/monitor-photos.md"
+      },
+      {
+        "label": "Monitor photo device evidence",
+        "path": "test/hardware/monitor-photos-2026-10-11.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-11T16:28:18+11:00",
+    "sha": "f0c7883",
+    "title": "Make USB avatars follow Desktop status",
+    "paragraphs": [
+      "The October 10 avatar option kept a stable robot for each slot. On October 11, portraits began animating for thinking, input and error states inferred from Desktop lighting colors. Partial redraws preserve identities and status strips; actual LCD readbacks checked three- and six-slot layouts with stable heap and zero reported USB audio drops. Physical BLE saving and touch acceptance remain open. Lesson: separate host status interpretation, rendered output and input verification."
+    ],
+    "links": [
+      {
+        "label": "USB avatar device evidence",
+        "path": "test/hardware/usb-avatar-status-2026-10-11.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-10T13:38:17+11:00",
+    "sha": "c1accac",
+    "title": "Let users choose USB slot avatars",
+    "paragraphs": [
+      "The three numbered shortcuts remain the default. An optional Robot avatars preference removes agent labels while retaining Desktop's color strips, the header and touch actions. Each slot gets a random robot at startup that stays stable through status updates; it does not claim to identify a thread or know whether an agent is working. A new Bluetooth settings characteristic keeps older configuration clients compatible. Actual LCD readbacks checked both views and startup audio muting. The screenshot serial timeout needed adjustment for Windows forwarding. BLE preference saving and touch behavior still need hands-on checks. Lesson: offer personality without inventing context the host never supplies, and distinguish rendering evidence from input verification.",
+      "OTA validation also exposed identical speech weights packed in different filesystem orders on CI and the local machine. Canonical sorting now gives unchanged model sets an identical bundle hash. Lesson: a compatibility hash must reflect reproducible artifacts, not incidental directory order."
+    ],
+    "links": [
+      {
+        "label": "Avatar setup and USB controls",
+        "path": "docs/usb-micro-controls.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-10T10:47:07+11:00",
+    "sha": "b8fd3e3",
+    "title": "Bring OTA into the monitor",
+    "paragraphs": [
+      "The standalone OTA demo did not make the speech monitor wirelessly updateable: its partition table had one application slot. Monitor 0.7.0 introduces two 4 MiB slots and keeps speech models separate, with a one-time full USB migration. The BLE settings page requests a check or a confirmed installation; the board downloads over verified HTTPS and closes microphone audio during update work. Model hashes and partition identity prevent app-only updates from silently breaking speech, and pending first boots use application rollback. Lesson: carry update compatibility, explicit intent and recovery through the entire product, while keeping hardware evidence separate from compilation."
+    ],
+    "links": [
+      {
+        "label": "Migration, update controls and recovery",
+        "path": "docs/monitor-ota.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-10T09:59:20+11:00",
+    "sha": "6e462b5",
+    "title": "Publish the guide independently",
+    "paragraphs": [
+      "Input fingerprints avoided some compilation, but documentation changes still entered a firmware matrix and waited for its catalog. Guide and browser configuration publishing now use a separate workflow that downloads verified firmware from a successful main build. Firmware and host checks have their own triggers; a new firmware catalog refreshes the guide after it succeeds. Lesson: caching a coupled workflow is different from making its outputs independently publishable. Preserve image provenance, reject partial catalogs, and explain artifact expiry rather than silently recompiling."
+    ],
+    "links": [
+      {
+        "label": "Workflow triggers and recovery",
+        "path": "docs/ci-workflows.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-10T09:32:55+11:00",
+    "sha": "7ed4786",
+    "title": "Make voice controls explicit",
+    "paragraphs": [
+      "The owner reported disappearing USB agent status, an awkward settings layout and microphone gestures that conflicted with Desktop customization. The default now holds the board audio gate open only while Hold to talk is pressed. An optional separate Voice button supports continuous audio, with Desktop assigning the two microphone actions. Mic ON, Mic OFF and Waiting describe outgoing board audio; they do not claim to know whether a desktop voice session ended. The browser separates board preferences from manual Desktop mapping. Lesson: provide useful defaults, explain who owns each setting, and make microphone state observable.",
+      "USB packet loss previously reset the connection epoch and could clear all slots. Fragment recovery now retains the last valid status, while actual disconnects still reset the session. Portable state-machine tests cover voice gestures and settings compatibility; responsive browser checks cover the form. PlatformIO flashing verified image hashes, startup muting and live Desktop status delivery. Voice Chat acceptance and the original dropout still need hands-on testing. Lesson: distinguish a plausible fix, automated coverage and device evidence."
+    ],
+    "links": [
+      {
+        "label": "Experience, implementation and remaining checks",
+        "path": "docs/usb-micro-voice-controls.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-08T20:55:56+11:00",
+    "sha": "07e50b5",
+    "title": "Rebuild the firmware that changed",
+    "paragraphs": [
+      "The guide workflow rebuilt every app even when only documentation changed. Per-environment input fingerprints now track app sources, inherited settings and shared dependencies. Verified cached images keep the full browser catalog available and retain their original build revisions. Missing caches rebuild automatically. Lesson: skipping compilation also requires preserving release completeness and provenance."
+    ],
+    "links": [
+      {
+        "label": "CI decisions and validation",
+        "path": "docs/development.md#incremental-firmware-ci--2026-10-08"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-08T20:55:56+11:00",
+    "sha": "07e50b5",
+    "title": "Prioritize configuration and useful USB controls",
+    "paragraphs": [
+      "Adding BLE HID shared bonding and a single peer with browser settings. We reserved BLE for configuration and kept USB HID as the computer control path. Repeated Desktop lighting messages were clearing the LCD; unchanged packets now leave it alone, and changed slots repaint individually. Three agent slots plus four joystick controls became the default, with a six-slot setup option. Lesson: preserve configuration access, keep Desktop slot identity stable, and distinguish lighting evidence from running-agent counts."
+    ],
+    "links": [
+      {
+        "label": "Decision, implementation and remaining checks",
+        "path": "docs/usb-micro-controls.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-10-07T09:13:19+11:00",
+    "sha": "5a1eac1",
+    "title": "Adapt the screen to Desktop controls",
+    "paragraphs": [
+      "A verified Micro session switches the screen from bridge threads to Desktop slots and command keys. Agent colors come from the host; they cannot establish thread names or running counts. Lesson: let verified connection state drive the interface without inventing host semantics."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-04T21:49:37+11:00",
+    "sha": "a24df75",
+    "title": "Connect directly to Codex Desktop",
+    "paragraphs": [
+      "An independent USB vendor HID worker added unofficial Codex Micro discovery alongside Wi-Fi. USB microphone support followed, including a Windows audio interface grouping fix. Lesson: enumeration, Desktop discovery, audio capture and button acceptance are separate checks."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-04T09:47:49+11:00",
+    "sha": "74eb0dc",
+    "title": "Clarify the voice interaction",
+    "paragraphs": [
+      "The command guide, microphone feedback, reset bars and explicit quota/agent views refined behavior. Lesson: command listening and message recording need different guidance and timeouts."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-03T13:20:28+10:00",
+    "sha": "75155c0",
+    "title": "Capture the actual display",
+    "paragraphs": [
+      "LCD readback produced a real screen capture through PlatformIO serial. Lesson: label device captures and host-rendered previews separately."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-03T13:11:32+10:00",
+    "sha": "9071fcf",
+    "title": "Combine speech with the monitor",
+    "paragraphs": [
+      "Local commands and secure monitor Wi-Fi setup required a speech model partition. Device-only allocation failures led to reserving the feed stack and allocating microphone DMA early. Lesson: total free memory does not tell you which allocations will succeed."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-03T11:22:47+10:00",
+    "sha": "6bbb88d",
+    "title": "Keep an offline recording path",
+    "paragraphs": [
+      "The recorder combined SD, audio and touch with Opus. A codec-stack failure and measured touch latency led to a larger worker stack and independent touch polling. Lesson: host tests help, but device resource constraints need device evidence."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-03T10:44:12+10:00",
+    "sha": "3dea6f8",
+    "title": "Learn local speech first",
+    "paragraphs": [
+      "WakeNet10, MultiNet7 and VADNet were exercised in a visual diagnostic. Frame timing revealed how close command inference could get to the audio deadline. Lesson: measure compute and memory before integrating ML."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-02T22:09:51+10:00",
+    "sha": "d5f3fd1",
+    "title": "Treat the bridge as a local service",
+    "paragraphs": [
+      "LocalLink management and SSE status streaming reduced manual process handling and made updates more immediate. Quiet mode made the device more practical on a desk. Lesson: network and host lifecycle matter as much as the screen."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-10-02T20:34:12+10:00",
+    "sha": "04b0f27",
+    "title": "Build the Codex monitor",
+    "paragraphs": [
+      "A local bridge, animated dashboard and BLE idle settings combined existing capabilities. Mock runs checked quota endpoints, attention and unavailable/recovery states. Lesson: errors and stale state are part of the interface."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-29T15:40:11+10:00",
+    "sha": "acefcf1",
+    "title": "Test speaker, SD and standalone OTA",
+    "paragraphs": [
+      "Separate speaker and SD file-manager diagnostics expanded the catalog. The standalone OTA demo then completed a confirmed HTTPS update and accepted the new image at boot. This evidence predates monitor OTA and does not validate monitor updates. Lesson: keep each application’s device evidence attached to its own firmware."
+    ],
+    "links": [
+      {
+        "label": "Standalone OTA application and device evidence",
+        "path": "apps/08-ota/README.md"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-09-29T08:50:25+10:00",
+    "sha": "a0aac47",
+    "title": "Check the microphone signal",
+    "paragraphs": [
+      "A successful LAN request did not establish microphone capture quality. Correcting the input path and adding a live level meter made the signal observable. Lesson: validate peripheral input before interpreting service success."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-28T23:58:04+10:00",
+    "sha": "5dd0a64",
+    "title": "Bring setup into the browser",
+    "paragraphs": [
+      "BLE Wi-Fi provisioning used an on-screen proof-of-possession code. Lesson: distinguish provisioning, saved credentials and network health. Browser service selection was corrected the following day."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-28T20:56:49+10:00",
+    "sha": "881fef4",
+    "title": "Add appliance behavior",
+    "paragraphs": [
+      "A screen-timeout diagnostic kept touch running while the backlight was off. Lesson: define wake behavior and verify it before combining inactivity handling with the dashboard."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-27T21:27:46+10:00",
+    "sha": "7b85e91",
+    "title": "Connect audio to a local service",
+    "paragraphs": [
+      "LocalLink recorded microphone audio and discovered a LAN speech service. Lesson: discovery, service responses and microphone signal quality need separate checks."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-27T20:42:50+10:00",
+    "sha": "17a747a",
+    "title": "Make it easy to try",
+    "paragraphs": [
+      "GitHub Pages gained a PWA browser flasher and named firmware catalog. Lesson: discovery and installation belong together, with explicit descriptions of what each build does."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-27T13:58:18+10:00",
+    "sha": "5ac04ed",
+    "title": "Make a touch application",
+    "paragraphs": [
+      "The calculator moved from board checks to a usable LVGL interface. Connectivity tools followed with scan results and an on-screen keyboard. Lesson: design for a small screen and verify control placement."
+    ],
+    "links": []
+  },
+  {
+    "timestamp": "2026-09-27T11:12:03+10:00",
+    "sha": "bdf59cb",
+    "title": "Start with the board",
+    "paragraphs": [
+      "Separate hello, display, touch, networking and storage diagnostics made the basic capabilities independently buildable. Lesson: establish the hardware path before designing the full product."
+    ],
+    "links": []
+  }
+]

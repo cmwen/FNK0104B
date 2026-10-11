@@ -1,5 +1,8 @@
 # Optional monitor idle photos
 
+The [development journey](photo-frame-journey.md) records the standalone tests,
+owner confirmation, monitor integration and filesystem fix in their actual order.
+
 Monitor firmware 0.8.0 adds three saved idle choices to the BLE configuration
 page: keep the monitor UI, blank the area below the usage bar, or show SD photos.
 The default is to keep the monitor UI. The live usage/status bar occupies the

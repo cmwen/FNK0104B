@@ -54,6 +54,15 @@ Do not edit generated assets. The guide home handles old `index.html#setup` and
 Firmware is excluded from service-worker caching. The erase choice, Security 1
 provisioning and on-screen proof-of-possession entry remain in the existing flow.
 
+## Journey dates
+
+`src/data/journey.json` holds the journal milestones newest first; the journey
+page renders this one sequence. Use the referenced commit's author timestamp,
+converted to Australia/Sydney, and link the commit and its dated evidence.
+Do not replace hardware test dates with commit dates or invent times for stages
+committed together. The October 11 photo work has its ordered stages in
+[`docs/photo-frame-journey.md`](../docs/photo-frame-journey.md).
+
 ## Screenshots and evidence
 
 `docs/images/codex-monitor-screen.png` is actual LCD readback. The recorder and

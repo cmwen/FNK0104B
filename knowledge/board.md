@@ -1,20 +1,20 @@
 # Board facts
 
-## Photo-frame startup (2026-10-11)
+## Photo-frame development (2026-10-11)
+
+At the initial standalone `photo-frame` 0.1.0 startup, PlatformIO upload hashes
+were verified and serial confirmed touch detection and four-bit SD mounting.
+The inserted card lacked `/photos`, so physical rendering was UNKNOWN then.
+This replaced the monitor partitions with the documented Arduino layout. See
+[the initial record](../test/hardware/photo-frame-2026-10-11.md).
 
 The owner subsequently confirmed BMP playback works. Photo-frame 0.2.0 then
-built and uploaded with verified hashes, retaining the Arduino flash layout.
-At 115200 baud it continued rendering both BMP samples. Its JPEG/PNG/WebP
-decoders pass native fixture/memory tests; those formats have not yet been
-placed on the card, so their physical playback remains UNKNOWN. See the
-[codec update record](../test/hardware/photo-frame-codecs-2026-10-11.md).
-
-Standalone Arduino `photo-frame` 0.1.0 built and uploaded with PlatformIO and
-verified hashes, replacing the monitor layout with the documented Arduino
-layout. Serial at 115200 confirmed touch-controller detection and four-bit SD
-mounting. The inserted card lacks `/photos`; image rendering, touch events,
-colors and sustained slideshow remain UNKNOWN. See the
-[device record](../test/hardware/photo-frame-2026-10-11.md).
+built and uploaded with verified hashes, retaining the Arduino layout. At
+115200 baud it continued rendering both BMP samples. JPEG/PNG/WebP decoders
+passed native fixture and memory tests, but those formats were not placed on
+the card, so their physical playback remains UNKNOWN. See
+[the codec record](../test/hardware/photo-frame-codecs-2026-10-11.md) and
+[the ordered development journey](../docs/photo-frame-journey.md).
 
 ## Adaptive monitor UI check (2026-10-07)
 

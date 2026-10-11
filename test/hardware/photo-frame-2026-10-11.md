@@ -34,5 +34,9 @@ sd_status=mounted
 [E][vfs_api.cpp:105] open(): /sdcard/photos does not exist, no permits for creation
 ```
 
-Physical photo rendering, colors, tap delivery and sustained slideshow remain
-UNKNOWN. Copy the sample ZIP's `photos/` folder onto the SD root, then reset.
+At this initial startup, photo rendering, colors, tap delivery and sustained
+slideshow were UNKNOWN. Later on the same day, the owner confirmed BMP playback
+works after adding the samples; the 0.2.0 serial check recorded both BMPs
+rendering. See [the subsequent codec record](photo-frame-codecs-2026-10-11.md)
+and [the ordered journey](../../docs/photo-frame-journey.md). These later checks
+do not establish compressed-image playback or every touch/timing behavior.
