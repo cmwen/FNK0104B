@@ -18,5 +18,7 @@ bool microphoneKey(bool pressed);
 bool key(uint8_t id, bool pressed);
 bool tap(uint8_t id);
 bool agent0Tap(); // Explicit diagnostic input only; queues press and release together.
-bool takeStatus(Status& status); // Called by the application, independent of Wi-Fi state.
+// Update from the selected transport's retained mailbox, independent of Wi-Fi.
+// Returns false if no snapshot exists or the caller already has the same values.
+bool takeStatus(Status& status);
 }

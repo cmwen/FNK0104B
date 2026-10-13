@@ -14,7 +14,7 @@ void loop() {
     if (key >= 0) Serial.printf("codex_hid key=%d input=%s\n", key,
       codex_hid::tap(key) ? "queued" : "unavailable");
   }
-  codex_hid::Status status;
+  static codex_hid::Status status;
   if (codex_hid::takeStatus(status)) Serial.printf("codex_hid application=received revision=%lu\n", (unsigned long)status.revision);
   delay(5);
 }

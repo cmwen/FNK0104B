@@ -2,6 +2,48 @@
 
 October 8: [wireless settings and compact USB controls](usb-micro-controls.md) supersede integrated BLE HID. Browser BLE recovery and Desktop radial mappings require physical acceptance.
 
+## Retained Micro status mailbox, 2026-10-13
+
+The owner reported that USB Micro agent status disappears after a repaint on
+Mac and returns after tapping an agent. Code inspection found a discovery race:
+the UI could consume a status while no Micro transport was selected, then clear
+its local snapshot when the discovery reply completed and USB mode was selected.
+An ordinary repaint already uses the local snapshot; missing packets alone do
+not expire protocol status. The Mac-specific trigger has not been reproduced.
+
+USB status reads now wait for a selected Micro transport and peek at a retained
+mailbox. USB and the isolated BLE backend keep the latest snapshot available
+after a UI mode change; identical snapshots do not trigger display updates or
+repeat receipt logs. Partial/empty status updates preserve previous slot values.
+Explicit black colors still clear a slot's lighting, and real connection resets
+still invalidate the session. The HID diagnostic retains its local snapshot
+between loop iterations to match this mailbox contract.
+
+The native regression covers a status arriving before discovery, restoring a
+cleared UI snapshot, repeated repaint reads, partial/empty updates, explicit black,
+connection resets and reused revision numbers. Physical Mac behavior remains
+UNKNOWN until the updated firmware is checked on that host.
+
+Validation: `pio test -e native` passed all 37 tests; PlatformIO builds of
+`codex-monitor`, `codex-hid-diag` and `codex-ble-diag` passed.
+
+At the owner's request, the monitor was subsequently uploaded through PlatformIO
+to FNK0104B B81F3FC39F94 on 2026-10-13. The first 1200-baud reset timed out during
+USB enumeration; rediscovery found the ROM bootloader and the retry succeeded.
+All five image hashes verified and watchdog reset completed. Existing partition
+boundaries and NVS were preserved; no full-chip erase or security changes occurred.
+Firmware SHA-256: `49aebb226a49f821bfed07ae00e63f98b0ae8ebe9cbe73b7c938c744b237982e`.
+
+Windows reclaimed the application device as 303a:8360 on COM9. PlatformIO serial
+monitoring at 115200 baud through a temporary localhost COM9 relay confirmed live
+`v.oai.thstatus` receipt/display for revisions 14–17 and completed HID replies.
+Health reported version 0.8.0, Wi-Fi connected (`wifi=3`), both workers present,
+38,067 free internal heap bytes and 8,318,416 free PSRAM bytes. Audio reported
+ready, muted USB microphone and zero dropped USB reports; speech reported
+`starting` while USB mode was active. The relay and serial monitor were closed
+after verification, retaining Windows HID ownership. This verifies a short
+post-flash runtime on Windows, not the reported Mac repaint behavior.
+
 
 ## Adaptive Micro/Wi-Fi UI, 2026-10-07
 

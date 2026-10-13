@@ -164,8 +164,14 @@ bool key(uint8_t id, bool pressed) {
 }
 bool microphoneKey(bool pressed) { return key(10, pressed); }
 bool takeStatus(Status& status) {
-  if (transport() == Transport::Ble) return ble::takeStatus(status);
-  return statusQueue && xQueueReceive(statusQueue, &status, 0) == pdTRUE;
+  const auto selected = transport();
+  if (selected == Transport::Ble) return ble::takeStatus(status);
+  if (selected != Transport::Usb) return false;
+  // Do not consume the last status. Discovery may complete after the packet
+  // arrives, and the UI clears its display snapshot when selecting a transport.
+  Status latest;
+  return statusQueue && xQueuePeek(statusQueue, &latest, 0) == pdTRUE &&
+    applyStatusSnapshot(latest, status);
 }
 Transport transport() {
   return chooseTransport(usbLinkState(), ble::linkState());

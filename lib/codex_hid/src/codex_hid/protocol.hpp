@@ -13,6 +13,18 @@ struct Status { Slot slots[6]; uint32_t revision = 0; };
 inline bool sameAppearance(const Slot& a, const Slot& b) {
   return a.present == b.present && a.color == b.color && a.brightness == b.brightness;
 }
+// A retained mailbox can restore the UI after a mode change without a new
+// host packet. Compare fields too: a new connection can reuse revision numbers.
+inline bool applyStatusSnapshot(const Status& latest, Status& displayed) {
+  bool changed = latest.revision != displayed.revision;
+  for (unsigned i = 0; i < 6; ++i) {
+    const auto& a = latest.slots[i];
+    const auto& b = displayed.slots[i];
+    changed |= !sameAppearance(a, b) || a.speed != b.speed || strcmp(a.effect, b.effect);
+  }
+  if (changed) displayed = latest;
+  return changed;
+}
 class Protocol {
  public:
   Status status;

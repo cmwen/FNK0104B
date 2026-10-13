@@ -114,7 +114,9 @@ bool key(uint8_t id, bool pressed, bool tap) {
 }
 bool takeStatus(Status& status) {
   auto* s = state.load();
-  return s && xQueueReceive(s->statuses, &status, 0) == pdTRUE;
+  Status latest;
+  return s && xQueuePeek(s->statuses, &latest, 0) == pdTRUE &&
+    applyStatusSnapshot(latest, status);
 }
 }
 #endif

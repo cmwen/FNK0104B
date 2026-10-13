@@ -656,6 +656,46 @@ void test_usb_loss_preserves_connection_and_last_status() {
   TEST_ASSERT_NOT_EQUAL(connection, epochs.connection());
 }
 
+void test_micro_status_mailbox_survives_discovery_and_repaint() {
+  codex_hid::Protocol protocol;
+  codex_hid::Status displayed;
+  char reply[1024];
+  auto call = [&](const char* input) {
+    return protocol.process(input, strlen(input), reply, sizeof(reply));
+  };
+  // Desktop sends lighting before its discovery reply has finished transmitting.
+  TEST_ASSERT_TRUE(call("{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":0,\"c\":3166206},{\"id\":1,\"c\":16739584}]}"));
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  // Selecting Micro mode clears the UI snapshot; the retained mailbox restores it.
+  displayed = codex_hid::Status{};
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_EQUAL_HEX32(0x304ffe, displayed.slots[0].color);
+  TEST_ASSERT_EQUAL_HEX32(0xff6d00, displayed.slots[1].color);
+  for (unsigned repaint = 0; repaint < 3; ++repaint) {
+    TEST_ASSERT_FALSE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+    TEST_ASSERT_TRUE(ui::micro::mood(displayed.slots[0]) == ui::avatar::Mood::Thinking);
+  }
+  // Discovery calls and empty/partial status packets do not erase other slots.
+  TEST_ASSERT_TRUE(call("{\"m\":\"device.status\",\"id\":1}"));
+  TEST_ASSERT_FALSE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_TRUE(call("{\"m\":\"v.oai.thstatus\",\"p\":[]}"));
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_EQUAL_HEX32(0x304ffe, displayed.slots[0].color);
+  TEST_ASSERT_TRUE(call("{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":1,\"c\":0}]}"));
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_EQUAL_HEX32(0x304ffe, displayed.slots[0].color);
+  TEST_ASSERT_EQUAL(0, displayed.slots[1].color);
+  // A real connection reset still invalidates status.
+  protocol.status = codex_hid::Status{};
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_FALSE(displayed.slots[0].present);
+  // Revisions may restart on reconnect; equal revisions cannot hide new values.
+  displayed.revision = 1;
+  TEST_ASSERT_TRUE(call("{\"m\":\"v.oai.thstatus\",\"p\":[{\"id\":0,\"c\":16711731}]}"));
+  TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, displayed));
+  TEST_ASSERT_TRUE(ui::micro::mood(displayed.slots[0]) == ui::avatar::Mood::Error);
+}
+
 void test_monitor_micro_mode_requires_desktop_discovery() {
   TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Off));
   TEST_ASSERT_FALSE(codex_hid::microConnected(codex_hid::LinkState::Usb));
@@ -831,6 +871,7 @@ int main() {
   RUN_TEST(test_monitor_settings_v3_validation_and_legacy_preservation);
   RUN_TEST(test_micro_six_keys_and_touch_gaps);
   RUN_TEST(test_usb_loss_preserves_connection_and_last_status);
+  RUN_TEST(test_micro_status_mailbox_survives_discovery_and_repaint);
   RUN_TEST(test_monitor_micro_mode_requires_desktop_discovery);
   RUN_TEST(test_codex_hid_descriptor_contract);
   RUN_TEST(test_codex_hid_framing_bounds_and_recovery);
