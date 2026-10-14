@@ -36,8 +36,11 @@ Validation: all 38 native tests passed. The new regression replays working,
 idle, attention and error slots followed by LED blackout, quiet reads, an
 explicit white idle update, empty updates and connection invalidation. Both
 `codex-monitor` and `codex-hid-diag` PlatformIO builds passed.
-The follow-up has not been flashed;
-the board is connected to the Mac and unavailable to this workspace.
+Monitor 0.8.1 was subsequently flashed on 2026-10-14; all five hashes verified.
+A 115200-baud PlatformIO serial check confirmed the version, live HID updates
+and stable retained slot values across a forced repaint without a HID key.
+See [the upload and runtime record](../test/hardware/usb-agent-retention-2026-10-14.md).
+Physical Mac acceptance remains pending the owner's test.
 
 ## Retained Micro status mailbox, 2026-10-13
 
