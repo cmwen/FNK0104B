@@ -124,6 +124,7 @@ wifiForm.addEventListener("submit", async event => {
 // Monitor settings use a separate service and do not share Wi-Fi provisioning.
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+const MONITOR_LED_SETTINGS_UUID = "4e4b0104-0009-4d20-8f4b-0104b0000001";
 const MONITOR_APPEARANCE_SETTINGS_UUID = "4e4b0104-0006-4d20-8f4b-0104b0000001";
 const MONITOR_VOICE_SETTINGS_UUID = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 const MONITOR_OTA_UUID = "4e4b0104-0005-4d20-8f4b-0104b0000001";
@@ -148,6 +149,8 @@ let monitorDevice = null;
 let monitorCharacteristic = null;
 let monitorBusy = false;
 let monitorSettingsVersion = 1;
+const monitorLed = document.querySelector("#monitor-led");
+const monitorLedSeconds = document.querySelector("#monitor-led-seconds");
 const monitorAppearance = document.querySelector("#monitor-appearance");
 const monitorSlots = document.querySelector("#monitor-slots");
 const monitorVoice = document.querySelector("#monitor-voice");
@@ -230,6 +233,8 @@ function setMonitorControls(connected) {
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
   monitorSave.disabled = !connected || monitorBusy || otaWorking || photoWorking;
+  monitorLed.disabled = !connected || monitorSettingsVersion < 5;
+  monitorLedSeconds.disabled = !connected || monitorSettingsVersion < 5;
   monitorAppearance.disabled = !connected || monitorSettingsVersion < 4;
   monitorSlots.disabled = !connected || monitorSettingsVersion < 2;
   monitorVoice.disabled = !connected || monitorSettingsVersion < 3;
@@ -320,18 +325,23 @@ photoDelete.addEventListener("click", async () => {
 
 function decodeMonitorSettings(value) {
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 4 || bytes.length !== bytes[0] + 3)
+  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 5 || bytes.length !== (bytes[0] === 5 ? 10 : bytes[0] + 3))
     throw new Error("The board returned an invalid settings packet.");
   if (bytes[0] >= 2 && bytes[4] !== 3 && bytes[4] !== 6)
     throw new Error("The board returned an invalid Micro layout.");
   if (bytes[0] >= 3 && bytes[5] > 1)
     throw new Error("The board returned an invalid voice control mode.");
-  if (bytes[0] === 4 && bytes[6] > 1)
+  if (bytes[0] >= 4 && bytes[6] > 1)
     throw new Error("The board returned an invalid slot appearance.");
-  monitorAppearance.value = String(bytes[0] === 4 ? bytes[6] : 0);
+  monitorAppearance.value = String(bytes[0] >= 4 ? bytes[6] : 0);
   const dimTimeout = bytes[2] | (bytes[3] << 8);
   if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120)
     throw new Error("The board returned settings outside the supported range.");
+  const ledSeconds = bytes[0] === 5 ? bytes[8] | bytes[9] << 8 : 60;
+  if (bytes[0] === 5 && (bytes[7] > 1 || ledSeconds < 5 || ledSeconds > 600))
+    throw new Error("The board returned invalid status LED settings.");
+  monitorLed.value = String(bytes[0] === 5 ? bytes[7] : 1);
+  monitorLedSeconds.value = String(ledSeconds);
   monitorSettingsVersion = bytes[0];
   monitorSlots.value = String(bytes[0] >= 2 ? bytes[4] : 6);
   monitorVoice.value = String(bytes[0] >= 3 ? bytes[5] : 0);
@@ -382,7 +392,7 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);
     const server = await monitorDevice.gatt.connect();
     const service = await server.getPrimaryService(MONITOR_SERVICE_UUID);
-    for (const uuid of [MONITOR_APPEARANCE_SETTINGS_UUID, MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
+    for (const uuid of [MONITOR_LED_SETTINGS_UUID, MONITOR_APPEARANCE_SETTINGS_UUID, MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
       try { monitorCharacteristic = await service.getCharacteristic(uuid); break; }
       catch (error) { if (error.name !== "NotFoundError") throw error; }
     }
@@ -456,6 +466,12 @@ monitorForm.addEventListener("submit", async event => {
       const appearance = Number(monitorAppearance.value);
       if (appearance !== 0 && appearance !== 1) throw new Error("Choose agent numbers or robot avatars.");
       packet.push(appearance);
+    }
+    if (monitorSettingsVersion >= 5) {
+      const enabled = Number(monitorLed.value), seconds = Number(monitorLedSeconds.value);
+      if ((enabled !== 0 && enabled !== 1) || !Number.isInteger(seconds) || seconds < 5 || seconds > 600)
+        throw new Error("Choose a status LED timeout between 5 and 600 seconds.");
+      packet.push(enabled, seconds & 0xff, seconds >> 8);
     }
     const bytes = new Uint8Array(packet);
     const photoBytes = photoConfigCharacteristic ? photoSettingsPacket() : null;

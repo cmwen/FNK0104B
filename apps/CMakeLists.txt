@@ -2,9 +2,11 @@ idf_build_get_property(FNK_APP FNK_APP)
 # PlatformIO selects the isolated IDF app; Arduino apps continue using SCons.
 set(board_sources "../lib/fnk0104b/src/idf_display.cpp" "../lib/fnk0104b/src/idf_microphone.cpp")
 set(board_requires esp_lcd espressif__esp_lcd_ili9341 esp_driver_spi esp_driver_i2s esp_driver_i2c esp_driver_gpio esp_timer esp_psram)
-if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
+if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag" OR FNK_APP STREQUAL "rgb-diag")
     set(monitor_libdeps "${CMAKE_SOURCE_DIR}/.pio/libdeps/${FNK_APP}")
-    if(FNK_APP STREQUAL "codex-audio-diag")
+    if(FNK_APP STREQUAL "rgb-diag")
+        set(monitor_app_sources "${CMAKE_SOURCE_DIR}/apps/28-rgb-diag/src/main.cpp")
+    elseif(FNK_APP STREQUAL "codex-audio-diag")
         set(monitor_app_sources "${CMAKE_SOURCE_DIR}/apps/25-codex-audio-diag/src/main.cpp")
     else()
         set(monitor_app_sources "${CMAKE_SOURCE_DIR}/apps/codex-monitor/src/main.cpp" "${CMAKE_SOURCE_DIR}/apps/codex-monitor/src/speech.cpp" "${CMAKE_SOURCE_DIR}/apps/codex-monitor/src/wifi_setup.cpp" "${CMAKE_SOURCE_DIR}/apps/codex-monitor/src/ota.cpp" "${CMAKE_SOURCE_DIR}/apps/codex-monitor/src/photos.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/monitor_photos.cpp")
@@ -14,6 +16,7 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/usb_microphone.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/audio_input.cpp"
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/codex_usb.cpp" "${CMAKE_SOURCE_DIR}/lib/codex_hid/src/backend.cpp"
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/codex_ble.cpp" "${CMAKE_SOURCE_DIR}/lib/codex_hid/src/ble_backend.cpp"
+             "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/status_led.cpp"
              "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/board.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/microphone.cpp"
              "${CMAKE_SOURCE_DIR}/lib/speech/src/audio_frontend.cpp" "${CMAKE_SOURCE_DIR}/lib/fnk0104b/src/speaker.cpp" "${CMAKE_SOURCE_DIR}/lib/locallink/src/protocol.cpp"
              "${monitor_libdeps}/TFT_eSPI/TFT_eSPI.cpp"
@@ -21,7 +24,7 @@ if(FNK_APP STREQUAL "codex-monitor" OR FNK_APP STREQUAL "codex-audio-diag")
                      "${CMAKE_SOURCE_DIR}/lib/codex_hid/src" "${CMAKE_SOURCE_DIR}/lib/ui/src" "${CMAKE_SOURCE_DIR}/lib/speech/src" "${monitor_libdeps}/TFT_eSPI" "${monitor_libdeps}/ArduinoJson/src"
         REQUIRES espressif__arduino-esp32 espressif__esp-sr espressif__esp-dl espressif__network_provisioning bootloader_support arduino_tinyusb app_update esp_http_client mbedtls)
     target_compile_definitions(${COMPONENT_LIB} PUBLIC
-        ARDUINO_USB_CDC_ON_BOOT=1 ARDUINO_USB_MODE=0 FNK0104B_ENABLE_CODEX_HID=1 FNK0104B_ENABLE_USB_AUDIO=1 FNK0104B_ENABLE_DISPLAY=1 USER_SETUP_LOADED FNK_SPEECH_EXTERNAL_MICROPHONE=1)
+        ARDUINO_USB_CDC_ON_BOOT=1 ARDUINO_USB_MODE=0 FNK0104B_ENABLE_CODEX_HID=1 FNK0104B_ENABLE_USB_AUDIO=1 FNK0104B_ENABLE_DISPLAY=1 FNK0104B_ENABLE_STATUS_LED=1 USER_SETUP_LOADED FNK_SPEECH_EXTERNAL_MICROPHONE=1)
     if(FNK_APP STREQUAL "codex-monitor")
         target_compile_definitions(${COMPONENT_LIB} PUBLIC FNK0104B_ENABLE_MONITOR_PHOTOS=1)
     endif()

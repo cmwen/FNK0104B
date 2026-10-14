@@ -51,3 +51,6 @@ Device observations and unresolved acceptance checks are in [the audio validatio
   OTA metadata, inactive-slot updates and application boot validation/rollback.
 - **E14 — ESP-IDF 5.5 HTTP client:** https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/api-reference/protocols/esp_http_client.html
   HTTPS certificate-bundle verification and streamed download API.
+
+- **F7:** [Freenove LedPixel source](https://github.com/Freenove/Freenove_ESP32_S3_Display/blob/main/Tutorial_With_Touch/Sketches/Sketch_02.1_LedPixel/Sketch_02.1_LedPixel.ino): checked 2026-10-14; FNK0104AB selects GPIO42, one pixel, TYPE_GRB.
+- **E15:** [Espressif Arduino RMT API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/rmt.html): WS2812 timing support; cross-checked against installed Arduino 3.3.12 RGB writer.

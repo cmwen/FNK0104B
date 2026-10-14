@@ -16,6 +16,8 @@
 #include <ui/micro_avatar.hpp>
 #include <ui/monitor_theme.hpp>
 #include <ui/idle_timer.hpp>
+#include <ui/status_led.hpp>
+#include <fnk0104b/status_led.hpp>
 #include <ui/micro_layout.hpp>
 #include <codex_hid/voice_controls.hpp>
 #include <codex_hid/monitor_settings.hpp>
@@ -73,6 +75,7 @@ constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 constexpr char kCharacteristicUuid[] = "4e4b0104-0002-4d20-8f4b-0104b0000001";
 constexpr char kExtendedSettingsUuid[] = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 constexpr char kAppearanceSettingsUuid[] = "4e4b0104-0006-4d20-8f4b-0104b0000001";
+constexpr char kLedSettingsUuid[] = "4e4b0104-0009-4d20-8f4b-0104b0000001";
 constexpr char kVoiceSettingsUuid[] = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 constexpr uint16_t kBg = ui::monitor::kBackground;
 constexpr uint16_t kPanel = ui::monitor::kPanel;
@@ -92,6 +95,8 @@ struct MonitorStatus {
   Agent agents[8];
   uint8_t count = 0;
   uint16_t total_agents = 0;
+  ui::led::State ledState = ui::led::State::Off;
+  uint32_t ledIdentity = 0;
 };
 
 MonitorStatus status;
@@ -100,6 +105,10 @@ Preferences preferences;
 std::atomic<uint8_t> volumePercent{50};
 std::atomic<uint16_t> screenTimeoutMinutes{kScreenTimeoutDefault};
 ui::IdleTimer idleTimer;
+std::atomic<bool> ledEnabled{true};
+std::atomic<uint16_t> ledSeconds{60};
+ui::led::Indicator ledIndicator;
+BLECharacteristic* ledSettingsCharacteristic = nullptr;
 uint32_t lastAvatarFrame = 0, lastResetCheck = 0;
 int drawnFiveHourReset = -1, drawnWeeklyReset = -1;
 bool screenAwake = true, previousTouch = false;
@@ -447,12 +456,17 @@ void drawScreen() {
 
 void publishSettings() {
   if (!settingsCharacteristic) return;
-  uint8_t bytes[7] = {4, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
+  uint8_t bytes[10] = {5, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
                       static_cast<uint8_t>(screenTimeoutMinutes >> 8),
                       static_cast<uint8_t>(compactMicroLayout ? 3 : 6),
                       static_cast<uint8_t>(separateVoiceButton ? 1 : 0),
-                      static_cast<uint8_t>(microAvatars ? 1 : 0)};
-  if (appearanceSettingsCharacteristic) appearanceSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+                      static_cast<uint8_t>(microAvatars ? 1 : 0),
+                      static_cast<uint8_t>(ledEnabled ? 1 : 0),
+                      static_cast<uint8_t>(ledSeconds & 0xff),
+                      static_cast<uint8_t>(ledSeconds >> 8)};
+  if (ledSettingsCharacteristic) ledSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+  bytes[0] = 4;
+  if (appearanceSettingsCharacteristic) appearanceSettingsCharacteristic->setValue(bytes, 7);
   bytes[0] = 3;
   if (voiceSettingsCharacteristic) voiceSettingsCharacteristic->setValue(bytes, 6);
   bytes[0] = 2;
@@ -467,7 +481,7 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
     const auto raw = characteristic->getValue();
     const uint8_t version = raw.length() ? static_cast<uint8_t>(raw[0]) : 0;
     codex_hid::MonitorSettings next{volumePercent, screenTimeoutMinutes,
-        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars};
+        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars, ledEnabled, ledSeconds};
     if (!codex_hid::decodeMonitorSettings(reinterpret_cast<const uint8_t*>(raw.c_str()), raw.length(), next)) return;
     volumePercent = next.volume; screenTimeoutMinutes = next.timeout;
     preferences.putUChar("volume", volumePercent);
@@ -482,10 +496,15 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
       preferences.putBool("usbVoice", separateVoiceButton);
       voiceControlsChanged = true;
     }
-    if (version == 4) {
+    if (version >= 4) {
       microAvatars = next.avatars;
       preferences.putBool("microAvatars", next.avatars);
       microLayoutChanged = true;
+    }
+    if (version == 5) {
+      ledEnabled = next.ledEnabled; ledSeconds = next.ledSeconds;
+      preferences.putBool("statusLed", next.ledEnabled);
+      preferences.putUShort("ledSeconds", next.ledSeconds);
     }
     publishSettings();
     Serial.printf("monitor_settings accepted=1 version=%u slots=%u avatars=%u\n",
@@ -536,6 +555,9 @@ void startBle() {
   appearanceSettingsCharacteristic = service->createCharacteristic(kAppearanceSettingsUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   appearanceSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
+  ledSettingsCharacteristic = service->createCharacteristic(kLedSettingsUuid,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  ledSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   monitor_ota::attach(service);
   monitor_photos::attach(service);
   publishSettings(); service->start();
@@ -595,6 +617,9 @@ bool applyStatusJson(const char* body, size_t bodyLength) {
         if (currentAttentionIds[n] == identity) duplicate = true;
       if (!duplicate) currentAttentionIds[currentAttentionCount++] = identity;
     }
+    const auto ledState = !strcmp(state, "running") ? ui::led::State::Working : ui::led::State::Attention;
+    if (ledState > next.ledState) next.ledState = ledState;
+    next.ledIdentity ^= ui::avatar::hashId(id) ^ (unsigned(ledState) * 2654435761UL);
     ++next.total_agents;
     if (next.count >= 8) continue;
     Agent& a = next.agents[next.count++];
@@ -1125,6 +1150,46 @@ void serialLoop() {
   Serial.setTxTimeoutMs(250);
 }
 
+void updateStatusLed() {
+  using ui::led::State;
+  State state = State::Off;
+  uint32_t identity = 0;
+  const bool micro = codex_hid::transport() != codex_hid::Transport::None;
+  bool connected = micro;
+  if (micro) {
+    bool unknown = false;
+    for (unsigned i = 0; i < 6; ++i) {
+      const auto& slot = desktopStatus.slots[i];
+      const auto mood = ui::micro::mood(slot);
+      const State candidate = mood == ui::avatar::Mood::Thinking ? State::Working :
+          mood == ui::avatar::Mood::NeedsInput || mood == ui::avatar::Mood::Error ? State::Attention : State::Off;
+      // Unknown colors must not turn working into a completion notification.
+      if (candidate == State::Off && slot.present && slot.color != 0xffffff && slot.color != 0x00ff00) {
+        unknown = true; continue;
+      }
+      if (candidate > state) state = candidate;
+      if (candidate != State::Off) identity ^= (i + 1) * (unsigned(candidate) * 2654435761UL);
+    }
+    if (unknown && state == State::Off) connected = false;
+  } else {
+    MonitorStatus snapshot;
+    portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
+    connected = WiFi.status() == WL_CONNECTED && !strcmp(snapshot.integration, "connected") && !statusPaused;
+    state = snapshot.ledState; identity = snapshot.ledIdentity;
+  }
+  static bool previousMicro = false;
+  if (previousMicro != micro) { ledIndicator.reset(); previousMicro = micro; }
+  const State output = ledIndicator.update(state, identity, connected && !monitor_ota::busy(),
+      ledEnabled, ledSeconds, millis());
+  static State written = State::Off;
+  if (output == written) return;
+  written = output;
+  fnk0104b::status_led::write(output == State::Attention || output == State::Complete ? 16 : 0,
+      output == State::Working || output == State::Complete ? 16 : 0, 0);
+  Serial.printf("monitor_led state=%u timeout_seconds=%u enabled=%u\n",
+      unsigned(output), unsigned(ledSeconds.load()), unsigned(ledEnabled.load()));
+}
+
 }  // namespace
 
 void setup() {
@@ -1146,6 +1211,10 @@ void setup() {
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
+  ledEnabled = preferences.getBool("statusLed", true);
+  ledSeconds = preferences.getUShort("ledSeconds", 60);
+  if (ledSeconds < 5 || ledSeconds > 600) ledSeconds = 60;
+  fnk0104b::status_led::write(0, 0, 0);
   monitor_photos::begin(preferences);
   compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
   microAvatars = preferences.getBool("microAvatars", false);
@@ -1194,6 +1263,7 @@ void setup() {
 }
 
 void loop() {
+  updateStatusLed();
   monitor_ota::tick();
   static bool updateQuiesced = false;
   if (monitor_ota::requested()) {

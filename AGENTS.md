@@ -32,3 +32,22 @@ This repository targets the Freenove FNK0104B ESP32-S3 display board. PlatformIO
 ## Scope
 
 Do not add LVGL, Wi-Fi, MQTT, OTA, SD-card behavior, or Codex monitor features until asked. Existing apps implement several of these capabilities; `nvs` and `mqtt` remain buildable placeholders. Check `docs/monitor-readiness.md` for current monitor evidence and open checks.
+
+## Documentation and build journal
+
+- Every new feature, behavior change, or project decision must include documentation updates in the same change. Treat documentation and the build journal as part of completing the work.
+- Record the change in `site/src/data/journey.json`, newest first, with an Australia/Sydney timestamp. Explain the user need, resulting behavior, decisions and tradeoffs, validation, and remaining checks; link the relevant documentation and evidence.
+- Use a verified commit SHA for committed milestones. For uncommitted work, use `sha: null` and the actual session timestamp; never invent a commit or attribute new work to an earlier commit. Update the journal entry with its verified SHA and commit timestamp once committed.
+- Update the affected app README, setup/feature documentation, and guide/configuration page when applicable. Update `knowledge/`, `docs/hardware.md`, `docs/monitor-readiness.md`, and dated `test/hardware/` evidence when hardware facts or device validation change.
+- Distinguish implementation, automated checks, serial observations, owner confirmation, and unverified physical behavior. Do not describe local changes as published releases.
+- Update this file when a decision changes how future agents should work; keep detailed feature history in the journal and linked documentation.
+
+### Current monitor rear LED behavior
+
+Codex monitor 0.8.2 includes a rear status indicator, enabled by default with a
+60-second timeout. BLE Monitor settings can disable it or set 5–600 seconds,
+saved on the board. Green means working, red means attention/error, and yellow
+means observed work ended; it does not prove success. Repeated identical status
+must not restart the timeout. Preserve the existing USB blackout-retention
+policy. See `docs/monitor-status-led.md` and
+`test/hardware/rear-status-led-2026-10-14.md` for semantics and evidence limits.

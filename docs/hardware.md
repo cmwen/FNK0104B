@@ -140,3 +140,13 @@ over five seconds, with peak 54 and 77,125 nonzero samples in a quiet run.
 This verifies live raw USB microphone delivery, not audible speech quality or
 Desktop dictation. The GPIO map and existing partition boundaries were retained.
 See [device evidence](../test/hardware/connectivity-modes-2026-10-07.md).
+
+## Rear RGB diagnostic and monitor (2026-10-14)
+
+The owner confirmed the isolated `rgb-diag` green/yellow/red/off sequence.
+PlatformIO upload verified all diagnostic image hashes, and 115200-baud serial
+captured repeated phase reports. Monitor 0.8.2 was then restored with all five
+hashes verified. Live USB working status continued after the configured
+60-second LED notification shut off; repeated identical status did not relight
+it. Physical BLE setting writes and integrated attention/completion transitions
+remain UNKNOWN. See [the hardware record](../test/hardware/rear-status-led-2026-10-14.md).

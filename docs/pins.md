@@ -22,7 +22,7 @@ GPIO values are centralized in `lib/fnk0104b/src/fnk0104b/pins.hpp`. These value
 | MicroSD | DAT1 | 41 | Four-bit SDIO data | Schematic; module spec §4.2; Freenove SD_MMC example |
 | MicroSD | DAT2 | 48 | Four-bit SDIO data | Schematic; module spec §4.2; Freenove SD_MMC example |
 | MicroSD | DAT3 | 47 | Four-bit SDIO data | Schematic; module spec §4.2; Freenove SD_MMC example |
-| RGB LED | WS2812 data | 42 | One addressable pixel | Schematic; Freenove RGB example |
+| RGB LED | WS2812 data | 42 | One GRB addressable pixel | Schematic; Freenove LedPixel example |
 | Audio | Amplifier enable | 1 | Active low per module spec | Schematic; module spec §4.2 |
 | Audio | I²S MCLK | 4 | ES8311 codec bus | Schematic; module spec §4.2; Freenove Echo example |
 | Audio | I²S BCLK | 5 | ES8311 codec bus | Schematic; module spec §4.2; Freenove Echo example |

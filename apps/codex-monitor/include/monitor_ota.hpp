@@ -1,7 +1,7 @@
 #pragma once
 #include <BLEServer.h>
 namespace monitor_ota {
-constexpr char version[] = "0.8.1";
+constexpr char version[] = "0.8.2";
 constexpr char layout[] = "monitor-ota4m-model810000-v1";
 void attach(BLEService* service);
 void begin(bool coreReady);

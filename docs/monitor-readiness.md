@@ -624,3 +624,16 @@ SDK audio diagnostic build pass. Physical BLE upload/settings, touch and idle
 acceptance, and coexistence with active Wi-Fi speech recognition remain UNKNOWN.
 See [setup](monitor-photos.md) and the
 [hardware record](../test/hardware/monitor-photos-2026-10-11.md).
+
+## Rear status LED (2026-10-14)
+
+Configurable enabled/timeout preferences and green/yellow/red status indications
+are implemented. See [the status LED contract](monitor-status-led.md) for
+completion inference limits and pending physical acceptance.
+
+Monitor 0.8.2 was built and flashed with five verified hashes. The owner
+confirmed diagnostic colors, and integrated serial verified the default
+60-second shutoff despite repeated working updates. See
+[device evidence](../test/hardware/rear-status-led-2026-10-14.md). Physical BLE
+setting writes/persistence and integrated completion/attention acceptance
+remain UNKNOWN.

@@ -21,6 +21,7 @@ IDF_APPS = {
     "recorder": ("20-recorder", ("fnk0104b", "speech", "recorder"), "20-recorder"),
     "recorder-io-diag": ("21-recorder-io-diag", ("fnk0104b",), "20-recorder"),
     "codex-monitor": ("codex-monitor", ("fnk0104b", "codex_hid", "speech", "locallink", "ui"), "codex-monitor"),
+    "rgb-diag": ("28-rgb-diag", ("fnk0104b", "codex_hid", "speech", "locallink", "ui"), "codex-monitor"),
     "codex-audio-diag": ("25-codex-audio-diag", ("fnk0104b", "codex_hid", "speech", "locallink", "ui"), "codex-monitor"),
 }
 INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', re.MULTILINE)
@@ -73,7 +74,7 @@ def inputs(root, environment, files=None):
         selected.update({"CMakeLists.txt", "apps/CMakeLists.txt", "apps/idf_component.yml",
                          f"apps/{defaults}/sdkconfig.defaults",
                          "apps/19-speech-diag/compile_req.yml"})
-        monitor = environment in {"codex-monitor", "codex-audio-diag"}
+        monitor = environment in {"codex-monitor", "codex-audio-diag", "rgb-diag"}
         selected.add("dependencies.monitor.lock" if monitor else "dependencies.lock")
         if monitor:
             selected.update(path for path in files if path.startswith("components/"))
@@ -207,7 +208,7 @@ def main():
     environments = [*BUILD_ONLY_ENVIRONMENTS, *firmware_environments()]
     if args.action == "plan":
         files = tracked_files(ROOT)
-        print(json.dumps({"include": [{"environment": env, "download_group": ("monitor" if env in {"codex-monitor", "codex-audio-diag"} else "idf" if env in IDF_APPS else "arduino"),
+        print(json.dumps({"include": [{"environment": env, "download_group": ("monitor" if env in {"codex-monitor", "codex-audio-diag", "rgb-diag"} else "idf" if env in IDF_APPS else "arduino"),
                                        "fingerprint": fingerprint(ROOT, inputs(ROOT, env, files))}
                                       for env in environments]}, separators=(",", ":")))
     else:

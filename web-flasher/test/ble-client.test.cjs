@@ -91,7 +91,8 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
             if(ota) return otaCharacteristic;
             const error=new Error('Characteristic not found'); error.name='NotFoundError'; throw error;
           }
-          if ((settingsPacket[0] < 4 && uuid.includes('0006')) ||
+          if ((settingsPacket[0] < 5 && uuid.includes('0009')) ||
+              (settingsPacket[0] < 4 && uuid.includes('0006')) ||
               (settingsPacket[0] < 3 && uuid.includes('0004')) ||
               (settingsPacket[0] === 1 && uuid.includes('0003'))) {
             const error = new Error('Characteristic not found'); error.name = 'NotFoundError'; throw error;
@@ -304,4 +305,20 @@ test('six-slot layout and avatar appearance can change independently', async () 
   app.element('#monitor-appearance').value = '1';
   await app.saveMonitor();
   assert.deepEqual(app.writes[2], [4, 50, 30, 0, 6, 1, 1]);
+});
+
+
+test('status LED preferences load, persist, and reject invalid timeouts', async () => {
+  const app = setup({settingsPacket: [5, 50, 30, 0, 3, 0, 1, 1, 60, 0]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-led').disabled, false);
+  assert.equal(app.element('#monitor-led').value, '1');
+  assert.equal(app.element('#monitor-led-seconds').value, '60');
+  app.element('#monitor-led').value = '0';
+  app.element('#monitor-led-seconds').value = '120';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes.at(-1), [5, 50, 30, 0, 3, 0, 1, 0, 120, 0]);
+  app.element('#monitor-led-seconds').value = '0';
+  await app.saveMonitor();
+  assert.equal(app.writes.length, 1);
 });

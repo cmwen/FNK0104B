@@ -139,6 +139,7 @@ void test_photo_frame_bmp_validation_and_color() {
 #include <codex_hid/backend.hpp>
 #include <codex_hid/voice_controls.hpp>
 #include <codex_hid/monitor_settings.hpp>
+#include <ui/status_led.hpp>
 #include <ui/micro_layout.hpp>
 #include <ui/idle_photos.hpp>
 #include <ui/idle_timer.hpp>
@@ -885,6 +886,47 @@ void test_monitor_settings_v3_validation_and_legacy_preservation() {
   TEST_ASSERT_TRUE(settings.separateVoice);
 }
 
+void test_status_led_timeout_priority_and_settings() {
+  using namespace ui::led;
+  Indicator led;
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Off, 0, true, true, 60, 0)));
+  TEST_ASSERT_EQUAL(int(State::Working), int(led.update(State::Working, 1, true, true, 60, 100)));
+  TEST_ASSERT_EQUAL(int(State::Working), int(led.update(State::Working, 1, true, true, 60, 60099)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Working, 1, true, true, 60, 60100)));
+  TEST_ASSERT_EQUAL(int(State::Working), int(led.update(State::Working, 2, true, true, 60, 61000)));
+  TEST_ASSERT_EQUAL(int(State::Attention), int(led.update(State::Attention, 2, true, true, 60, 62000)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Off, 0, false, true, 60, 63000)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Off, 0, true, true, 60, 64000)));
+  led.update(State::Working, 1, true, true, 60, 65000);
+  TEST_ASSERT_EQUAL(int(State::Complete), int(led.update(State::Off, 0, true, true, 60, 66000)));
+  TEST_ASSERT_EQUAL(int(State::Complete), int(led.update(State::Off, 0, true, true, 60, 125999)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Off, 0, true, true, 60, 126000)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Working, 1, true, false, 60, 127000)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Working, 1, true, true, 60, 128000)));
+  led.update(State::Attention, 2, true, true, 60, 129000);
+  TEST_ASSERT_EQUAL(int(State::Complete), int(led.update(State::Off, 0, true, true, 60, 130000)));
+  led.reset();
+  led.update(State::Working, 1, true, true, 5, UINT32_MAX - 1000);
+  TEST_ASSERT_EQUAL(int(State::Working), int(led.update(State::Working, 1, true, true, 5, 3998)));
+  TEST_ASSERT_EQUAL(int(State::Off), int(led.update(State::Working, 1, true, true, 5, 3999)));
+  codex_hid::MonitorSettings settings;
+  TEST_ASSERT_TRUE(settings.ledEnabled); TEST_ASSERT_EQUAL(60, settings.ledSeconds);
+  uint8_t packet[]{5, 50, 30, 0, 3, 0, 1, 0, 88, 2};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_FALSE(settings.ledEnabled); TEST_ASSERT_EQUAL(600, settings.ledSeconds);
+  const uint8_t legacy[]{4, 40, 20, 0, 6, 1, 0};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(legacy, sizeof(legacy), settings));
+  TEST_ASSERT_FALSE(settings.ledEnabled); TEST_ASSERT_EQUAL(600, settings.ledSeconds);
+  packet[7] = 2;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_EQUAL(40, settings.volume);
+  packet[7] = 1; packet[8] = 4; packet[9] = 0;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  packet[8] = 89; packet[9] = 2;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, 9, settings));
+}
+
 void test_monitor_ota_rejects_downgrades_and_malformed_identity() {
   using namespace monitor_update_policy;
   TEST_ASSERT_TRUE(newer("0.7.1", "0.7.0"));
@@ -903,6 +945,7 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(test_monitor_ota_rejects_downgrades_and_malformed_identity);
   RUN_TEST(test_usb_voice_default_hold_and_separate_toggle);
+  RUN_TEST(test_status_led_timeout_priority_and_settings);
   RUN_TEST(test_monitor_settings_v3_validation_and_legacy_preservation);
   RUN_TEST(test_micro_six_keys_and_touch_gaps);
   RUN_TEST(test_usb_loss_preserves_connection_and_last_status);

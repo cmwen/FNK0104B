@@ -66,9 +66,11 @@ peripherals:
     sources: [F2, F3, F6, R1]
   rgb:
     type: WS2812-family
+    color_order: GRB
+    physical_color_test: owner confirmed rgb-diag green/yellow/red/off on 2026-10-14
     count: 1
     pins: {data: 42}
-    sources: [F2, F3, R1]
+    sources: [F2, F3, F7, R1]
   shared_i2c:
     pins: {sda: 16, scl: 15}
     consumers: [touch, ES8311, expansion_i2c_connector]

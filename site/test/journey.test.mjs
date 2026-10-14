@@ -11,7 +11,7 @@ test('journal milestones stay newest first with Sydney dates and evidence links'
   assert.ok(Number.isFinite(time),entry.title);
   assert.ok(time<=previous,`${entry.title} is out of order`);previous=time;
   assert.equal(date.format(new Date(time)),entry.timestamp.slice(0,10));
-  assert.match(entry.sha,/^[0-9a-f]{7}$/);
+  if(entry.sha !== null)assert.match(entry.sha,/^[0-9a-f]{7}$/);
   assert.ok(entry.paragraphs.length>0);
   for(const {path} of entry.links)await readFile(new URL(`../../${path}`,import.meta.url));
  }

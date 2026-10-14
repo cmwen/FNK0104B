@@ -163,6 +163,14 @@
               <option value="1">Hold to talk + Voice toggle</option>
             </select>
             <p id="monitor-voice-help" class="field-help" aria-live="polite">Connect to monitor settings with firmware 0.6.3 or newer. A disabled selector means microphone settings are unavailable through this connection; it does not turn off the board’s Hold to talk button.</p>
+            <label for="monitor-led">Rear status LED</label>
+            <select id="monitor-led" aria-describedby="monitor-led-help" disabled>
+              <option value="1" selected>Enabled (default)</option>
+              <option value="0">Off</option>
+            </select>
+            <label for="monitor-led-seconds">Status LED timeout (seconds)</label>
+            <input id="monitor-led-seconds" type="number" min="5" max="600" value="60" required disabled>
+            <p id="monitor-led-help" class="field-help">Green: working. Yellow: work ended. Red: needs attention or error. Defaults to one minute per status change; repeated updates do not keep it lit. Settings are saved on the board. Update firmware if these controls are unavailable.</p>
             <label for="monitor-volume">Alert volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
             <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
             <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>

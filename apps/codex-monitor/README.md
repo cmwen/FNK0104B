@@ -292,3 +292,7 @@ sending an agent key or requesting a host update. Receipt and full-repaint logs
 include six bounded `slot:present:RGB:brightness` entries for troubleshooting
 raw lighting versus retained display behavior; they omit arbitrary host payloads.
 Reboot restores the saved BLE preferences.
+
+Rear RGB status notifications default enabled with a 60-second timeout.
+Configure them in the browser Monitor settings; see
+[status LED behavior](../../docs/monitor-status-led.md).

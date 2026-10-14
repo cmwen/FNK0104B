@@ -1,0 +1,38 @@
+Script started on 2026-10-14 13:33:49+11:00 [COMMAND="pio device monitor --port socket://127.0.0.1:54458 --baud 115200 --raw" TERM="dumb" TTY="/dev/pts/8" COLUMNS="80" LINES="24"]
+--- Terminal on socket://127.0.0.1:54458 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+rgb_diag phase=2
+rgb_diag phase=3
+rgb_diag phase=0
+rgb_diag phase=1
+
+Script done on 2026-10-14 13:34:03+11:00 [COMMAND_EXIT_CODE="0"]

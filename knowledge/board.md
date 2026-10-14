@@ -79,8 +79,9 @@ The existing build enables USB CDC on boot and monitors at 115200 baud. A previo
 session recorded Espressif `303a:1001` on `/dev/ttyACM0`; port names and current
 attachment must be discovered each time. UART0 is also exposed on its four-pin
 connector. Firmware uses display/touch, SD, audio, Wi-Fi/BLE/OTA, and GPIO14
-in different named environments; these are not all active in every app. RGB and
-battery ADC pins are declared but have no initialization/read found in current apps. [F2, R1, R2]
+in different named environments; these are not all active in every app. Rear
+RGB status control and an isolated `rgb-diag` are now implemented; its
+green/yellow/red/off colors were confirmed by the owner on 2026-10-14. Battery ADC has no read in current apps. [F2, R1, R2]
 
 Existing display setup selects `INVON` based on the 2026-09-28 physical color test.
 Microphone direction was tested on 2026-09-29. Preserve these recorded results.
@@ -250,3 +251,13 @@ in USB Micro mode with recognition paused. USB audio was available during SD
 writes with zero reported drops. Physical BLE transfer/settings, touch/idle
 acceptance and coexistence with active Wi-Fi speech recognition remain UNKNOWN.
 See [device evidence](../test/hardware/monitor-photos-2026-10-11.md).
+
+## Rear RGB indicator (2026-10-14)
+
+Freenove LedPixel source confirms GPIO42, one pixel and GRB order [F7].
+The monitor adds bounded status notifications and persistent enabled/timeout
+preferences; see [behavior and evidence limits](../docs/monitor-status-led.md).
+The owner confirmed the diagnostic cycles green/yellow/red/off in the expected
+order on 2026-10-14. Integrated serial also verified the default 60-second
+shutoff during repeated working updates. Physical BLE settings and integrated
+attention/completion color acceptance remain UNKNOWN.
