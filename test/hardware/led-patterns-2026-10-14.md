@@ -47,3 +47,24 @@ Logs: [initial upload](led-patterns-2026-10-14/initial-upload.log),
 
 Final logs: [restoration upload](led-patterns-2026-10-14/final-upload.log),
 [restored monitor runtime](led-patterns-2026-10-14/final-runtime.log).
+
+## Public release
+
+[Codex monitor 0.8.3](https://github.com/cmwen/FNK0104B/releases/tag/codex-monitor-v0.8.3)
+was published with tag `codex-monitor-v0.8.3` targeting
+`c6067e2ce55d035b11c2150040d07a0becff64cf`. The feature milestone is `655a0c4`;
+the following journal-reference commit has identical firmware inputs.
+
+The public image came from an isolated source snapshot without the ignored
+bridge configuration. Firmware input fingerprints match the tagged source.
+The portable bundle verifier confirmed image hashes, version 0.8.3, existing
+layout/model compatibility and provenance. Private bridge-token absence was
+checked without printing its value. Public application SHA-256:
+`b141bc93b90c1a444cc2d600aea57d1c36d4d97be66762062cd2d9e23a4712e0`.
+Local/public partition-table and model hashes match.
+
+Release assets are the full-install ZIP, app-only `firmware.bin`, `ota.json`
+and `SHA256SUMS`. GitHub's four uploaded asset digests matched the local
+packaged files. The standalone OTA demo's latest-release selection is unchanged.
+The broader firmware matrix and guide publication were still pending at
+release verification; local/public monitor builds and local tests had passed.
