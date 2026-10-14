@@ -4,6 +4,25 @@
 #include <ui/monitor_theme.hpp>
 
 namespace ui::micro {
+// The LCD retains agent information separately from the host's LED lighting.
+// Off/black is not a semantic idle update; white/green and other nonzero
+// colors still replace the last displayed state. Silence needs no update.
+inline void updateAgentDisplay(const codex_hid::Status& lighting, codex_hid::Status& displayed) {
+  bool present = false;
+  for (const auto& slot : lighting.slots) present |= slot.present;
+  if (!present && lighting.revision == 0) {
+    displayed = {}; // The backend explicitly invalidated the connection.
+    return;
+  }
+  displayed.revision = lighting.revision;
+  for (unsigned i = 0; i < 6; ++i) {
+    const auto& slot = lighting.slots[i];
+    if (!slot.present || !slot.color) continue;
+    displayed.slots[i] = slot;
+    displayed.slots[i].brightness = 1; // LED intensity does not dim agent information.
+  }
+}
+
 // Desktop lighting colors observed in the protocol research linked in the docs.
 // Effects indicate selection/pulsing, not whether a turn is working.
 inline avatar::Mood mood(const codex_hid::Slot& slot) {

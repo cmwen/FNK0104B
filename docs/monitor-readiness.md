@@ -2,6 +2,43 @@
 
 October 8: [wireless settings and compact USB controls](usb-micro-controls.md) supersede integrated BLE HID. Browser BLE recovery and Desktop radial mappings require physical acceptance.
 
+## Mac status retention policy and investigation, 2026-10-14
+
+The owner tested the October 13 mailbox change on Mac and reported the issue
+remained. The agent is still running in Desktop, but its board portrait becomes
+idle and the status strip disappears. Tapping its board icon causes fresh status
+to arrive. The earlier interpretation as an idle-strip visibility problem was
+incorrect; the proposed brightness/white-strip changes were reverted before
+upload. The discovery race is not established as the Mac root cause. The Mac
+serial port is unavailable to this workspace.
+
+Receipt and full-repaint serial logs include bounded slot presence, RGB and
+brightness values. `micro-status` prints the retained snapshot; `micro-repaint`
+requests a local repaint without emitting a HID key. These diagnostics can
+distinguish an incoming idle/black update, session invalidation and rendering.
+Silence alone does not clear the retained mailbox. The cause and physical Mac
+acceptance remain UNKNOWN.
+
+The owner subsequently requested that LED off/blank updates be ignored for this
+LCD-only status use case. The monitor now keeps separate raw lighting and display
+snapshots. Only present, nonzero colors replace a slot's displayed state; LED
+brightness does not dim the retained avatar strip. A white/green idle update
+still replaces working status. Empty/partial updates and raw black preserve the
+last meaningful slot state. Real connection invalidation or a transport change
+still clears the display cache, preserving host/session isolation.
+
+This is a requested display policy, not proof of the Mac root cause. If Desktop
+signals completion/removal only with black, the last working state will remain
+until a nonzero update or disconnect. No automatic agent taps or invented status
+RPCs are used. Raw protocol values and ACKs remain intact.
+
+Validation: all 38 native tests passed. The new regression replays working,
+idle, attention and error slots followed by LED blackout, quiet reads, an
+explicit white idle update, empty updates and connection invalidation. Both
+`codex-monitor` and `codex-hid-diag` PlatformIO builds passed.
+The follow-up has not been flashed;
+the board is connected to the Mac and unavailable to this workspace.
+
 ## Retained Micro status mailbox, 2026-10-13
 
 The owner reported that USB Micro agent status disappears after a repaint on

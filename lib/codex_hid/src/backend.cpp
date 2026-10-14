@@ -3,6 +3,7 @@
 #include <atomic>
 #include <fnk0104b/codex_usb.hpp>
 #include <codex_hid/backend.hpp>
+#include <codex_hid/diagnostics.hpp>
 #include <codex_hid/ble_backend.hpp>
 #include <freertos/queue.h>
 #include <esp_heap_caps.h>
@@ -45,7 +46,11 @@ void message(const char* json, size_t size, void*) {
     state->protocol.valid ? "decoded" : "invalid", state->protocol.method, unsigned(reply.length));
   if (state->protocol.valid && !strcmp(state->protocol.method, "v.oai.thstatus")) {
     xQueueOverwrite(statusQueue, &state->protocol.status);
-    Serial.printf("codex_hid status_received revision=%lu\n", (unsigned long)state->protocol.status.revision);
+    char slots[192];
+    describeStatus(state->protocol.status, slots);
+    Serial.printf("codex_hid status_received revision=%lu ms=%lu epoch=%lu slots=%s\n",
+        (unsigned long)state->protocol.status.revision, (unsigned long)millis(),
+        (unsigned long)currentEpoch, slots);
   }
 }
 void worker(void*) {

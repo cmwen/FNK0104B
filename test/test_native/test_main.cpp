@@ -286,6 +286,41 @@ void test_micro_avatar_status_and_refresh() {
   TEST_ASSERT_EQUAL(ui::monitor::kPanel, canvas.pixels[0]);
 }
 
+void test_micro_agent_display_retains_state_across_lighting_off_and_silence() {
+  codex_hid::Protocol protocol;
+  codex_hid::Status received, displayed;
+  char reply[1024];
+  auto update = [&](const char* json) {
+    TEST_ASSERT_TRUE(protocol.process(json, strlen(json), reply, sizeof(reply)));
+    TEST_ASSERT_TRUE(codex_hid::applyStatusSnapshot(protocol.status, received));
+    ui::micro::updateAgentDisplay(received, displayed);
+  };
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"c":3166206},{"id":1,"c":16777215},{"id":2,"c":16739584},{"id":3,"c":16711731}]})");
+  const auto working = ui::micro::statusColor(displayed.slots[0]);
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"c":0,"b":0},{"id":1,"c":0},{"id":2,"c":0},{"id":3,"c":0}]})");
+  TEST_ASSERT_EQUAL_UINT32(0, received.slots[0].color);
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Thinking), int(ui::micro::mood(displayed.slots[0])));
+  TEST_ASSERT_EQUAL(working, ui::micro::statusColor(displayed.slots[0]));
+  TEST_ASSERT_EQUAL_HEX16(0xffff, ui::micro::statusColor(displayed.slots[1]));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::NeedsInput), int(ui::micro::mood(displayed.slots[2])));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Error), int(ui::micro::mood(displayed.slots[3])));
+  // Quiet polling/repainting must not replay the raw black snapshot over the cache.
+  for (unsigned i = 0; i < 10; ++i) {
+    TEST_ASSERT_FALSE(codex_hid::applyStatusSnapshot(protocol.status, received));
+    TEST_ASSERT_EQUAL(working, ui::micro::statusColor(displayed.slots[0]));
+  }
+  update(R"({"m":"v.oai.thstatus","p":[{"id":0,"c":16777215,"b":0}]})");
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Idle), int(ui::micro::mood(displayed.slots[0])));
+  TEST_ASSERT_EQUAL_HEX16(0xffff, ui::micro::statusColor(displayed.slots[0]));
+  TEST_ASSERT_EQUAL(int(ui::avatar::Mood::Error), int(ui::micro::mood(displayed.slots[3])));
+  TEST_ASSERT_FALSE(displayed.slots[5].present);
+  update(R"({"m":"v.oai.thstatus","p":[]})");
+  TEST_ASSERT_EQUAL_HEX16(0xffff, ui::micro::statusColor(displayed.slots[0]));
+  // Real connection invalidation still clears values belonging to the old host.
+  ui::micro::updateAgentDisplay(codex_hid::Status{}, displayed);
+  TEST_ASSERT_FALSE(displayed.slots[0].present);
+}
+
 void test_avatar_rgb565_channel_order() {
   TEST_ASSERT_EQUAL_HEX16(0xF800, ui::avatar::detail::rgb(255, 0, 0));
   TEST_ASSERT_EQUAL_HEX16(0x07E0, ui::avatar::detail::rgb(0, 255, 0));
@@ -888,6 +923,7 @@ int main() {
   RUN_TEST(test_monitor_touch_and_timeout_setting);
   RUN_TEST(test_monitor_timeout_across_millis_wrap);
   RUN_TEST(test_micro_avatar_status_and_refresh);
+  RUN_TEST(test_micro_agent_display_retains_state_across_lighting_off_and_silence);
   RUN_TEST(test_avatar_rgb565_channel_order);
   RUN_TEST(test_avatar_identity_and_state_are_independent);
   RUN_TEST(test_avatar_animation_changes_frame);

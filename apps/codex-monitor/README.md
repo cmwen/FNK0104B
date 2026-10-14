@@ -1,5 +1,9 @@
 # Codex monitor firmware
 
+Firmware 0.8.1 retains each agent's last meaningful LCD status across missing
+updates and LED off/blank updates. Explicit idle and new status colors still
+apply. Physical Mac acceptance remains pending; see the retention policy below.
+
 Firmware 0.8.0 includes optional [idle photos and blank mode](../../docs/monitor-photos.md),
 configured from the BLE web page. Photos retain the live usage bar and respect
 the existing screen-off timeout. The browser prepares JPEG, PNG and WebP images
@@ -267,10 +271,15 @@ effects alone do not indicate working because idle selection can also breathe.
 Idle-to-thinking transitions were verified with live Desktop packets and LCD
 readbacks on 2026-10-11; orange/red transitions remain **UNKNOWN**.
 
-Status strips retain at least 25% brightness for nonzero colors, so dim lighting
-updates do not hide status on the LCD. Explicit black clears the indicator.
-Partial packets preserve unmentioned slots/fields. Cached working status keeps
+The LCD keeps each slot's last nonzero status color separately from the raw
+lighting received over HID. Missing updates, black/off lighting and LED brightness
+changes do not erase or dim that status. White/green idle and new nonzero colors
+still update the avatar and strip. A real connection reset clears the display
+cache; a slot without any meaningful status remains unknown. Partial packets
+preserve unmentioned slots/fields. Cached working status keeps
 the display awake until a later status changes it or the transport disconnects.
+If Desktop reports a completed/removed agent only by turning its lighting black,
+the last working state remains displayed until a nonzero update or disconnect.
 The bridge dashboard continues to use actual agent IDs and status.
 
 For a temporary device check, PlatformIO serial at 115200 accepts `avatar-preview`
@@ -278,4 +287,8 @@ and `avatar-labels`; these change only the current display preference, without
 writing NVS. `micro-three` and `micro-six` temporarily select the layout,
 independently of appearance. `health` reports version, layout and appearance;
 accepted BLE writes log `monitor_settings`. `screenshot` captures the LCD.
+`micro-status` prints the retained snapshot; `micro-repaint` redraws it without
+sending an agent key or requesting a host update. Receipt and full-repaint logs
+include six bounded `slot:present:RGB:brightness` entries for troubleshooting
+raw lighting versus retained display behavior; they omit arbitrary host payloads.
 Reboot restores the saved BLE preferences.

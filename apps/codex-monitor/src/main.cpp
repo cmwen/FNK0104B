@@ -22,6 +22,7 @@
 #include "monitor_speech.hpp"
 #include "monitor_commands.hpp"
 #include <codex_hid/backend.hpp>
+#include <codex_hid/diagnostics.hpp>
 #include <codex_hid/ble_backend.hpp>
 #include <fnk0104b/audio_input.hpp>
 #include <fnk0104b/usb_microphone.hpp>
@@ -117,7 +118,7 @@ std::atomic<bool> microLayoutChanged{false};
 std::atomic<bool> separateVoiceButton{false}, voiceControlsChanged{false};
 codex_hid::VoiceControls usbVoiceControls;
 std::atomic<bool> voiceOrchestratorOnly{false};
-codex_hid::Status desktopStatus{};
+codex_hid::Status desktopStatus{}, desktopLightingStatus{};
 std::atomic<bool> usbMicroActive{false};
 std::atomic<uint32_t> audioGeneration{0}, requestedAudioGeneration{0};
 codex_hid::LinkState previousMicroLink = codex_hid::LinkState::Off;
@@ -352,8 +353,17 @@ void drawMicroTile(unsigned i) {
   if (microAvatars && !microCommands) drawMicroAvatar(i);
 }
 
+void logMicroStatus(const char* event) {
+  char slots[192];
+  codex_hid::describeStatus(desktopStatus, slots);
+  Serial.printf("monitor_micro event=%s ms=%lu transport=%u link=%u revision=%lu idle=%u awake=%u slots=%s\n",
+      event, (unsigned long)millis(), unsigned(previousTransport), unsigned(previousMicroLink),
+      (unsigned long)desktopStatus.revision, unsigned(idleUi), unsigned(screenAwake), slots);
+}
+
 void drawScreen() {
   if (!screenAwake) return;
+  if (previousTransport != codex_hid::Transport::None) logMicroStatus("repaint");
   TFT_eSPI& d = tft();
   MonitorStatus snapshot;
   portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
@@ -1050,6 +1060,11 @@ void serialLoop() {
     if (c == '\n') {
       command[length] = '\0';
       capture = strcmp(command, "screenshot") == 0;
+      if (!strcmp(command, "micro-status")) logMicroStatus("diagnostic");
+      if (!strcmp(command, "micro-repaint")) {
+        logMicroStatus("repaint_requested");
+        uiDirty = true;
+      }
       if (!strcmp(command, "avatar-preview") || !strcmp(command, "avatar-labels")) {
         microAvatars = !strcmp(command, "avatar-preview");
         microLayoutChanged = true;
@@ -1229,6 +1244,7 @@ void loop() {
     commandHelpVisible = false; showingStatus = false; selectedAgent[0] = 0;
     selectedMicroSlot = -1; microCommands = false; heldMicroKey = -1; desktopMicHeld = false;
     desktopStatus = codex_hid::Status{};
+    desktopLightingStatus = codex_hid::Status{};
     usbVoiceControls.reset();
     fnk0104b::usb_microphone::setMuted(true);
     monitor_speech::setEnabled(!usbMode);
@@ -1239,7 +1255,8 @@ void loop() {
   }
   fnk0104b::usb_microphone::setAllowed(usbMode && monitor_speech::paused());
   const auto oldDesktopStatus = desktopStatus;
-  if (codex_hid::takeStatus(desktopStatus)) {
+  if (codex_hid::takeStatus(desktopLightingStatus)) {
+    ui::micro::updateAgentDisplay(desktopLightingStatus, desktopStatus);
     bool changed = false;
     for (unsigned i = 0; i < 6; ++i) {
       const auto& before = oldDesktopStatus.slots[i];
