@@ -1,7 +1,7 @@
 [
   {
-    "timestamp": "2026-10-14T13:48:10+11:00",
-    "sha": null,
+    "timestamp": "2026-10-14T14:04:42+11:00",
+    "sha": "655a0c4",
     "title": "Explore separate LED patterns for each agent status",
     "paragraphs": [
       "The owner requested flashing, steady and rainbow transitions and chose a separate pattern per status. Monitor 0.8.3 adds Solid, Blink, Breathe and Rainbow for working, completion and attention/error, plus shared brightness and cycle duration. Defaults stay solid at low brightness with the existing one-minute shutoff. Rainbow replaces semantic status colors, while the other effects retain them.",
