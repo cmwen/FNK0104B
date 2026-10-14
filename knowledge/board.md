@@ -261,3 +261,8 @@ The owner confirmed the diagnostic cycles green/yellow/red/off in the expected
 order on 2026-10-14. Integrated serial also verified the default 60-second
 shutoff during repeated working updates. Physical BLE settings and integrated
 attention/completion color acceptance remain UNKNOWN.
+
+Monitor 0.8.3 extends the diagnostic with Solid/Blink/Breathe/Rainbow for every
+status. PlatformIO serial captured phases 0–12; integrated serial confirmed
+live Desktop status and timeout. Physical BLE pattern writes and animation
+appearance remain UNKNOWN. See [pattern evidence](../test/hardware/led-patterns-2026-10-14.md).

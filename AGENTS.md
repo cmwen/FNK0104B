@@ -44,9 +44,12 @@ Do not add LVGL, Wi-Fi, MQTT, OTA, SD-card behavior, or Codex monitor features u
 
 ### Current monitor rear LED behavior
 
-Codex monitor 0.8.2 includes a rear status indicator, enabled by default with a
+Codex monitor 0.8.3 includes a rear status indicator, enabled by default with a
 60-second timeout. BLE Monitor settings can disable it or set 5–600 seconds,
-saved on the board. Green means working, red means attention/error, and yellow
+saved on the board. Working, completion and attention each have independent
+Solid/Blink/Breathe/Rainbow patterns, with shared brightness and cycle duration.
+All patterns default to Solid and must respect the notification timeout.
+Rainbow replaces the status color. Green means working, red means attention/error, and yellow
 means observed work ended; it does not prove success. Repeated identical status
 must not restart the timeout. Preserve the existing USB blackout-retention
 policy. See `docs/monitor-status-led.md` and

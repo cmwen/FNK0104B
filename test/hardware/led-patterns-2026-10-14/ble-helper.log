@@ -1,0 +1,7 @@
+Add-Type : Could not load file or assembly 'C:\\Windows\\System32\\WinMetadata\\Windows.Devices.winmd' or one of its
+dependencies. The given assembly name or codebase was invalid. (Exception from HRESULT: 0x80131047)
+At \\wsl.localhost\Ubuntu\tmp\fnk-ble-led-patterns.ps1:3 char:1
++ Add-Type -ReferencedAssemblies @('System.Runtime.WindowsRuntime','C:\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Add-Type], FileLoadException
+    + FullyQualifiedErrorId : System.IO.FileLoadException,Microsoft.PowerShell.Commands.AddTypeCommand

@@ -75,6 +75,7 @@ constexpr char kServiceUuid[] = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 constexpr char kCharacteristicUuid[] = "4e4b0104-0002-4d20-8f4b-0104b0000001";
 constexpr char kExtendedSettingsUuid[] = "4e4b0104-0003-4d20-8f4b-0104b0000001";
 constexpr char kAppearanceSettingsUuid[] = "4e4b0104-0006-4d20-8f4b-0104b0000001";
+constexpr char kLedPatternSettingsUuid[] = "4e4b0104-000a-4d20-8f4b-0104b0000001";
 constexpr char kLedSettingsUuid[] = "4e4b0104-0009-4d20-8f4b-0104b0000001";
 constexpr char kVoiceSettingsUuid[] = "4e4b0104-0004-4d20-8f4b-0104b0000001";
 constexpr uint16_t kBg = ui::monitor::kBackground;
@@ -107,6 +108,9 @@ std::atomic<uint16_t> screenTimeoutMinutes{kScreenTimeoutDefault};
 ui::IdleTimer idleTimer;
 std::atomic<bool> ledEnabled{true};
 std::atomic<uint16_t> ledSeconds{60};
+std::atomic<uint8_t> ledWorkingPattern{0}, ledCompletePattern{0}, ledAttentionPattern{0}, ledBrightness{6};
+std::atomic<uint16_t> ledPeriodMs{2000};
+BLECharacteristic* ledPatternSettingsCharacteristic = nullptr;
 ui::led::Indicator ledIndicator;
 BLECharacteristic* ledSettingsCharacteristic = nullptr;
 uint32_t lastAvatarFrame = 0, lastResetCheck = 0;
@@ -456,15 +460,19 @@ void drawScreen() {
 
 void publishSettings() {
   if (!settingsCharacteristic) return;
-  uint8_t bytes[10] = {5, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
+  uint8_t bytes[16] = {6, volumePercent, static_cast<uint8_t>(screenTimeoutMinutes & 0xff),
                       static_cast<uint8_t>(screenTimeoutMinutes >> 8),
                       static_cast<uint8_t>(compactMicroLayout ? 3 : 6),
                       static_cast<uint8_t>(separateVoiceButton ? 1 : 0),
                       static_cast<uint8_t>(microAvatars ? 1 : 0),
                       static_cast<uint8_t>(ledEnabled ? 1 : 0),
                       static_cast<uint8_t>(ledSeconds & 0xff),
-                      static_cast<uint8_t>(ledSeconds >> 8)};
-  if (ledSettingsCharacteristic) ledSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+                      static_cast<uint8_t>(ledSeconds >> 8),
+                      ledWorkingPattern, ledCompletePattern, ledAttentionPattern, ledBrightness,
+                      static_cast<uint8_t>(ledPeriodMs & 0xff), static_cast<uint8_t>(ledPeriodMs >> 8)};
+  if (ledPatternSettingsCharacteristic) ledPatternSettingsCharacteristic->setValue(bytes, sizeof(bytes));
+  bytes[0] = 5;
+  if (ledSettingsCharacteristic) ledSettingsCharacteristic->setValue(bytes, 10);
   bytes[0] = 4;
   if (appearanceSettingsCharacteristic) appearanceSettingsCharacteristic->setValue(bytes, 7);
   bytes[0] = 3;
@@ -481,7 +489,8 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
     const auto raw = characteristic->getValue();
     const uint8_t version = raw.length() ? static_cast<uint8_t>(raw[0]) : 0;
     codex_hid::MonitorSettings next{volumePercent, screenTimeoutMinutes,
-        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars, ledEnabled, ledSeconds};
+        static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars, ledEnabled, ledSeconds,
+        ledWorkingPattern, ledCompletePattern, ledAttentionPattern, ledBrightness, ledPeriodMs};
     if (!codex_hid::decodeMonitorSettings(reinterpret_cast<const uint8_t*>(raw.c_str()), raw.length(), next)) return;
     volumePercent = next.volume; screenTimeoutMinutes = next.timeout;
     preferences.putUChar("volume", volumePercent);
@@ -501,10 +510,20 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
       preferences.putBool("microAvatars", next.avatars);
       microLayoutChanged = true;
     }
-    if (version == 5) {
+    if (version >= 5) {
       ledEnabled = next.ledEnabled; ledSeconds = next.ledSeconds;
       preferences.putBool("statusLed", next.ledEnabled);
       preferences.putUShort("ledSeconds", next.ledSeconds);
+    }
+    if (version == 6) {
+      ledWorkingPattern = next.ledWorkingPattern; ledCompletePattern = next.ledCompletePattern;
+      ledAttentionPattern = next.ledAttentionPattern; ledBrightness = next.ledBrightness;
+      ledPeriodMs = next.ledPeriodMs;
+      preferences.putUChar("ledWorking", next.ledWorkingPattern);
+      preferences.putUChar("ledComplete", next.ledCompletePattern);
+      preferences.putUChar("ledAttention", next.ledAttentionPattern);
+      preferences.putUChar("ledBrightness", next.ledBrightness);
+      preferences.putUShort("ledPeriod", next.ledPeriodMs);
     }
     publishSettings();
     Serial.printf("monitor_settings accepted=1 version=%u slots=%u avatars=%u\n",
@@ -558,6 +577,9 @@ void startBle() {
   ledSettingsCharacteristic = service->createCharacteristic(kLedSettingsUuid,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   ledSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
+  ledPatternSettingsCharacteristic = service->createCharacteristic(kLedPatternSettingsUuid,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+  ledPatternSettingsCharacteristic->setCallbacks(new SettingsCallbacks());
   monitor_ota::attach(service);
   monitor_photos::attach(service);
   publishSettings(); service->start();
@@ -1181,13 +1203,24 @@ void updateStatusLed() {
   if (previousMicro != micro) { ledIndicator.reset(); previousMicro = micro; }
   const State output = ledIndicator.update(state, identity, connected && !monitor_ota::busy(),
       ledEnabled, ledSeconds, millis());
-  static State written = State::Off;
-  if (output == written) return;
-  written = output;
-  fnk0104b::status_led::write(output == State::Attention || output == State::Complete ? 16 : 0,
-      output == State::Working || output == State::Complete ? 16 : 0, 0);
-  Serial.printf("monitor_led state=%u timeout_seconds=%u enabled=%u\n",
-      unsigned(output), unsigned(ledSeconds.load()), unsigned(ledEnabled.load()));
+  static State previousOutput = State::Off;
+  static uint32_t animationStarted = 0, lastFrame = 0;
+  static ui::led::Color written{};
+  const uint32_t now = millis();
+  const bool changed = output != previousOutput;
+  if (changed) {
+    previousOutput = output; animationStarted = now;
+    Serial.printf("monitor_led state=%u timeout_seconds=%u enabled=%u\n",
+        unsigned(output), unsigned(ledSeconds.load()), unsigned(ledEnabled.load()));
+  }
+  if (!changed && output != State::Off && uint32_t(now - lastFrame) < 40) return;
+  lastFrame = now;
+  const auto pattern = static_cast<ui::led::Pattern>(output == State::Working ? ledWorkingPattern.load() :
+      output == State::Complete ? ledCompletePattern.load() : ledAttentionPattern.load());
+  const auto color = ui::led::frame(output, pattern, ledBrightness, ledPeriodMs, now - animationStarted);
+  if (color == written) return;
+  written = color;
+  fnk0104b::status_led::write(color.red, color.green, color.blue);
 }
 
 }  // namespace
@@ -1214,6 +1247,16 @@ void setup() {
   ledEnabled = preferences.getBool("statusLed", true);
   ledSeconds = preferences.getUShort("ledSeconds", 60);
   if (ledSeconds < 5 || ledSeconds > 600) ledSeconds = 60;
+  ledWorkingPattern = preferences.getUChar("ledWorking", 0);
+  ledCompletePattern = preferences.getUChar("ledComplete", 0);
+  ledAttentionPattern = preferences.getUChar("ledAttention", 0);
+  if (ledWorkingPattern > 3) ledWorkingPattern = 0;
+  if (ledCompletePattern > 3) ledCompletePattern = 0;
+  if (ledAttentionPattern > 3) ledAttentionPattern = 0;
+  ledBrightness = preferences.getUChar("ledBrightness", 6);
+  if (ledBrightness < 1 || ledBrightness > 100) ledBrightness = 6;
+  ledPeriodMs = preferences.getUShort("ledPeriod", 2000);
+  if (ledPeriodMs < 500 || ledPeriodMs > 10000) ledPeriodMs = 2000;
   fnk0104b::status_led::write(0, 0, 0);
   monitor_photos::begin(preferences);
   compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;

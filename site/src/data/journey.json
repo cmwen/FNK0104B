@@ -1,5 +1,28 @@
 [
   {
+    "timestamp": "2026-10-14T13:48:10+11:00",
+    "sha": null,
+    "title": "Explore separate LED patterns for each agent status",
+    "paragraphs": [
+      "The owner requested flashing, steady and rainbow transitions and chose a separate pattern per status. Monitor 0.8.3 adds Solid, Blink, Breathe and Rainbow for working, completion and attention/error, plus shared brightness and cycle duration. Defaults stay solid at low brightness with the existing one-minute shutoff. Rainbow replaces semantic status colors, while the other effects retain them.",
+      "Animation runs from elapsed notification time with bounded main-loop updates, preserving timeout and blackout-retention decisions. Older BLE clients preserve the newer pattern preferences. A browser-only ten-second preview lets users compare effects without changing the board. Native and browser tests cover frame boundaries, color transitions, settings validation and compatibility. PlatformIO flashed monitor 0.8.3 with verified hashes, and serial confirmed live Desktop status, healthy workers and default timeout. The isolated RGB diagnostic executed all twelve status/pattern combinations and off. The Windows BLE helper failed before connecting; physical BLE pattern persistence and visual animation acceptance remain UNKNOWN. A separate public build omits private bridge configuration."
+    ],
+    "links": [
+      {
+        "label": "Patterns, settings and evidence limits",
+        "path": "docs/monitor-status-led.md"
+      },
+      {
+        "label": "Existing rear LED device evidence",
+        "path": "test/hardware/rear-status-led-2026-10-14.md"
+      },
+      {
+        "label": "LED pattern device checks",
+        "path": "test/hardware/led-patterns-2026-10-14.md"
+      }
+    ]
+  },
+  {
     "timestamp": "2026-10-14T13:42:23+11:00",
     "sha": "e508b25",
     "title": "Add a bounded rear status LED to Codex monitor",

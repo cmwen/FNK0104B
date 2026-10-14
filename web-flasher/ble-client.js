@@ -124,6 +124,7 @@ wifiForm.addEventListener("submit", async event => {
 // Monitor settings use a separate service and do not share Wi-Fi provisioning.
 const MONITOR_SERVICE_UUID = "4e4b0104-0001-4d20-8f4b-0104b0000001";
 const MONITOR_SETTINGS_UUID = "4e4b0104-0002-4d20-8f4b-0104b0000001";
+const MONITOR_LED_PATTERN_SETTINGS_UUID = "4e4b0104-000a-4d20-8f4b-0104b0000001";
 const MONITOR_LED_SETTINGS_UUID = "4e4b0104-0009-4d20-8f4b-0104b0000001";
 const MONITOR_APPEARANCE_SETTINGS_UUID = "4e4b0104-0006-4d20-8f4b-0104b0000001";
 const MONITOR_VOICE_SETTINGS_UUID = "4e4b0104-0004-4d20-8f4b-0104b0000001";
@@ -150,6 +151,13 @@ let monitorCharacteristic = null;
 let monitorBusy = false;
 let monitorSettingsVersion = 1;
 const monitorLed = document.querySelector("#monitor-led");
+const monitorLedPatterns = ['working', 'complete', 'attention'].map(state => document.querySelector(`#monitor-led-${state}-pattern`));
+const monitorLedBrightness = document.querySelector('#monitor-led-brightness');
+const monitorLedPeriod = document.querySelector('#monitor-led-period');
+const monitorLedPreview = document.querySelector('#monitor-led-preview');
+const monitorLedPreviewButton = document.querySelector('#monitor-led-preview-button');
+const monitorLedPreviewState = document.querySelector('#monitor-led-preview-state');
+let ledPreviewUntil = 0, ledPreviewStarted = 0;
 const monitorLedSeconds = document.querySelector("#monitor-led-seconds");
 const monitorAppearance = document.querySelector("#monitor-appearance");
 const monitorSlots = document.querySelector("#monitor-slots");
@@ -233,6 +241,8 @@ function setMonitorControls(connected) {
   monitorVolume.disabled = !connected;
   monitorDimTimeout.disabled = !connected;
   monitorSave.disabled = !connected || monitorBusy || otaWorking || photoWorking;
+  for (const control of [...monitorLedPatterns, monitorLedBrightness, monitorLedPeriod])
+    control.disabled = !connected || monitorSettingsVersion < 6;
   monitorLed.disabled = !connected || monitorSettingsVersion < 5;
   monitorLedSeconds.disabled = !connected || monitorSettingsVersion < 5;
   monitorAppearance.disabled = !connected || monitorSettingsVersion < 4;
@@ -325,7 +335,7 @@ photoDelete.addEventListener("click", async () => {
 
 function decodeMonitorSettings(value) {
   const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 5 || bytes.length !== (bytes[0] === 5 ? 10 : bytes[0] + 3))
+  if (bytes.length < 4 || bytes[0] < 1 || bytes[0] > 6 || bytes.length !== (bytes[0] === 6 ? 16 : bytes[0] >= 5 ? 10 : bytes[0] + 3))
     throw new Error("The board returned an invalid settings packet.");
   if (bytes[0] >= 2 && bytes[4] !== 3 && bytes[4] !== 6)
     throw new Error("The board returned an invalid Micro layout.");
@@ -337,11 +347,18 @@ function decodeMonitorSettings(value) {
   const dimTimeout = bytes[2] | (bytes[3] << 8);
   if (bytes[1] > 100 || dimTimeout < 1 || dimTimeout > 120)
     throw new Error("The board returned settings outside the supported range.");
-  const ledSeconds = bytes[0] === 5 ? bytes[8] | bytes[9] << 8 : 60;
-  if (bytes[0] === 5 && (bytes[7] > 1 || ledSeconds < 5 || ledSeconds > 600))
+  const ledSeconds = bytes[0] >= 5 ? bytes[8] | bytes[9] << 8 : 60;
+  if (bytes[0] >= 5 && (bytes[7] > 1 || ledSeconds < 5 || ledSeconds > 600))
     throw new Error("The board returned invalid status LED settings.");
-  monitorLed.value = String(bytes[0] === 5 ? bytes[7] : 1);
+  monitorLed.value = String(bytes[0] >= 5 ? bytes[7] : 1);
   monitorLedSeconds.value = String(ledSeconds);
+  const brightness = bytes[0] === 6 ? bytes[13] : 6;
+  const period = bytes[0] === 6 ? bytes[14] | bytes[15] << 8 : 2000;
+  const patterns = bytes[0] === 6 ? [bytes[10], bytes[11], bytes[12]] : [0, 0, 0];
+  if (patterns.some(pattern => pattern > 3) || brightness < 1 || brightness > 100 || period < 500 || period > 10000)
+    throw new Error('The board returned invalid LED pattern settings.');
+  monitorLedPatterns.forEach((control, i) => { control.value = String(patterns[i]); });
+  monitorLedBrightness.value = String(brightness); monitorLedPeriod.value = String(period);
   monitorSettingsVersion = bytes[0];
   monitorSlots.value = String(bytes[0] >= 2 ? bytes[4] : 6);
   monitorVoice.value = String(bytes[0] >= 3 ? bytes[5] : 0);
@@ -392,7 +409,7 @@ monitorConnect.addEventListener("click", async () => {
     monitorDevice.addEventListener("gattserverdisconnected", monitorDisconnected);
     const server = await monitorDevice.gatt.connect();
     const service = await server.getPrimaryService(MONITOR_SERVICE_UUID);
-    for (const uuid of [MONITOR_LED_SETTINGS_UUID, MONITOR_APPEARANCE_SETTINGS_UUID, MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
+    for (const uuid of [MONITOR_LED_PATTERN_SETTINGS_UUID, MONITOR_LED_SETTINGS_UUID, MONITOR_APPEARANCE_SETTINGS_UUID, MONITOR_VOICE_SETTINGS_UUID, MONITOR_EXTENDED_SETTINGS_UUID, MONITOR_SETTINGS_UUID]) {
       try { monitorCharacteristic = await service.getCharacteristic(uuid); break; }
       catch (error) { if (error.name !== "NotFoundError") throw error; }
     }
@@ -473,6 +490,15 @@ monitorForm.addEventListener("submit", async event => {
         throw new Error("Choose a status LED timeout between 5 and 600 seconds.");
       packet.push(enabled, seconds & 0xff, seconds >> 8);
     }
+    if (monitorSettingsVersion >= 6) {
+      const patterns = monitorLedPatterns.map(control => Number(control.value));
+      const brightness = Number(monitorLedBrightness.value), period = Number(monitorLedPeriod.value);
+      if (patterns.some(pattern => !Number.isInteger(pattern) || pattern < 0 || pattern > 3) ||
+          !Number.isInteger(brightness) || brightness < 1 || brightness > 100 ||
+          !Number.isInteger(period) || period < 500 || period > 10000)
+        throw new Error('Choose valid patterns, brightness 1–100%, and a cycle from 500 to 10000 ms.');
+      packet.push(...patterns, brightness, period & 0xff, period >> 8);
+    }
     const bytes = new Uint8Array(packet);
     const photoBytes = photoConfigCharacteristic ? photoSettingsPacket() : null;
     await monitorCharacteristic.writeValue(bytes);
@@ -545,3 +571,26 @@ async function commandOta(command) {
 }
 otaCheck.addEventListener("click", () => commandOta("check"));
 otaInstall.addEventListener("click", () => commandOta("install"));
+
+
+// A browser-only preview never writes the board or extends its notification.
+if (monitorLedPreviewButton && typeof requestAnimationFrame === 'function') {
+  monitorLedPreviewButton.addEventListener('click', () => {
+    ledPreviewStarted = performance.now(); ledPreviewUntil = ledPreviewStarted + 10000;
+    monitorLedPreviewButton.textContent = 'Restart 10-second preview';
+  });
+  const animate = now => {
+    const state = Number(monitorLedPreviewState.value || 0);
+    const pattern = Number(monitorLedPatterns[state].value || 0);
+    const period = Number(monitorLedPeriod.value) || 2000;
+    const phase = ((now - ledPreviewStarted) % period) / period;
+    let opacity = Number(monitorLedBrightness.value || 6) / 100;
+    if (now >= ledPreviewUntil) opacity = 0;
+    else if (pattern === 1 && phase >= .5) opacity = 0;
+    else if (pattern === 2) { const t = 1 - Math.abs(phase * 2 - 1); opacity *= t*t*(3-2*t); }
+    monitorLedPreview.style.backgroundColor = pattern === 3 ? `hsl(${phase * 360} 100% 50%)` : ['#00ff00','#ffff00','#ff0000'][state];
+    monitorLedPreview.style.opacity = String(opacity);
+    requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+}

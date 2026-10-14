@@ -927,6 +927,45 @@ void test_status_led_timeout_priority_and_settings() {
   TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, 9, settings));
 }
 
+void test_led_patterns_frames_and_legacy_settings() {
+  using namespace ui::led;
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Solid, 100, 2000, 0) == Color{0,255,0}));
+  TEST_ASSERT_TRUE((frame(State::Complete, Pattern::Solid, 100, 2000, 0) == Color{255,255,0}));
+  TEST_ASSERT_TRUE((frame(State::Attention, Pattern::Blink, 100, 2000, 999) == Color{255,0,0}));
+  TEST_ASSERT_TRUE((frame(State::Attention, Pattern::Blink, 100, 2000, 1000) == Color{}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Breathe, 100, 2000, 0) == Color{}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Breathe, 100, 2000, 1000) == Color{0,255,0}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Breathe, 100, 2000, 500) == frame(State::Working, Pattern::Breathe, 100, 2000, 1500)));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Rainbow, 100, 6000, 0) == Color{255,0,0}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Rainbow, 100, 6000, 2000) == Color{0,255,0}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Rainbow, 100, 6000, 4000) == Color{0,0,255}));
+  TEST_ASSERT_TRUE((frame(State::Working, Pattern::Rainbow, 100, 6000, 6000) == frame(State::Working, Pattern::Rainbow, 100, 6000, 0)));
+  for (auto pattern : {Pattern::Solid, Pattern::Blink, Pattern::Breathe, Pattern::Rainbow}) {
+    TEST_ASSERT_TRUE((frame(State::Off, pattern, 100, 2000, 500) == Color{}));
+    for (uint32_t ms = 0; ms < 10000; ms += 39) {
+      const auto color = frame(State::Working, pattern, 6, 2000, ms);
+      TEST_ASSERT_LESS_OR_EQUAL(15, color.red); TEST_ASSERT_LESS_OR_EQUAL(15, color.green); TEST_ASSERT_LESS_OR_EQUAL(15, color.blue);
+    }
+  }
+  codex_hid::MonitorSettings settings;
+  uint8_t packet[]{6,50,30,0,3,0,1,1,60,0,2,3,1,25,208,7};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_EQUAL(2, settings.ledWorkingPattern); TEST_ASSERT_EQUAL(3, settings.ledCompletePattern);
+  TEST_ASSERT_EQUAL(1, settings.ledAttentionPattern); TEST_ASSERT_EQUAL(25, settings.ledBrightness);
+  TEST_ASSERT_EQUAL(2000, settings.ledPeriodMs);
+  const uint8_t legacy[]{5,40,20,0,6,0,0,0,120,0};
+  TEST_ASSERT_TRUE(codex_hid::decodeMonitorSettings(legacy, sizeof(legacy), settings));
+  TEST_ASSERT_EQUAL(2, settings.ledWorkingPattern); TEST_ASSERT_EQUAL(25, settings.ledBrightness);
+  packet[10] = 4;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_EQUAL(40, settings.volume);
+  packet[10] = 2; packet[13] = 0;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  packet[13] = 100; packet[14] = 243; packet[15] = 1;
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, sizeof(packet), settings));
+  TEST_ASSERT_FALSE(codex_hid::decodeMonitorSettings(packet, 15, settings));
+}
+
 void test_monitor_ota_rejects_downgrades_and_malformed_identity() {
   using namespace monitor_update_policy;
   TEST_ASSERT_TRUE(newer("0.7.1", "0.7.0"));
@@ -945,6 +984,7 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(test_monitor_ota_rejects_downgrades_and_malformed_identity);
   RUN_TEST(test_usb_voice_default_hold_and_separate_toggle);
+  RUN_TEST(test_led_patterns_frames_and_legacy_settings);
   RUN_TEST(test_status_led_timeout_priority_and_settings);
   RUN_TEST(test_monitor_settings_v3_validation_and_legacy_preservation);
   RUN_TEST(test_micro_six_keys_and_touch_gaps);

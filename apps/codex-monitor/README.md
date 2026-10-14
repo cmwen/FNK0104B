@@ -296,3 +296,7 @@ Reboot restores the saved BLE preferences.
 Rear RGB status notifications default enabled with a 60-second timeout.
 Configure them in the browser Monitor settings; see
 [status LED behavior](../../docs/monitor-status-led.md).
+
+Monitor 0.8.3 adds separate Solid/Blink/Breathe/Rainbow rear LED patterns for
+working, completion and attention, plus brightness, cycle speed and a
+browser-only preview in BLE Monitor settings. The existing timeout still applies.

@@ -1,0 +1,36 @@
+Script started on 2026-10-14 13:59:46+11:00 [COMMAND="pio device monitor --port socket://127.0.0.1:60859 --baud 115200 --raw" TERM="dumb" TTY="/dev/pts/8" COLUMNS="80" LINES="24"]
+--- Terminal on socket://127.0.0.1:60859 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+rgb_diag phase=8 state=3 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=9 state=3 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=10 state=3 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=11 state=3 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=12 state=0 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=0 state=2 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=1 state=2 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=2 state=2 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=3 state=2 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=4 state=1 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=5 state=1 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=6 state=1 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=7 state=1 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=8 state=3 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=9 state=3 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=10 state=3 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=11 state=3 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=12 state=0 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=0 state=2 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=1 state=2 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=2 state=2 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=3 state=2 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=4 state=1 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=5 state=1 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=6 state=1 pattern=2 brightness=20 period_ms=2000
+rgb_diag phase=7 state=1 pattern=3 brightness=20 period_ms=2000
+rgb_diag phase=8 state=3 pattern=0 brightness=20 period_ms=2000
+rgb_diag phase=9 state=3 pattern=1 brightness=20 period_ms=2000
+rgb_diag phase=10 state=3 pattern=2 brightness=20 period_ms=2000
+
+Script done on 2026-10-14 14:00:18+11:00 [COMMAND_EXIT_CODE="0"]

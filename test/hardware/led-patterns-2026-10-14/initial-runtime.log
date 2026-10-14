@@ -1,0 +1,163 @@
+Script started on 2026-10-14 13:56:13+11:00 [COMMAND="pio device monitor --port socket://127.0.0.1:58837 --baud 115200 --raw" TERM="dumb" TTY="/dev/pts/8" COLUMNS="80" LINES="24"]
+--- Terminal on socket://127.0.0.1:58837 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=35539
+monitor_stream state=connected
+
+monitor_status integration=connected agents=1 first_state=running five_hour_used=34 weekly_used=16
+monitor_micro event=repaint ms=19589 transport=1 link=2 revision=2 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=23
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=3 ms=19713 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=3
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=34
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=4 ms=32537 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=4
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=45
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=52
+codex_hid status_received revision=5 ms=45052 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid application=status_displayed revision=5
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=56
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=6 ms=58076 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=6
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_led state=0 timeout_seconds=60 enabled=1
+monitor_health heap=34687 psram=8318200 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.3 slots=3 avatars=1
+monitor_micro event=diagnostic ms=65217 transport=1 link=2 revision=6 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid host=idle
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=67
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=7 ms=70612 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=7
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=78
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=8 ms=83898 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=8
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=89
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=53
+codex_hid status_received revision=9 ms=96632 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=9
+codex_hid protocol=decoded method=device.status reply_bytes=144
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=2 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+codex_hid host=active
+
+codex_hid rx report_id=6 bytes=63 reports=100
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=52
+codex_hid status_received revision=10 ms=109118 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+
+codex_hid application=status_displayed revision=10
+codex_hid protocol=decoded method=device.status reply_bytes=144
+codex_hid tx=complete report_id=6
+
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+
+
+Script done on 2026-10-14 13:57:27+11:00 [COMMAND_EXIT_CODE="0"]

@@ -91,7 +91,8 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
             if(ota) return otaCharacteristic;
             const error=new Error('Characteristic not found'); error.name='NotFoundError'; throw error;
           }
-          if ((settingsPacket[0] < 5 && uuid.includes('0009')) ||
+          if ((settingsPacket[0] < 6 && uuid.includes('000a')) ||
+              (settingsPacket[0] < 5 && uuid.includes('0009')) ||
               (settingsPacket[0] < 4 && uuid.includes('0006')) ||
               (settingsPacket[0] < 3 && uuid.includes('0004')) ||
               (settingsPacket[0] === 1 && uuid.includes('0003'))) {
@@ -321,4 +322,29 @@ test('status LED preferences load, persist, and reject invalid timeouts', async 
   app.element('#monitor-led-seconds').value = '0';
   await app.saveMonitor();
   assert.equal(app.writes.length, 1);
+});
+
+
+test('per-status LED patterns persist with brightness and speed', async () => {
+  const app = setup({settingsPacket: [6,50,30,0,3,0,1,1,60,0,2,0,1,6,208,7]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-led-working-pattern').disabled, false);
+  assert.equal(app.element('#monitor-led-working-pattern').value, '2');
+  app.element('#monitor-led-complete-pattern').value = '3';
+  app.element('#monitor-led-brightness').value = '20';
+  app.element('#monitor-led-period').value = '4000';
+  await app.saveMonitor();
+  assert.deepEqual(app.writes.at(-1), [6,50,30,0,3,0,1,1,60,0,2,3,1,20,160,15]);
+  app.element('#monitor-led-attention-pattern').value = '4';
+  await app.saveMonitor();
+  assert.equal(app.writes.length, 1);
+});
+
+test('old LED clients keep animation controls unavailable', async () => {
+  const app = setup({settingsPacket: [5,50,30,0,3,0,0,1,60,0]});
+  await app.connectMonitor();
+  assert.equal(app.element('#monitor-led-working-pattern').disabled, true);
+  assert.equal(app.element('#monitor-led-brightness').disabled, true);
+  await app.saveMonitor();
+  assert.equal(app.writes[0].length, 10);
 });

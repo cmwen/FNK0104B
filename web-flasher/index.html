@@ -171,6 +171,41 @@
             <label for="monitor-led-seconds">Status LED timeout (seconds)</label>
             <input id="monitor-led-seconds" type="number" min="5" max="600" value="60" required disabled>
             <p id="monitor-led-help" class="field-help">Green: working. Yellow: work ended. Red: needs attention or error. Defaults to one minute per status change; repeated updates do not keep it lit. Settings are saved on the board. Update firmware if these controls are unavailable.</p>
+            <label for="monitor-led-working-pattern">Working LED pattern</label>
+            <select id="monitor-led-working-pattern" disabled>
+              <option value="0" selected>Solid (default)</option>
+              <option value="1">Blink</option>
+              <option value="2">Breathe — gentle brightness pulse</option>
+              <option value="3">Rainbow — smooth color cycle</option>
+            </select>
+            <label for="monitor-led-complete-pattern">Completion LED pattern</label>
+            <select id="monitor-led-complete-pattern" disabled>
+              <option value="0" selected>Solid (default)</option>
+              <option value="1">Blink</option>
+              <option value="2">Breathe — gentle brightness pulse</option>
+              <option value="3">Rainbow — smooth color cycle</option>
+            </select>
+            <label for="monitor-led-attention-pattern">Attention / error LED pattern</label>
+            <select id="monitor-led-attention-pattern" disabled>
+              <option value="0" selected>Solid (default)</option>
+              <option value="1">Blink</option>
+              <option value="2">Breathe — gentle brightness pulse</option>
+              <option value="3">Rainbow — smooth color cycle</option>
+            </select>
+            <label for="monitor-led-brightness">LED brightness (%)</label>
+            <input id="monitor-led-brightness" type="number" min="1" max="100" value="6" required disabled>
+            <label for="monitor-led-period">LED cycle duration (milliseconds)</label>
+            <input id="monitor-led-period" type="number" min="500" max="10000" value="2000" required disabled>
+            <p class="field-help">Pattern controls require monitor 0.8.3 or newer. Solid, blink and breathe keep the status color. Rainbow cycles through all colors instead. A longer cycle is slower. Every pattern stops at your status timeout.</p>
+            <label for="monitor-led-preview-state">Preview status</label>
+            <select id="monitor-led-preview-state">
+              <option value="0">Working</option><option value="1">Completion</option><option value="2">Attention / error</option>
+            </select>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span id="monitor-led-preview" aria-hidden="true" style="width:28px;height:28px;border-radius:50%;background:#00ff00;opacity:0"></span>
+              <button id="monitor-led-preview-button" type="button">Preview for 10 seconds</button>
+            </div>
+            <p class="field-help">Preview stays in the browser. Save board settings to apply the patterns to the rear LED.</p>
             <label for="monitor-volume">Alert volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
             <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
             <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>

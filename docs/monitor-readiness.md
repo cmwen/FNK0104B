@@ -637,3 +637,11 @@ confirmed diagnostic colors, and integrated serial verified the default
 [device evidence](../test/hardware/rear-status-led-2026-10-14.md). Physical BLE
 setting writes/persistence and integrated completion/attention acceptance
 remain UNKNOWN.
+
+## LED patterns, monitor 0.8.3 (2026-10-14)
+
+Per-status Solid/Blink/Breathe/Rainbow patterns, brightness and cycle speed are
+implemented in the BLE configuration page. PlatformIO build/upload and serial
+checked monitor health and all isolated animation phases. Physical BLE writes
+and animation appearance remain UNKNOWN; the Windows test helper failed
+before connecting. See [device evidence](../test/hardware/led-patterns-2026-10-14.md).

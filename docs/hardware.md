@@ -150,3 +150,11 @@ hashes verified. Live USB working status continued after the configured
 60-second LED notification shut off; repeated identical status did not relight
 it. Physical BLE setting writes and integrated attention/completion transitions
 remain UNKNOWN. See [the hardware record](../test/hardware/rear-status-led-2026-10-14.md).
+
+## Rear LED patterns (2026-10-14)
+
+Monitor 0.8.3 and the extended RGB diagnostic built and flashed through
+PlatformIO with verified hashes. Diagnostic serial executed every status/pattern
+combination and off. Monitor serial confirmed live Desktop status and default
+60-second shutoff. Physical BLE pattern saving and animation appearance remain
+UNKNOWN; see [device evidence](../test/hardware/led-patterns-2026-10-14.md).
