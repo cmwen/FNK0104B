@@ -9,7 +9,7 @@ eFuse or security-setting change occurred.
 Local configured application SHA-256:
 `d144ade2548d53732a2ce8ddf2e34acbfe1cf4f762c92e09950d733a5ffea863`.
 This local build contains the owner's ignored bridge configuration and is not
-the public release image. Public assets are built from the clean GitHub checkout.
+the public release image. Public assets are built from clean committed source.
 
 The board returned to Windows as 303a:8360 with HID, TinyUSB UAC1 and COM9.
 PlatformIO monitored at 115200 baud through a temporary loopback COM9 relay,
@@ -42,3 +42,23 @@ not reproduce the Mac failure or physically verify blackout retention. Mac
 acceptance remains UNKNOWN until the owner tests. If Desktop reports completion
 only by turning a slot black, the requested policy retains the last working
 state until a nonzero update or disconnect.
+
+## Public release
+
+[Codex monitor 0.8.1](https://github.com/cmwen/FNK0104B/releases/tag/codex-monitor-v0.8.1)
+was published from the pushed source commit `4d9e424` with tag
+`codex-monitor-v0.8.1` pointing to verification commit `de3243e`. Firmware input
+fingerprints match across those commits; the difference is documentation.
+
+The public monitor was built in an isolated source tree with no ignored bridge
+header. The image descriptor and portable bundle verifier confirmed version,
+layout, image hashes and model compatibility. The private bridge token was
+checked absent without logging its value. Public application SHA-256:
+`450661f90b91d8d1d9eb92256a8da4cddcdb36f4da8e0279257d6e60d4d2dfa1`.
+
+Release assets are the full-install ZIP, app-only `firmware.bin`, `ota.json`
+and `SHA256SUMS`; GitHub's uploaded asset digests matched local package hashes.
+GitHub host checks passed. The full firmware matrix was still running at
+publication; the monitor public/local builds had already passed through
+PlatformIO Core CLI. The monitor-specific release leaves the standalone OTA
+demo's existing latest release unchanged.
