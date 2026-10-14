@@ -1,12 +1,12 @@
 [
   {
-    "timestamp": "2026-10-14T13:40:08+11:00",
-    "sha": null,
+    "timestamp": "2026-10-14T13:42:23+11:00",
+    "sha": "e508b25",
     "title": "Add a bounded rear status LED to Codex monitor",
     "paragraphs": [
       "The owner requested that the board’s rear LED show agent activity and be configurable on the BLE settings page. Monitor 0.8.2 now shows green for working, yellow when work ends, and red for attention or errors. It defaults enabled for 60 seconds per meaningful status change; users can disable it or choose 5–600 seconds, saved on the board. Attention takes priority when several agents are active, and repeated status, brightness or animation updates do not extend the timer.",
       "Board access remains in the shared board library using the verified GPIO42 single-pixel GRB wiring. A separate RGB diagnostic checked the new hardware capability before restoring the integrated monitor. USB follows retained meaningful slot colors and preserves the existing decision to ignore blackout updates. Yellow requires a known idle transition over USB or the disappearance of active work in a connected Wi-Fi snapshot; neither confirms a successful result, and USB completion reported only by blackout remains unobservable.",
-      "The owner confirmed the diagnostic green/yellow/red/off sequence. PlatformIO verified all upload hashes and restored monitor 0.8.2. Serial at 115200 confirmed live Desktop working updates, healthy workers and the default LED shutoff despite repeated identical status. All 39 native, 44 host and 20 browser-client tests passed, along with guide checks and responsive browser checks. Physical BLE preference saving, custom timeout acceptance and integrated attention/completion colors remain unverified. The updated configuration page is available locally; the public site and release have not been published.",
+      "The owner confirmed the diagnostic green/yellow/red/off sequence. PlatformIO verified all upload hashes and restored monitor 0.8.2. Serial at 115200 confirmed live Desktop working updates, healthy workers and the default LED shutoff despite repeated identical status. All 39 native, 44 host and 20 browser-client tests passed, along with guide checks and responsive browser checks. Physical BLE preference saving, custom timeout acceptance and integrated attention/completion colors remain unverified. At the device check, the updated configuration page was available locally and the public site and release had not yet been published.",
       "The owner also established that every new feature, behavior change and project decision must update the documentation and build journal in the same change. AGENTS.md now records that requirement, evidence standards and the current LED behavior. Uncommitted journal entries show their session date without claiming an earlier commit. Lesson: record why a feature behaves as it does, carry its settings into the existing product, and distinguish observed work ending from confirmed success."
     ],
     "links": [
