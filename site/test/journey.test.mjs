@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const milestones=JSON.parse(await readFile(new URL('../src/data/journey.json',import.meta.url),'utf8'));
 
-test('journal milestones stay newest first with Sydney dates and evidence links',async()=>{
+test('journey milestones stay newest first with Sydney dates and guide links',async()=>{
  let previous=Infinity;
  const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'});
  for(const entry of milestones){
@@ -16,7 +16,7 @@ test('journal milestones stay newest first with Sydney dates and evidence links'
   for(const {path} of entry.links)await readFile(new URL(`../../${path}`,import.meta.url));
  }
  const source=await readFile(new URL('../src/pages/journey.astro',import.meta.url),'utf8');
- assert.ok(source.includes('milestones.map('));
+ assert.ok(source.includes('chapters.map('));
  assert.ok(source.includes('<time datetime={timestamp}>'));
 });
 

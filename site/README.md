@@ -54,14 +54,23 @@ Do not edit generated assets. The guide home handles old `index.html#setup` and
 Firmware is excluded from service-worker caching. The erase choice, Security 1
 provisioning and on-screen proof-of-possession entry remain in the existing flow.
 
-## Journey dates
+## Build journey
 
-`src/data/journey.json` holds the journal milestones newest first; the journey
-page renders this one sequence. Use the referenced commit's author timestamp,
-converted to Australia/Sydney, and link the commit and its dated evidence.
-Do not replace hardware test dates with commit dates or invent times for stages
-committed together. The October 11 photo work has its ordered stages in
-[`docs/photo-frame-journey.md`](../docs/photo-frame-journey.md).
+`src/data/journey.json` stores narrative chapters newest first; the journey page
+presents them from the beginning. Tell the history behind the application and
+firmware: how the idea took shape, what prompted a new direction, and how earlier
+choices led to later ones. Group related changes into chapters and weave decisions
+and tradeoffs into the story. Use recorded facts without inventing motivations or
+anecdotes. Keep development steps, debugging, build and
+flash operations, test results, release logs and remaining checks in technical
+documentation rather than this public narrative. Omit milestones that only record
+engineering operations. Link feature or decision guides when useful.
+
+Keep verified commit references as metadata for milestone dates. Use the referenced
+commit's author timestamp converted to Australia/Sydney; for uncommitted decisions,
+use `sha: null` and the actual session timestamp. Do not invent times for stages
+committed together. Hardware evidence keeps its original dates in the separate
+technical records.
 
 ## Screenshots and evidence
 

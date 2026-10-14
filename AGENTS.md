@@ -36,11 +36,11 @@ Do not add LVGL, Wi-Fi, MQTT, OTA, SD-card behavior, or Codex monitor features u
 ## Documentation and build journal
 
 - Every new feature, behavior change, or project decision must include documentation updates in the same change. Treat documentation and the build journal as part of completing the work.
-- Record the change in `site/src/data/journey.json`, newest first, with an Australia/Sydney timestamp. Explain the user need, resulting behavior, decisions and tradeoffs, validation, and remaining checks; link the relevant documentation and evidence.
+- Record the change in `site/src/data/journey.json`, newest first, with an Australia/Sydney timestamp. Write the public journey as the history behind the application and firmware: how the idea took shape, what needs or constraints prompted a change of direction, and how earlier choices led to later ones. Weave decisions and meaningful tradeoffs into connected prose. Group related changes into narrative chapters rather than logging every action or repeating “we chose.” Keep motivations grounded in the recorded history; do not invent anecdotes or intent. The page presents chapters from the beginning; the data stays newest first. Do not include development steps, debugging, build or flash operations, test results, validation checklists, release logs or remaining device checks. Omit milestones that only record engineering operations; link user-facing feature or decision documentation when useful.
 - Use a verified commit SHA for committed milestones. For uncommitted work, use `sha: null` and the actual session timestamp; never invent a commit or attribute new work to an earlier commit. Update the journal entry with its verified SHA and commit timestamp once committed.
 - Update the affected app README, setup/feature documentation, and guide/configuration page when applicable. Update `knowledge/`, `docs/hardware.md`, `docs/monitor-readiness.md`, and dated `test/hardware/` evidence when hardware facts or device validation change.
-- Distinguish implementation, automated checks, serial observations, owner confirmation, and unverified physical behavior. Do not describe local changes as published releases.
-- Update this file when a decision changes how future agents should work; keep detailed feature history in the journal and linked documentation.
+- Keep implementation details, automated checks, serial observations, owner confirmation and unverified physical behavior in the affected technical documentation and dated hardware evidence, not in the public journey. Preserve those evidence distinctions there. Do not describe local changes as published releases.
+- Update this file when a decision changes how future agents should work; keep the application story in the journey and detailed feature history in linked technical documentation.
 
 ### Current monitor rear LED behavior
 

@@ -1,23 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import milestones from '../data/journey.json';
+const chapters = [...milestones].reverse();
 const repository = 'https://github.com/cmwen/FNK0104B';
 ---
-<Layout title="Build journal">
+<Layout title="The story behind the firmware">
   <div class="wrap">
     <header class="page-head">
-      <p class="eyebrow">Lessons from building the board</p>
-      <h1>Small experiments.<br />A capable appliance.</h1>
-      <p class="lede">A trail through the repository’s decisions, experiments and device evidence, newest first.</p>
+      <p class="eyebrow">The story behind the firmware</p>
+      <h1>From a board of possibilities.<br />To a desk companion.</h1>
+      <p class="lede">How a collection of small applications grew into a Codex monitor, found its voice, connected to Desktop and gained a little personality.</p>
     </header>
     <div class="prose timeline">
-      <p>Dates follow milestone commits or, for uncommitted work, the development session in Australia/Sydney local time. Hardware records keep their original test dates; implementation, owner confirmation and remaining physical checks are described separately.</p>
-      {milestones.map(({timestamp, sha, title, paragraphs, links}) => (
+      <p>Read from the beginning: each chapter follows a turning point in the application’s history. Dates mark milestones in Australia/Sydney local time.</p>
+      {chapters.map(({timestamp, title, paragraphs, links}) => (
         <article>
           <h2><time datetime={timestamp}>{timestamp.slice(0, 10)}</time> · {title}</h2>
           {paragraphs.map(body => <p>{body}</p>)}
           {links.map(({label, path}) => <p><a href={`${repository}/blob/main/${path}`}>{label} ↗</a></p>)}
-          {sha ? <p><a href={`${repository}/commit/${sha}`}><code>{sha}</code> · inspect the milestone ↗</a></p> : <p>Local implementation · not yet committed or published.</p>}
         </article>
       ))}
     </div>
