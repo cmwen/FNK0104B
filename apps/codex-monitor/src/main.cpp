@@ -283,11 +283,22 @@ void drawAgentTile(const Agent& agent, int x, int y) {
       (!strcmp(agent.status, "error") ? "ERROR" : "RUNNING"), x + 70, y + 34, 1);
 }
 
+bool quotaLimitReached(const MonitorStatus& snapshot) {
+  return strcmp(snapshot.integration, "unavailable") &&
+      ui::monitor::allowanceExhausted(snapshot.five_hour.used, snapshot.weekly.used);
+}
+
+bool quotaLimitReached() {
+  MonitorStatus snapshot;
+  portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
+  return quotaLimitReached(snapshot);
+}
+
 void drawMicroAvatar(unsigned i);
 unsigned microTileCount();
 
 void drawAnimatedAvatars() {
-  if (idleUi) return;
+  if (idleUi || quotaLimitReached()) return;
   if (previousTransport != codex_hid::Transport::None && microAvatars &&
       !microCommands && !showingStatus && !commandHelpVisible && !voiceBusy.load()) {
     for (unsigned i = 0; i < microTileCount(); ++i) drawMicroAvatar(i);
@@ -401,6 +412,17 @@ void drawScreen() {
   else d.drawString(!strcmp(snapshot.integration, "connected") ?
       (monitor_speech::ready() ? "HI ESP: COMMANDS / QUOTA LEFT" : "QUOTA LEFT") :
       (monitor_speech::ready() ? "HI ESP: COMMANDS / BRIDGE OFFLINE" : "BRIDGE UNAVAILABLE"), 10, 45, 1);
+  if (quotaLimitReached(snapshot) && !commandHelpVisible && !voiceBusy) {
+    if (!messageVisible) {
+      d.fillRect(4, 42, 312, 13, kBg);
+      d.setTextColor(kAmber, kBg);
+      d.drawString("INCLUDED ALLOWANCE EXHAUSTED", 10, 45, 1);
+    }
+    ui::monitor::limitCountdown(d, snapshot.five_hour.used, snapshot.weekly.used,
+        snapshot.five_hour.resets, snapshot.weekly.resets, statusTime(snapshot));
+    drawVoiceControl();
+    return;
+  }
   if (previousTransport != codex_hid::Transport::None && !commandHelpVisible && !showingStatus && !voiceBusy) {
     if (!messageVisible) {
       d.fillRect(4, 42, 312, 13, kBg);
@@ -1026,6 +1048,9 @@ void touchLoop() {
         if (usbMicroActive) keyId = 10; else beginVoice();
       }
       else if (y >= 191 && y <= 237 && x >= 210 && x <= 315) keyId = 12;
+      else if (y >= 59 && y < 184 && quotaLimitReached()) {
+        // The countdown replaces these controls; never trigger hidden shortcuts.
+      }
       else if (y >= 59 && y < 184 && showingStatus) { showingStatus = false; uiDirty = true; }
       else {
         const int slot = commandHelpVisible || voiceBusy ? -1 : ui::micro::tileAt(x, y);
@@ -1058,7 +1083,7 @@ void touchLoop() {
         }
       }
     } else if (y >= 191 && y <= 237 && x >= 4 && x <= 315) beginVoice();
-    else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load())) {
+    else if (y >= 59 && y < 184 && (commandHelpVisible || voiceBusy.load() || quotaLimitReached())) {
       // Hints and recording replace the agent panel; never select hidden agents.
     } else if (y >= 59 && y < 184 && showingStatus) {
       showingStatus = false;
@@ -1439,7 +1464,7 @@ void loop() {
       monitor_speech::listening() || activeAgents > 0 || recording.load() || voicePreparing.load() || voiceBusy.load() || monitor_photos::uploading();
   const bool idleExpired = idleTimer.expired(millis(), static_cast<uint32_t>(screenTimeoutMinutes) * 60000UL, busy);
   const auto photoSettings = monitor_photos::settings();
-  const bool showIdle = screenAwake && !idleExpired && !monitor_ota::busy() &&
+  const bool showIdle = screenAwake && !idleExpired && !monitor_ota::busy() && !quotaLimitReached() &&
       (monitor_photos::preview() || ui::photos::idle(photoSettings, idleTimer.elapsed(millis()),
           busy || messageVisible || commandHelpVisible, true));
   if (showIdle != idleUi) {
@@ -1467,6 +1492,9 @@ void loop() {
     MonitorStatus snapshot;
     portENTER_CRITICAL(&statusMux); snapshot = status; portEXIT_CRITICAL(&statusMux);
     const int64_t now = statusTime(snapshot);
+    if (quotaLimitReached(snapshot) && !idleUi && !commandHelpVisible && !voiceBusy)
+      ui::monitor::limitCountdown(tft(), snapshot.five_hour.used, snapshot.weekly.used,
+          snapshot.five_hour.resets, snapshot.weekly.resets, now);
     if (drawnFiveHourReset != ui::monitor::resetPixels(snapshot.five_hour.resets, now, 5 * 3600,
                                                      ui::monitor::kFiveHourResetWidth) ||
         drawnWeeklyReset != ui::monitor::resetPixels(snapshot.weekly.resets, now, 7 * 86400,

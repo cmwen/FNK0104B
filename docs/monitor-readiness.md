@@ -1,5 +1,14 @@
 # Codex monitor readiness
 
+## Usage reset countdown, 2026-10-17
+
+The local change adds a central countdown when either bridge-reported allowance
+is exhausted. Native tests passed (41), and the monitor firmware and guide builds passed.
+Shared-renderer previews cover either
+window, both, missing/expired time and USB Micro. No upload was performed.
+Physical touch/display and live limit-to-recovery behavior remain UNKNOWN.
+USB/BLE alone still carries no usage data. See [behavior and limits](monitor-usage-reset.md).
+
 October 8: [wireless settings and compact USB controls](usb-micro-controls.md) supersede integrated BLE HID. Browser BLE recovery and Desktop radial mappings require physical acceptance.
 
 ## Mac status retention policy and investigation, 2026-10-14

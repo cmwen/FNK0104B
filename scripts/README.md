@@ -20,7 +20,8 @@ magick /tmp/monitor-ui-idle.ppm -filter point -resize 300% apps/codex-monitor/pr
 
 It writes idle, active, attention, offline, recording, command listening (loud
 and quiet), status with an active agent, empty-quota and full-quota PPM previews. These check drawing and text at 320×240; touch and physical display
-appearance still require the board.
+appearance still require the board. Reset-countdown previews add `limit-five`,
+`limit-week`, `limit-both`, `limit-unknown`, `limit-expired` and `micro-limit` states.
 
 `generate_monitor_icons.py` regenerates the tintable icon masks from the owner's
 two reference images using ImageMagick. Run it with `--status-reference` and

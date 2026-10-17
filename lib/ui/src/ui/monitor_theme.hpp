@@ -25,6 +25,22 @@ constexpr uint16_t kRed = rgb(255, 99, 121);
 
 inline int remaining(int used) { return used < 0 ? -1 : 100 - used; }
 
+inline bool allowanceExhausted(int fiveHourUsed, int weeklyUsed) {
+  return fiveHourUsed == 100 || weeklyUsed == 100;
+}
+
+inline void resetCountdown(char* text, size_t size, int64_t resets, int64_t now) {
+  if (resets <= 0 || now <= 0) { snprintf(text, size, "Reset time unavailable"); return; }
+  if (resets <= now) { snprintf(text, size, "Awaiting usage update"); return; }
+  const int64_t seconds = resets - now;
+  if (seconds >= 86400)
+    snprintf(text, size, "%lldd %02lldh %02lldm", (long long)(seconds / 86400),
+        (long long)(seconds / 3600 % 24), (long long)(seconds / 60 % 60));
+  else
+    snprintf(text, size, "%02lld:%02lld:%02lld", (long long)(seconds / 3600),
+        (long long)(seconds / 60 % 60), (long long)(seconds % 60));
+}
+
 template<class Display>
 void frame(Display& d, int x, int y, int w, int h, uint16_t accent) {
   d.fillRect(x+1, y+1, w-2, h-2, kPanel);
@@ -37,6 +53,27 @@ void frame(Display& d, int x, int y, int w, int h, uint16_t accent) {
   d.drawLine(x+w-c-1, y, x+w-1, y+c, accent);
   d.drawLine(x, y+h-c-1, x+c, y+h-1, accent);
   d.drawLine(x+w-c-1, y+h-1, x+w-1, y+h-c-1, accent);
+}
+
+template<class Display>
+void limitCountdown(Display& d, int fiveHourUsed, int weeklyUsed,
+                    int64_t fiveHourReset, int64_t weeklyReset, int64_t now) {
+  frame(d, 8, 59, 304, 125, kAmber);
+  const bool both = fiveHourUsed == 100 && weeklyUsed == 100;
+  int row = 0;
+  for (bool weekly : {false, true}) {
+    if ((weekly ? weeklyUsed : fiveHourUsed) != 100) continue;
+    const int y = both ? 67 + row++ * 49 : 78;
+    d.setTextColor(kAmber, kPanel);
+    d.drawCentreString(weekly ? "WEEKLY LIMIT RESETS IN" : "5-HOUR LIMIT RESETS IN", 160, y, 1);
+    char text[48];
+    const int64_t resets = weekly ? weeklyReset : fiveHourReset;
+    resetCountdown(text, sizeof(text), resets, now);
+    d.setTextColor(kText, kPanel);
+    d.drawCentreString(text, 160, y + 18, resets <= 0 || now <= 0 || resets <= now ? 2 : 4);
+  }
+  d.setTextColor(kMuted, kPanel);
+  d.drawCentreString("Availability checked by Codex", 160, 168, 1);
 }
 
 template<class Display>

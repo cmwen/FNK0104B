@@ -118,3 +118,12 @@ hardware success does not establish monitor behavior.
 
 References: [ESP-IDF OTA and rollback](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/api-reference/system/ota.html),
 [ESP-IDF HTTP client](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/api-reference/protocols/esp_http_client.html).
+
+## Monitor 0.8.4
+
+This update adds the usage reset countdown without changing partitions, speech
+models or saved preferences. It is intended for app-only OTA from a compatible
+0.7.1+ baseline. The [countdown](monitor-usage-reset.md) still requires the private
+Wi-Fi bridge configuration; the public OTA build does not include or preserve a
+custom compiled bridge host/key. USB Micro controls remain available without it.
+Physical monitor OTA installation remains unverified until exercised.

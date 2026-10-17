@@ -1,5 +1,20 @@
 [
   {
+    "timestamp": "2026-10-17T23:13:01+11:00",
+    "sha": null,
+    "title": "Knowing how long the pause will last",
+    "paragraphs": [
+      "The monitor already showed how much Codex allowance remained. Reaching a five-hour or weekly limit raised a different question: when could that allowance return? The center of the screen became a place for the reset countdown, replacing the agents and shortcuts while the allowance was exhausted.",
+      "Voice controls stayed within reach. An exhausted included allowance did not establish that every interaction was unavailable, especially when credits could allow work to continue. Showing both exhausted windows kept a short reset from implying that a longer limit had also cleared."
+    ],
+    "links": [
+      {
+        "label": "Usage reset behavior",
+        "path": "docs/monitor-usage-reset.md"
+      }
+    ]
+  },
+  {
     "timestamp": "2026-10-14T14:04:42+11:00",
     "sha": "655a0c4",
     "title": "Status reached beyond the screen",

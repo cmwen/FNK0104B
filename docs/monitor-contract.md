@@ -102,3 +102,14 @@ submission or thread creation. Missing orchestrator returns HTTP 503 with
 `orchestrator_unconfigured`. Ordinary Wi-Fi bridge voice retains its current
 route and selected-agent behavior. USB Micro speech uses the host UAC microphone
 and Desktop's native Mic key; it makes no board bridge recording request.
+
+## Exhausted allowance display
+
+At `used_percent: 100` for either window, the board shows a reset countdown in
+place of center agents/shortcuts, including Micro controls when Wi-Fi status is
+available. Both exhausted windows are shown. Bottom voice controls remain
+available; this contract does not establish that every feature is blocked.
+`resets_at` plus the bridge status clock drives the timer. Missing time shows
+an unavailable message; reaching zero waits for a fresh usage update rather
+than assuming recovery. No new fields or USB quota methods are introduced.
+See [usage reset behavior](monitor-usage-reset.md).

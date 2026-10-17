@@ -525,6 +525,32 @@ void test_monitor_voice_capture_gate() {
   TEST_ASSERT_TRUE(limit.feed(true, 1));
 }
 
+void test_monitor_limit_countdown_states() {
+  using namespace ui::monitor;
+  TEST_ASSERT_FALSE(allowanceExhausted(-1, -1));
+  TEST_ASSERT_FALSE(allowanceExhausted(99, 80));
+  TEST_ASSERT_TRUE(allowanceExhausted(100, -1));
+  TEST_ASSERT_TRUE(allowanceExhausted(20, 100));
+  TEST_ASSERT_TRUE(allowanceExhausted(100, 100));
+  char text[48];
+  resetCountdown(text, sizeof(text), 3701, 100);
+  TEST_ASSERT_EQUAL_STRING("01:00:01", text);
+  resetCountdown(text, sizeof(text), 100 + 4 * 86400 + 3 * 3600 + 12 * 60, 100);
+  TEST_ASSERT_EQUAL_STRING("4d 03h 12m", text);
+  resetCountdown(text, sizeof(text), 101, 100);
+  TEST_ASSERT_EQUAL_STRING("00:00:01", text);
+  resetCountdown(text, sizeof(text), 100, 100);
+  TEST_ASSERT_EQUAL_STRING("Awaiting usage update", text);
+  resetCountdown(text, sizeof(text), 99, 100);
+  TEST_ASSERT_EQUAL_STRING("Awaiting usage update", text);
+  resetCountdown(text, sizeof(text), -1, 100);
+  TEST_ASSERT_EQUAL_STRING("Reset time unavailable", text);
+  resetCountdown(text, sizeof(text), 0, 100);
+  TEST_ASSERT_EQUAL_STRING("Reset time unavailable", text);
+  resetCountdown(text, sizeof(text), 3701, -1);
+  TEST_ASSERT_EQUAL_STRING("Reset time unavailable", text);
+}
+
 void test_monitor_reset_countdown() {
   using ui::monitor::resetPixels;
   TEST_ASSERT_EQUAL(-1, resetPixels(-1, 100, 18000, 16));
@@ -997,6 +1023,7 @@ int main() {
   RUN_TEST(test_keypad_touch_boundaries_and_gaps);
   RUN_TEST(test_monitor_voice_capture_gate);
   RUN_TEST(test_monitor_microphone_level);
+  RUN_TEST(test_monitor_limit_countdown_states);
   RUN_TEST(test_monitor_reset_countdown);
   RUN_TEST(test_recorder_ogg_boundaries_and_corruption);
   RUN_TEST(test_recorder_gate_silence_grace_reset_and_limit);

@@ -184,3 +184,10 @@ to connect to `FNK0104B-MONITOR` and save volume, idle timeout and USB Micro lay
 
 BLE discovery and settings are independent of the Wi-Fi connection to the
 bridge. A successful BLE connection does not prove server connectivity.
+
+## Usage reset countdown
+
+Keep the Wi-Fi bridge connected to receive usage and reset times, including
+when using USB Micro. USB/BLE alone supplies no quota data. At 100% used, the
+central controls become a countdown automatically; no preference is needed.
+Voice controls remain available. See [reset behavior and limitations](monitor-usage-reset.md).

@@ -300,3 +300,12 @@ Configure them in the browser Monitor settings; see
 Monitor 0.8.3 adds separate Solid/Blink/Breathe/Rainbow rear LED patterns for
 working, completion and attention, plus brightness, cycle speed and a
 browser-only preview in BLE Monitor settings. The existing timeout still applies.
+
+## Usage reset countdown (0.8.4)
+
+When either included Codex allowance reaches 100% used, a reset countdown
+replaces the center agent/shortcut area. Both exhausted windows are shown.
+Voice/send controls remain available because quota exhaustion alone does not
+prove those actions are blocked. This needs the Wi-Fi bridge; USB/BLE slot
+status alone contains no quota data. Unknown reset times and expired timers
+never claim restored access. See [behavior and validation](../../docs/monitor-usage-reset.md).

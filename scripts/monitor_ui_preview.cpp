@@ -42,18 +42,23 @@ public:
 };
 int main(int argc,char**argv){
   const std::string base=argc>1?argv[1]:"/tmp/monitor";
-  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full","micro","micro-ptt","micro-voice","micro-six","micro-keys","micro-ble","micro-avatars","micro-avatars-six"}){
+  for(const std::string state:{"idle","active","attention","offline","recording","commands","commands-quiet","status-active","empty","full","micro","micro-ptt","micro-voice","micro-six","micro-keys","micro-ble","micro-avatars","micro-avatars-six","limit-five","limit-week","limit-both","limit-unknown","limit-expired","micro-limit"}){
+    const bool limited = state.rfind("limit-", 0) == 0 || state == "micro-limit";
     const bool micro = state.rfind("micro", 0) == 0;
     Display d;bool active=state=="active"||state=="attention";bool offline=state=="offline";bool recording=state=="recording";bool commands=state=="commands"||state=="commands-quiet";
     d.fillScreen(ui::monitor::kBackground);
-    const int fiveHour=offline?-1:(state=="empty"?0:(state=="full"?100:74));
-    const int weekly=offline?-1:(state=="empty"?0:(state=="full"?100:12));
+    const int fiveHour=limited?(state=="limit-week"?80:0):offline?-1:(state=="empty"?0:(state=="full"?100:74));
+    const int weekly=limited?(state=="limit-week"||state=="limit-both"?0:80):offline?-1:(state=="empty"?0:(state=="full"?100:12));
     ui::monitor::statusBar(d,!offline,-58,offline?"unavailable":"connected",active||state=="status-active"||commands,state=="attention",false,fiveHour,weekly,
         offline?-1:(state=="empty"?0:(state=="full"?16:8)),
         offline?-1:(state=="empty"?0:(state=="full"?24:12)), micro ? "Linked" : nullptr);
     d.setTextColor(ui::monitor::kMuted,ui::monitor::kBackground);
-    d.drawString(micro ? (state=="micro-ble" ? "BLE MICRO / SPEECH TO ORCHESTRATOR" : state=="micro-keys" ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" : "USB MICRO / TAP MICRO FOR KEYS") : offline?"Status HTTP -11":(commands?"Listening for device command":(recording?"Recording Codex message":(active?"ACTIVE AGENTS / QUOTA LEFT":"QUOTA LEFT"))),10,45,1);
-    if(state=="micro-avatars" || state=="micro-avatars-six") {
+    d.drawString(limited ? "INCLUDED ALLOWANCE EXHAUSTED" : micro ? (state=="micro-ble" ? "BLE MICRO / SPEECH TO ORCHESTRATOR" : state=="micro-keys" ? "DESKTOP KEYS / TAP MICRO FOR AGENTS" : "USB MICRO / TAP MICRO FOR KEYS") : offline?"Status HTTP -11":(commands?"Listening for device command":(recording?"Recording Codex message":(active?"ACTIVE AGENTS / QUOTA LEFT":"QUOTA LEFT"))),10,45,1);
+    if(limited) ui::monitor::limitCountdown(d, state=="limit-week"?20:100,
+        state=="limit-week"||state=="limit-both"?100:20,
+        state=="limit-unknown"?-1:state=="limit-expired"?100:7301,
+        4*86400+100,100);
+    else if(state=="micro-avatars" || state=="micro-avatars-six") {
       const ui::avatar::Mood moods[]={ui::avatar::Mood::Thinking,ui::avatar::Mood::Idle,ui::avatar::Mood::NeedsInput,ui::avatar::Mood::Error};
       const uint16_t colors[]={ui::monitor::rgb(48,79,254),0xffff,ui::monitor::rgb(255,109,0),ui::monitor::rgb(255,0,51)};
       for(unsigned i=0;i<(state=="micro-avatars-six"?6u:3u);++i){ui::micro::tile(d,i,colors[i%4],true,i==1,false,true);d.avatar(ui::micro::tileX(i)+34,ui::micro::tileY(i)+6,48,moods[i%4],true);}
