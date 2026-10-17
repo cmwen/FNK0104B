@@ -56,6 +56,13 @@ pio debug -e hello-debug
 `sd` is the serial-only SDIO diagnostic. `file-manager` combines the shared SD, display, and touch support to browse folders, inspect card capacity, and read text or raw file bytes; all card access is read-only. See `apps/17-file-manager/README.md`.
 `photo-frame` displays a full-screen SD slideshow every ten seconds; tap to advance. Sample photos and preparation instructions are in [the photo-frame guide](apps/27-photo-frame/README.md).
 
+The monitor includes an automatic [usage reset countdown](docs/monitor-usage-reset.md)
+when its five-hour or weekly allowance is exhausted. Both windows are shown
+separately and voice controls remain available. Usage requires the local bridge;
+0.8.5+ can keep its connection settings across compatible OTA updates. If an
+older updater reports **Update catalog unavailable**, follow the
+[update-address recovery guide](docs/monitor-ota.md#update-catalog-unavailable).
+
 The monitor also offers optional [idle photos below its live usage bar](docs/monitor-photos.md), browser image preparation/upload, blank mode, and idle timing combined with screen-off settings.
 
 The [photo-frame development journey](docs/photo-frame-journey.md) records the ordered experiments, owner confirmation, monitor integration and remaining physical checks on 11 October 2026.

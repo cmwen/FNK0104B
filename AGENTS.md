@@ -65,3 +65,8 @@ Preserve existing monitor/photo preference keys and older-client field behavior.
 Compiled bridge defaults are only a one-time migration when the record is absent;
 a saved override or explicit clear must always win. Keep normal OTA app-only.
 See `docs/monitor-persistent-settings.md` for migration and evidence limits.
+
+OTA metadata and image requests use the canonical `https://cmwen.dev/FNK0104B/`
+origin. The old `cmwen.github.io` origin redirects and firmware up to 0.8.5
+rejects it. Do not claim that a successful browser request proves device OTA;
+verify redirect/status behavior and record physical recovery separately.

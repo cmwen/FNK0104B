@@ -22,7 +22,7 @@
 namespace monitor_ota {
 namespace {
 constexpr char base[] =
-    "https://cmwen.github.io/FNK0104B/firmware/codex-monitor/";
+    "https://cmwen.dev/FNK0104B/firmware/codex-monitor/";
 constexpr char uuid[] = "4e4b0104-0005-4d20-8f4b-0104b0000001";
 std::atomic<int> pending{0}, workAction{0};
 std::atomic<bool> running{false};
@@ -75,6 +75,7 @@ void hexDigest(const uint8_t* bytes, char* out) {
 }
 struct Http {
   esp_http_client_handle_t handle = nullptr;
+  int status = 0;
   ~Http() {
     if (handle) esp_http_client_cleanup(handle);
   }
@@ -86,11 +87,20 @@ struct Http {
     config.buffer_size = 4096;
     config.buffer_size_tx = 1024;
     config.disable_auto_redirect =
-        true;  // Published files live on this fixed HTTPS origin.
+        true;  // Use the canonical origin; never silently follow a moved catalog.
     handle = esp_http_client_init(&config);
-    return handle && esp_http_client_open(handle, 0) == ESP_OK &&
-           esp_http_client_fetch_headers(handle) >= 0 &&
-           esp_http_client_get_status_code(handle) == 200;
+    if (!handle) { Serial.println("monitor_ota http_error=client_init"); return false; }
+    const esp_err_t result = esp_http_client_open(handle, 0);
+    if (result != ESP_OK) {
+      Serial.printf("monitor_ota http_error=open detail=%s\n", esp_err_to_name(result));
+      return false;
+    }
+    if (esp_http_client_fetch_headers(handle) < 0) {
+      Serial.println("monitor_ota http_error=headers"); return false;
+    }
+    status = esp_http_client_get_status_code(handle);
+    if (status != 200) Serial.printf("monitor_ota http_status=%d\n", status);
+    return status == 200;
   }
 };
 bool modelMatches() {
@@ -128,7 +138,9 @@ bool check() {
   Http http;
   String url = String(base) + "ota.json";
   if (!http.open(url.c_str())) {
-    report("error", "Update catalog unavailable; try again later");
+    report("error", http.status >= 300 && http.status < 400
+        ? "Update address moved; install current firmware over USB"
+        : "Update catalog unavailable; check Wi-Fi/internet and retry");
     return false;
   }
   char json[1025];

@@ -304,14 +304,15 @@ Monitor 0.8.3 adds separate Solid/Blink/Breathe/Rainbow rear LED patterns for
 working, completion and attention, plus brightness, cycle speed and a
 browser-only preview in BLE Monitor settings. The existing timeout still applies.
 
-## Usage reset countdown (0.8.4)
+## Usage reset countdown (0.8.4 and later)
 
 When either included Codex allowance reaches 100% used, a reset countdown
 replaces the center agent/shortcut area. Both exhausted windows are shown.
 Voice/send controls remain available because quota exhaustion alone does not
 prove those actions are blocked. This needs the Wi-Fi bridge; USB/BLE slot
 status alone contains no quota data. Unknown reset times and expired timers
-never claim restored access. See [behavior and validation](../../docs/monitor-usage-reset.md).
+never claim restored access. Both exhausted windows are shown separately;
+there is no additional timer setting. See the [preview, setup and validation](../../docs/monitor-usage-reset.md).
 
 ## Persistent bridge and preferences (0.8.5)
 
@@ -321,3 +322,12 @@ retain them. A local build migrates valid compiled defaults once when no saved
 record exists. Older public-OTA upgrades need one manual bridge entry. Existing
 volume, timeout, layout, microphone, avatar, LED and idle-photo preference keys
 are preserved. See [setup, migration and validation](../../docs/monitor-persistent-settings.md).
+
+## OTA catalog address (0.8.6)
+
+0.8.5 was published, but the old GitHub Pages URL redirects to the custom domain.
+Earlier updaters reject that redirect and can report **Update catalog unavailable**.
+0.8.6 uses the canonical `https://cmwen.dev/FNK0104B/` origin for both metadata
+and firmware and logs HTTP failures more clearly. Install current firmware once
+through USB to recover an affected older board, keeping Erase device unchecked.
+See [recovery and evidence](../../docs/monitor-ota.md#update-catalog-unavailable).

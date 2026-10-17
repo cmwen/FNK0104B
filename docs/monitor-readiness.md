@@ -1,5 +1,16 @@
 # Codex monitor readiness
 
+## OTA catalog address, 2026-10-18
+
+The owner reported **Update catalog unavailable**. Host requests verified
+0.8.5 is published at the custom domain (HTTP 200), while the old firmware URL
+returns HTTP 301, which its updater rejects. 0.8.6 switches to the canonical
+origin for catalog and image requests and adds bounded HTTP diagnostics.
+An affected older board needs a USB install to acquire the fix. Device-side
+HTTP/TLS logs, recovery and successful OTA remain UNKNOWN. See the
+[dated evidence](../test/hardware/monitor-ota-catalog-2026-10-18.md) and
+[usage timer preview and setup](monitor-usage-reset.md).
+
 ## Persistent settings, 2026-10-17
 
 Monitor 0.8.5 moves bridge configuration to NVS and encrypted provisioning.

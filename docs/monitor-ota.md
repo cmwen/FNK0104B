@@ -1,9 +1,39 @@
-# Codex monitor wireless updates (0.7.1+)
+# Codex monitor wireless updates
 
 Monitor 0.7.0 adds app-only HTTPS OTA. Bluetooth carries check/install commands;
 firmware downloads use the board's saved Wi-Fi connection. This works alongside
 USB Micro mode and does not need the local Codex bridge. Updates are manual;
 connecting or checking never installs firmware automatically.
+
+## Update catalog unavailable
+
+Monitor **0.8.5 was published** through firmware CI and GitHub Pages. On
+18 October 2026, the canonical public `ota.json` returned HTTP 200 and version
+0.8.5. However, the URL embedded in firmware up to 0.8.5,
+`https://cmwen.github.io/FNK0104B/firmware/codex-monitor/ota.json`, returned HTTP
+301 to `https://cmwen.dev/FNK0104B/firmware/codex-monitor/ota.json`.
+Those updaters deliberately disable redirects and require HTTP 200, producing
+**Update catalog unavailable; try again later** even though the catalog exists.
+This is an update-address compatibility issue, not evidence that 0.8.5 is missing.
+
+Monitor **0.8.6** uses the canonical custom-domain address directly for both
+catalog and application downloads. TLS, size/hash checks, model compatibility
+and app-only OTA remain in place. HTTP status or connection/header failure is
+logged with `monitor_ota`; a redirected catalog gets an explicit moved-address
+message in 0.8.6+.
+
+An affected older board cannot acquire this address fix through its broken OTA
+path. Install the current monitor once over USB using Device setup or PlatformIO.
+Leave **Erase device unchecked**. The compatible partition layout and speech
+models are unchanged; saved Wi-Fi and preferences remain. Bridge values compiled
+only into older images must be entered once in encrypted connection setup
+unless a local 0.8.5+ build migrated them into NVS first. After recovery, use the
+normal wireless check/install flow below for future versions.
+
+The same generic message can also result from Wi-Fi, DNS, internet or TLS
+failure. The redirect is verified at the public endpoint and in source; the
+owner's exact device-side response has not been captured over serial. See
+[dated evidence and limits](../test/hardware/monitor-ota-catalog-2026-10-18.md).
 
 ## One-time USB migration
 
@@ -48,7 +78,7 @@ partition requires the full USB upload; sending only `firmware.bin` is insuffici
 ## Use wireless updates
 
 1. Keep the board powered. Configure Wi-Fi through Device setup if needed.
-2. Open [Device setup](https://cmwen.github.io/FNK0104B/setup.html#setup) in Chrome
+2. Open [Device setup](https://cmwen.dev/FNK0104B/setup.html#setup) in Chrome
    or Edge, click **Connect to monitor**, and select the board.
 3. Finish dictation or voice chat. Click **Check for update** under Firmware
    updates. The page shows installed/published versions and compatibility.
@@ -137,3 +167,11 @@ The 0.8.4 warning about losing compiled bridge values still applies to the initi
 upgrade from older firmware: public firmware cannot recover those old image-only
 values. Configure once on 0.8.5, then later compatible OTA updates retain them.
 Physical migration and OTA retention await device validation.
+
+## Monitor 0.8.6
+
+Uses the canonical OTA address and adds HTTP-stage/status diagnostics. Includes
+both the automatic usage-reset timer introduced in 0.8.4 and persistent bridge
+configuration from 0.8.5. This address fix requires the USB recovery described
+above on firmware that cannot fetch the redirected catalog. Physical monitor
+OTA completion remains unverified.

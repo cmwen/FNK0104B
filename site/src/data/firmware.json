@@ -114,7 +114,7 @@
   {
     "id": "codex-monitor",
     "title": "Codex monitor",
-    "summary": "Shows Codex limits and agents, wakes on Hi ESP for local commands, and submits VAD-ended voice to a local bridge. Includes secure Web BLE Wi-Fi setup; preserves Wi-Fi storage and supports confirmed HTTPS OTA after a one-time USB migration. Optional idle photos retain the live usage bar, with browser image preparation and configurable idle/screen-off timing.",
+    "summary": "Codex status monitor with automatic usage-reset timers, USB Micro controls, persistent bridge settings and encrypted Bluetooth setup.",
     "readme": "apps/codex-monitor/README.md",
     "installable": true,
     "status": "Implemented"

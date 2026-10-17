@@ -190,4 +190,7 @@ bridge. A successful BLE connection does not prove server connectivity.
 Keep the Wi-Fi bridge connected to receive usage and reset times, including
 when using USB Micro. USB/BLE alone supplies no quota data. At 100% used, the
 central controls become a countdown automatically; no preference is needed.
-Voice controls remain available. See [reset behavior and limitations](monitor-usage-reset.md).
+Voice controls remain available. Both exhausted windows have their own timer.
+Unknown times are labeled; at zero the monitor waits for a new usage report.
+The feature was introduced in 0.8.4 and is included in 0.8.5 and later.
+See the [timer preview, setup and limitations](monitor-usage-reset.md).

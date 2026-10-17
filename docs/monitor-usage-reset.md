@@ -1,4 +1,25 @@
-# Usage reset countdown (monitor 0.8.4)
+# Usage reset countdown (introduced in 0.8.4)
+
+Included in monitor 0.8.5 and later. The countdown is automatic; there is no
+separate setting to turn on.
+
+![Host-rendered usage reset countdown with both allowances exhausted](images/monitor-usage-reset.png)
+
+*Host preview with sample data, not a physical-board capture. Five-hour and
+weekly resets are shown separately because one reset may leave the other limit
+exhausted.*
+
+## Get the timer working
+
+1. Install the current monitor firmware. For the OTA catalog-address issue on
+   0.8.5 and earlier, use [the USB recovery steps](monitor-ota.md#update-catalog-unavailable).
+2. Keep the computer's bridge running and reachable over Wi-Fi. On 0.8.5+,
+   [save the bridge address, port and matching token](monitor-persistent-settings.md)
+   through encrypted Device setup. USB Micro can stay connected at the same time.
+3. When either reported allowance reaches 100% used, the center changes to its
+   reset countdown automatically. Below 100%, normal controls remain visible.
+
+## What the timer means
 
 When the Wi-Fi bridge reports 100% used for the five-hour or weekly Codex
 allowance, the monitor replaces the central agent tiles and direction/command
@@ -48,7 +69,7 @@ Official sources checked 17 October 2026:
 
 ## Validation and limits
 
-Native coverage checks either/both exhausted windows, unknown usage/time,
+The original 0.8.4 checks covered either/both exhausted windows, unknown usage/time,
 hours/days formatting and the reset boundary without assuming recovery.
 Host previews cover five-hour, weekly, both, unknown-time, expired and Micro
 layouts using the shared firmware renderer. `pio test -e native` passed 41

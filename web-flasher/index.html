@@ -245,6 +245,7 @@
           <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
           </div>
           <p id="monitor-ota-status" role="status" aria-live="polite">Connect to your monitor to check its installed version.</p>
+          <p class="field-help">If older firmware reports “Update catalog unavailable”, see <a href="https://github.com/cmwen/FNK0104B/blob/main/docs/monitor-ota.md#update-catalog-unavailable">USB recovery for the moved update address</a>.</p>
           <details class="voice-detail"><summary>First install and compatibility</summary><p>Install monitor 0.7.1 or newer over USB once to enable wireless updates. A 0.7.0 board also needs USB once for its reproducible speech-model baseline. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p></details>
         </div>
           <details class="setup-help desktop-controls" aria-labelledby="desktop-controls-heading">
