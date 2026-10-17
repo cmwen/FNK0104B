@@ -1,13 +1,24 @@
 # Codex monitor readiness
 
+## Attached-board recovery, 2026-10-18
+
+PlatformIO USB recovery from 0.8.3 installed 0.8.6, then 0.8.7. Wi-Fi, the
+bridge connection and sampled preferences survived. Two 0.8.7 catalog requests
+succeeded with Desktop USB active. Earlier 0.8.6 requests with speech loaded
+failed at header fetching with about 6 KiB internal heap. The smaller HTTP
+buffers and richer diagnostics in 0.8.7 have not been verified in that low-heap
+mode. Actual wireless install, interruption and rollback remain UNKNOWN.
+See the [physical recovery record](../test/hardware/monitor-recovery-2026-10-18.md).
+
 ## OTA catalog address, 2026-10-18
 
 The owner reported **Update catalog unavailable**. Host requests verified
 0.8.5 is published at the custom domain (HTTP 200), while the old firmware URL
 returns HTTP 301, which its updater rejects. 0.8.6 switches to the canonical
 origin for catalog and image requests and adds bounded HTTP diagnostics.
-An affected older board needs a USB install to acquire the fix. Device-side
-HTTP/TLS logs, recovery and successful OTA remain UNKNOWN. See the
+An affected older board needs a USB install to acquire the fix. Subsequent
+physical recovery and catalog observations are recorded above; a full wireless
+installation remains UNKNOWN. See the
 [dated evidence](../test/hardware/monitor-ota-catalog-2026-10-18.md) and
 [usage timer preview and setup](monitor-usage-reset.md).
 

@@ -175,3 +175,14 @@ both the automatic usage-reset timer introduced in 0.8.4 and persistent bridge
 configuration from 0.8.5. This address fix requires the USB recovery described
 above on firmware that cannot fetch the redirected catalog. Physical monitor
 OTA completion remains unverified.
+
+## Monitor 0.8.7
+
+Uses 1024-byte RX and 512-byte TX HTTP framing buffers and records transport,
+TLS, status and heap diagnostics if header fetching fails. On the attached board,
+two live catalog checks succeeded with Desktop USB active after USB recovery
+from 0.8.3. Wi-Fi, the bridge and sampled preferences survived recovery. A
+separate header failure with speech initialized and low internal heap is still
+unresolved; the buffer change has not been verified in that mode. This is not
+evidence of a complete wireless installation. See the
+[device record](../test/hardware/monitor-recovery-2026-10-18.md).

@@ -1,0 +1,70 @@
+codex_hid host=idle
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=111
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=11 ms=137989 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid application=status_displayed revision=11
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=122
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=12 ms=150574 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid application=status_displayed revision=12
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34687
+codex_hid host=idle
+monitor_health heap=34687 psram=8318220 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.3 slots=3 avatars=1
+monitor_ota state=checking progress=0 message=Preparing update check; microphone is off
+monitor_stream state=disconnected reason=quiet
+monitor_micro event=repaint ms=161229 transport=1 link=2 revision=12 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_led state=0 timeout_seconds=300 enabled=1
+monitor_micro event=repaint ms=162230 transport=1 link=2 revision=12 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_micro event=repaint ms=163229 transport=1 link=2 revision=12 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=133
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=13 ms=163593 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=35083
+monitor_micro event=repaint ms=164248 transport=1 link=2 revision=12 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_ota state=checking progress=0 message=Checking published monitor firmware
+monitor_micro event=repaint ms=165247 transport=1 link=2 revision=12 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_ota state=error progress=0 message=Update catalog unavailable; try again later
+monitor_led state=2 timeout_seconds=300 enabled=1
+codex_hid application=status_displayed revision=13
+monitor_micro event=repaint ms=165910 transport=1 link=2 revision=13 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_stream state=connected
+monitor_status integration=connected agents=1 first_state=running five_hour_used=4 weekly_used=1
+monitor_micro event=repaint ms=166690 transport=1 link=2 revision=13 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_micro event=repaint ms=167248 transport=1 link=2 revision=13 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34239
+codex_hid host=idle
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34239
+codex_hid host=active
+codex_hid rx report_id=6 bytes=63 reports=144
+codex_hid protocol=decoded method=v.oai.rgbcfg reply_bytes=52
+codex_hid tx=complete report_id=6
+codex_hid protocol=decoded method=v.oai.thstatus reply_bytes=54
+codex_hid status_received revision=14 ms=176286 epoch=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+codex_hid tx=complete report_id=6
+codex_hid application=status_displayed revision=14
+codex_hid protocol=decoded method=device.status reply_bytes=145
+codex_hid tx=complete report_id=6
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34239

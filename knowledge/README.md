@@ -56,3 +56,8 @@ Build/flash/serial remain available through the existing PlatformIO Core CLI:
 
 PlatformIO MCP created runtime logs/state under `.pio-mcp-workspace/`; these are
 local execution artifacts, not hardware knowledge, and must not be committed.
+
+Monitor recovery and catalog evidence from 18 October 2026 is recorded in
+[the dated device record](../test/hardware/monitor-recovery-2026-10-18.md).
+Successful USB-mode catalog checks do not establish speech-mode OTA or a full
+wireless application installation.

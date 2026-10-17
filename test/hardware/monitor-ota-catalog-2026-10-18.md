@@ -43,3 +43,11 @@ The PlatformIO `codex-monitor` 0.8.6 build passed. The packager confirmed versio
 four guide tests passed. The responsive browser smoke check passed after the
 usage timer preview and recovery link were added. These are build/host checks,
 not evidence of a board download or boot.
+
+## Subsequent physical investigation
+
+The owner subsequently attached the 0.8.3 board. USB recovery succeeded; 0.8.6
+still failed while fetching headers with speech initialized. Two 0.8.7 checks
+succeeded with Desktop USB active and more free heap. The initial no-upload
+statement above applies only to the host investigation. See the
+[separate physical record](monitor-recovery-2026-10-18.md) for limits.

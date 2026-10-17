@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <esp_crt_bundle.h>
+#include <esp_heap_caps.h>
 #include <esp_http_client.h>
 #include <esp_ota_ops.h>
 #include <mbedtls/sha256.h>
@@ -84,8 +85,10 @@ struct Http {
     config.url = url;
     config.crt_bundle_attach = esp_crt_bundle_attach;
     config.timeout_ms = 20000;
-    config.buffer_size = 4096;
-    config.buffer_size_tx = 1024;
+    // Bound the HTTP framing buffers. The download loop still streams
+    // through its separate 4 KiB PSRAM buffer.
+    config.buffer_size = 1024;
+    config.buffer_size_tx = 512;
     config.disable_auto_redirect =
         true;  // Use the canonical origin; never silently follow a moved catalog.
     handle = esp_http_client_init(&config);
@@ -95,8 +98,17 @@ struct Http {
       Serial.printf("monitor_ota http_error=open detail=%s\n", esp_err_to_name(result));
       return false;
     }
-    if (esp_http_client_fetch_headers(handle) < 0) {
-      Serial.println("monitor_ota http_error=headers"); return false;
+    const int64_t headers = esp_http_client_fetch_headers(handle);
+    if (headers < 0) {
+      int tlsError = 0, tlsFlags = 0;
+      const esp_err_t tlsResult = esp_http_client_get_and_clear_last_tls_error(
+          handle, &tlsError, &tlsFlags);
+      Serial.printf("monitor_ota http_error=headers result=%lld status=%d errno=%d tls_result=%d tls_error=%d tls_flags=%d heap=%u largest=%u\n",
+          static_cast<long long>(headers), esp_http_client_get_status_code(handle),
+          esp_http_client_get_errno(handle),
+          int(tlsResult), tlsError, tlsFlags, unsigned(ESP.getFreeHeap()),
+          unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)));
+      return false;
     }
     status = esp_http_client_get_status_code(handle);
     if (status != 200) Serial.printf("monitor_ota http_status=%d\n", status);

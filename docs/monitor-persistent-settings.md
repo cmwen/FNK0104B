@@ -89,8 +89,12 @@ Native tests cover migration to a public build, saved overrides, explicit clear,
 corrupt/newer records, storage failures, request validation, token preservation,
 all preference fields and old-client writes. Browser tests cover encrypted-session
 gating, older firmware, secret-free readback, save/clear, invalid inputs and
-secret clearing on failure/disconnect. Physical BLE save/reboot, retention across
-real OTA and live bridge reconnection remain **UNKNOWN** until tested on a board.
+secret clearing on failure/disconnect. On 18 October, USB recovery from 0.8.3
+to 0.8.6 retained Wi-Fi connectivity, a working bridge connection, three slots,
+avatars enabled and a 300-second LED timeout. These are sampled runtime
+observations, not a readback of the secret record or every preference. Physical
+BLE save/reboot and retention across real OTA remain **UNKNOWN**. See the
+[recovery record](../test/hardware/monitor-recovery-2026-10-18.md).
 
 Sources: [Espressif protocomm](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/provisioning/protocomm.html),
 pinned `managed_components/espressif__network_provisioning/include/network_provisioning/manager.h`

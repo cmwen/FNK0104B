@@ -158,3 +158,12 @@ PlatformIO with verified hashes. Diagnostic serial executed every status/pattern
 combination and off. Monitor serial confirmed live Desktop status and default
 60-second shutoff. Physical BLE pattern saving and animation appearance remain
 UNKNOWN; see [device evidence](../test/hardware/led-patterns-2026-10-14.md).
+
+## Monitor recovery and catalog access (2026-10-18)
+
+The attached board was recovered from 0.8.3 through the named PlatformIO monitor
+environment without erasing NVS. 0.8.7 fetched the live catalog twice with
+Desktop USB active; Wi-Fi, the bridge and sampled preferences remained working.
+An earlier speech-loaded header failure remains unresolved. Full wireless
+installation and rollback remain UNKNOWN. See the
+[device evidence](../test/hardware/monitor-recovery-2026-10-18.md).

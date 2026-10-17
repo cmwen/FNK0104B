@@ -331,3 +331,8 @@ Earlier updaters reject that redirect and can report **Update catalog unavailabl
 and firmware and logs HTTP failures more clearly. Install current firmware once
 through USB to recover an affected older board, keeping Erase device unchecked.
 See [recovery and evidence](../../docs/monitor-ota.md#update-catalog-unavailable).
+
+Monitor 0.8.7 bounds HTTP framing buffers and expands OTA header-error
+diagnostics. The attached board passed two catalog checks in Desktop USB mode
+after USB recovery; speech-mode low-heap failures and full wireless installation
+remain unverified. See [the recovery evidence](../../test/hardware/monitor-recovery-2026-10-18.md).

@@ -1,0 +1,52 @@
+monitor_status integration=connected agents=1 first_state=running five_hour_used=30 weekly_used=5
+monitor_micro event=repaint ms=30821 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34399
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34399
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=34399
+monitor_health heap=34399 psram=8318200 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.7 slots=3 avatars=1
+monitor_ota state=checking progress=0 message=Preparing update check; microphone is off
+monitor_stream state=disconnected reason=quiet
+monitor_micro event=repaint ms=45131 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_led state=0 timeout_seconds=300 enabled=1
+monitor_micro event=repaint ms=46132 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_micro event=repaint ms=47150 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_ota state=checking progress=0 message=Checking published monitor firmware
+monitor_micro event=repaint ms=48149 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_ota state=current progress=0 message=Installed firmware is current or newer
+monitor_led state=2 timeout_seconds=300 enabled=1
+monitor_micro event=repaint ms=48881 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_stream state=connected
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_status integration=connected agents=1 first_state=running five_hour_used=31 weekly_used=5
+monitor_micro event=repaint ms=49668 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_micro event=repaint ms=50157 transport=1 link=2 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_micro event=repaint ms=60706 transport=1 link=3 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_ota state=checking progress=0 message=Preparing update check; microphone is off
+monitor_stream state=disconnected reason=quiet
+monitor_ota state=checking progress=0 message=Checking published monitor firmware
+monitor_micro event=repaint ms=86576 transport=1 link=3 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_led state=0 timeout_seconds=300 enabled=1
+monitor_ota state=current progress=0 message=Installed firmware is current or newer
+monitor_led state=2 timeout_seconds=300 enabled=1
+monitor_micro event=repaint ms=87201 transport=1 link=3 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_stream state=connected
+monitor_status integration=connected agents=1 first_state=running five_hour_used=32 weekly_used=5
+monitor_micro event=repaint ms=88065 transport=1 link=3 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_micro event=repaint ms=88584 transport=1 link=3 revision=1 idle=0 awake=1 slots=0:1:304ffe:1.00,1:1:ffffff:1.00,2:1:ffffff:1.00,3:1:ffffff:1.00,4:1:ffffff:1.00,5:1:ffffff:1.00
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_health heap=33971 psram=8317608 wifi=3 status_task=1 voice_task=1 speech=0 speech_reason=starting version=0.8.7 slots=3 avatars=1
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=33971
+m

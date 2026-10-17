@@ -1,0 +1,121 @@
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=6127
+monitor_speech state=wake afe_frames=942 max_inference_us=6550 frame_us=32000 heap=6127 psram=4420564
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=6127
+monitor_speech state=wake afe_frames=1099 max_inference_us=9658 frame_us=32000 heap=6127 psram=4420564
+monitor_health heap=6127 psram=4420564 wifi=3 status_task=1 voice_task=1 speech=1 speech_reason=none version=0.8.6 slots=3 avatars=1
+monitor_ota state=checking progress=0 message=Preparing update check; microphone is off
+monitor_stream state=disconnected reason=quiet
+monitor_speech state=paused reason=usb_micro
+monitor_led state=0 timeout_seconds=300 enabled=1
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=6375
+monitor_ota state=checking progress=0 message=Checking published monitor firmware
+monitor_ota http_error=headers
+monitor_ota state=error progress=0 message=Update catalog unavailable; check Wi-Fi/internet and retry
+monitor_speech state=resumed
+monitor_stream state=connected
+monitor_led state=2 timeout_seconds=300 enabled=1
+monitor_status integration=connected agents=1 first_state=running five_hour_used=22 weekly_used=3
+monitor_speech state=wake afe_frames=1176 max_inference_us=8176 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=1333 max_inference_us=8069 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=1490 max_inference_us=6729 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=1647 max_inference_us=6590 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=1804 max_inference_us=6551 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=1961 max_inference_us=6904 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2118 max_inference_us=6418 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2275 max_inference_us=6662 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2432 max_inference_us=6877 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2589 max_inference_us=6783 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2746 max_inference_us=6537 frame_us=32000 heap=5547 psram=4420304
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=2903 max_inference_us=6960 frame_us=32000 heap=5547 psram=4420304
+monitor_ota state=checking progress=0 message=Preparing update check; microphone is off
+monitor_stream state=disconnected reason=quiet
+monitor_speech state=paused reason=usb_micro
+monitor_ota state=checking progress=0 message=Checking published monitor firmware
+monitor_led state=0 timeout_seconds=300 enabled=1
+monitor_ota http_error=headers
+monitor_ota state=error progress=0 message=Update catalog unavailable; check Wi-Fi/internet and retry
+monitor_speech state=resumed
+monitor_stream state=connected
+monitor_led state=2 timeout_seconds=300 enabled=1
+monitor_audio ready=1 reason=none level=1 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_status integration=connected agents=1 first_state=running five_hour_used=25 weekly_used=4
+monitor_speech state=wake afe_frames=3039 max_inference_us=7834 frame_us=32000 heap=5547 psram=4420092
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3196 max_inference_us=6647 frame_us=32000 heap=5547 psram=4420092
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3353 max_inference_us=6947 frame_us=32000 heap=5547 psram=4420092
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3510 max_inference_us=6695 frame_us=32000 heap=5547 psram=4420092
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3667 max_inference_us=6827 frame_us=32000 heap=5547 psram=4420092
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3824 max_inference_us=7083 frame_us=32000 heap=5547 psram=4420116
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=3981 max_inference_us=7367 frame_us=32000 heap=5547 psram=4420116
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4138 max_inference_us=7164 frame_us=32000 heap=5547 psram=4420328
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4295 max_inference_us=6709 frame_us=32000 heap=5547 psram=4420328
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4452 max_inference_us=6744 frame_us=32000 heap=5547 psram=4420328
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4609 max_inference_us=7056 frame_us=32000 heap=5547 psram=4420328
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4766 max_inference_us=7184 frame_us=32000 heap=5547 psram=4420328
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=4923 max_inference_us=8010 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5080 max_inference_us=6882 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5237 max_inference_us=6827 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5394 max_inference_us=6915 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5551 max_inference_us=6673 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5708 max_inference_us=6767 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=5865 max_inference_us=6737 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6022 max_inference_us=6930 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6179 max_inference_us=7468 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6336 max_inference_us=7162 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6493 max_inference_us=6480 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6650 max_inference_us=6692 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6807 max_inference_us=7415 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=6964 max_inference_us=7040 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7121 max_inference_us=6647 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7278 max_inference_us=6808 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7435 max_inference_us=7783 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7592 max_inference_us=7080 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7749 max_inference_us=6827 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=7906 max_inference_us=7154 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=8063 max_inference_us=7317 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=8220 max_inference_us=7612 frame_us=32000 heap=5547 psram=4420540
+monitor_audio ready=1 reason=none level=0 usb_stream=0 usb_muted=1 usb_dropped=0 heap=5547
+monitor_speech state=wake afe_frames=8377 max_inference_us=6492 frame_us=32000 heap=5547 psram=4420540
