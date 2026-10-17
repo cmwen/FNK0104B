@@ -91,3 +91,15 @@ Astro is pinned to 7.3.5. At implementation time, npm audit still reports an
 unpatched `http-cache-semantics` advisory through Astro. This project produces
 static files for GitHub Pages and has no server-side response cache; reassess
 the dependency before introducing server rendering.
+
+## Setup page layout
+
+Monitor settings keep everyday controls visible and group optional rear LED
+patterns and idle/photo timing in expandable sections. Firmware updates share a
+sidebar with expandable Desktop mapping and photo panels. Wi-Fi and bridge are
+separate form cards under their shared secure connection, stacking on small
+screens. Local bridge launch instructions are expandable.
+
+The browser smoke check verifies both collapsed and expanded settings, aligned
+sidebar placement, full-width form inputs, control spacing and viewport bounds.
+Run it after adding setup controls so new panels cannot create implicit grid rows.

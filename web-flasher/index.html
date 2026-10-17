@@ -142,6 +142,7 @@
           <div id="monitor-support" class="notice" role="status" aria-live="polite"></div>
         </div>
         <p class="setup-limit">Choose FNK0104B-MONITOR in the browser picker. Keep USB connected if you use Desktop controls; OS Bluetooth pairing is unnecessary. These nearby Bluetooth preferences are unauthenticated. Wi-Fi passwords use the protected setup below.</p>
+        </details>
         <div class="monitor-workspace">
           <form id="monitor-settings-form" class="ble-fields" autocomplete="off">
             <h3>1. Choose board controls</h3>
@@ -156,13 +157,21 @@
               <option value="0" selected>Agent numbers (default)</option>
               <option value="1">Robot avatars</option>
             </select>
-            <p id="monitor-appearance-help" class="field-help">Requires monitor 0.7.1 or newer. Avatars replace all agent labels and keep Desktop's status strips. Layout and appearance are independent: use avatars with either 3 slots + directions or 6 agent slots. Robots are randomly assigned per slot at startup and stay stable until reboot; they do not identify threads. Slot positions and shortcuts stay the same. Command keys keep their labels.</p>
+            <p id="monitor-appearance-help" class="field-help">Choose numbers or robot avatars with either layout. Robots represent Desktop slots, keep their status strips and stay the same until reboot. Requires monitor 0.7.1 or newer.</p>
             <label for="monitor-voice">Microphone controls</label>
             <select id="monitor-voice" aria-describedby="monitor-voice-help" disabled>
               <option value="0" selected>Hold to talk (default)</option>
               <option value="1">Hold to talk + Voice toggle</option>
             </select>
             <p id="monitor-voice-help" class="field-help" aria-live="polite">Connect to monitor settings with firmware 0.6.3 or newer. A disabled selector means microphone settings are unavailable through this connection; it does not turn off the board’s Hold to talk button.</p>
+            <label for="monitor-volume">Alert volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
+            <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
+            <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
+            <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
+            <p class="field-help">The screen stays awake during active work or open board audio. Once idle, touch wakes it after the selected timeout.</p>
+            <details class="settings-group">
+              <summary>Rear status LED and patterns</summary>
+              <div class="settings-fields">
             <label for="monitor-led">Rear status LED</label>
             <select id="monitor-led" aria-describedby="monitor-led-help" disabled>
               <option value="1" selected>Enabled (default)</option>
@@ -206,11 +215,11 @@
               <button id="monitor-led-preview-button" type="button">Preview for 10 seconds</button>
             </div>
             <p class="field-help">Preview stays in the browser. Save board settings to apply the patterns to the rear LED.</p>
-            <label for="monitor-volume">Alert volume <output id="monitor-volume-value" for="monitor-volume">50%</output></label>
-            <input id="monitor-volume" type="range" min="0" max="100" value="50" disabled>
-            <label for="monitor-dim-timeout">Idle screen timeout (minutes)</label>
-            <input id="monitor-dim-timeout" type="number" min="1" max="120" value="30" required disabled>
-            <p class="field-help">The screen stays awake during active work or open board audio. Once idle, touch wakes it after the selected timeout.</p>
+              </div>
+            </details>
+            <details class="settings-group">
+              <summary>Idle display and photo timing</summary>
+              <div class="settings-fields">
             <label for="monitor-idle-mode">When idle</label>
             <select id="monitor-idle-mode" disabled>
               <option value="0">Keep the normal monitor</option>
@@ -222,26 +231,25 @@
             <label for="monitor-photo-interval">Change photo every (seconds)</label>
             <input id="monitor-photo-interval" type="number" min="5" max="3600" value="10" disabled>
             <p class="field-help">Requires monitor 0.8.0. The usage bar stays live. Activity or touch restores the monitor. Screen-off still counts from the last activity, so choose an idle delay shorter than its timeout.</p>
+              </div>
+            </details>
             <button id="monitor-save" class="cta" type="submit" disabled>Save board settings</button>
           </form>
-          <div class="setup-help photo-manager" aria-labelledby="monitor-photos-heading">
-            <h3 id="monitor-photos-heading">Photos on the SD card</h3>
-            <p>Choose JPEG, PNG or WebP images. This browser crops and resizes them to the photo area; the preview shows what will appear below the usage bar. Up to eight photos are stored on the board’s SD card. Finish voice or firmware-update activity before uploading.</p>
-            <input id="monitor-photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" disabled>
-            <canvas id="monitor-photo-preview" width="320" height="196" hidden aria-label="Photo preview"></canvas>
-            <p id="monitor-photo-description" class="field-help"></p>
-            <div class="photo-actions">
-            <button id="monitor-photo-upload" class="cta" type="button" disabled>Upload photo</button>
-            <button id="monitor-photo-cancel" type="button" disabled>Cancel upload</button>
-            <button id="monitor-photo-refresh" type="button" disabled>Refresh photos</button>
-            </div>
-            <label for="monitor-photo-list">Stored photos</label>
-            <select id="monitor-photo-list" disabled></select>
-            <button id="monitor-photo-delete" type="button" disabled>Delete selected photo</button>
-            <p id="monitor-photo-status" role="status" aria-live="polite">Connect to monitor 0.8.0 or newer to manage photos.</p>
+          <div class="monitor-sidebar">
+        <div class="setup-help" aria-labelledby="monitor-ota-heading">
+          <h3 id="monitor-ota-heading">Firmware updates</h3>
+          <p>Updates download over Wi-Fi. Bluetooth starts the update and shows progress. Finish voice activity and keep power connected until the board restarts.</p>
+          <p>Monitor 0.8.5 keeps saved bridge details, Wi-Fi and board preferences across public OTA updates. On older firmware, compiled bridge details must be entered once in connection setup after updating.</p>
+          <div class="monitor-ota-actions">
+          <button id="monitor-ota-check" class="cta" type="button" disabled>Check for update</button>
+          <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
           </div>
-          <aside class="desktop-controls" aria-labelledby="desktop-controls-heading">
-            <h3 id="desktop-controls-heading">2. Map the keys in Desktop</h3>
+          <p id="monitor-ota-status" role="status" aria-live="polite">Connect to your monitor to check its installed version.</p>
+          <details class="voice-detail"><summary>First install and compatibility</summary><p>Install monitor 0.7.1 or newer over USB once to enable wireless updates. A 0.7.0 board also needs USB once for its reproducible speech-model baseline. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p></details>
+        </div>
+          <details class="setup-help desktop-controls" aria-labelledby="desktop-controls-heading">
+            <summary><h3 id="desktop-controls-heading">2. Map the keys in Desktop</h3></summary>
+            <div class="panel-content">
             <div class="control-preview" aria-label="USB board microphone controls">
               <span><b>Hold to talk</b><small>Hold: mic on<br>Release: mic off</small></span>
               <span><b>Voice</b><small>Tap: mic on/off<br>Optional setup</small></span>
@@ -263,19 +271,30 @@
               <p>Hold to talk uses a strict hold/release audio gate. Desktop's double-tap dictation gesture will not keep this board's audio open after release; use the separate Voice button for continuous conversation.</p>
             </details>
             <p><a href="https://learn.chatgpt.com/docs/features/codex-micro">Official microphone settings guide ↗</a> · <a href="monitor/#custom-actions">Other custom actions</a></p>
-          </aside>
+            </div>
+          </details>
+          <details class="setup-help photo-manager" aria-labelledby="monitor-photos-heading">
+            <summary><h3 id="monitor-photos-heading">Photos on the SD card</h3></summary>
+            <div class="panel-content">
+            <p>Choose JPEG, PNG or WebP images. This browser crops and resizes them to the photo area; the preview shows what will appear below the usage bar. Up to eight photos are stored on the board’s SD card. Finish voice or firmware-update activity before uploading.</p>
+            <input id="monitor-photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" disabled>
+            <canvas id="monitor-photo-preview" width="320" height="196" hidden aria-label="Photo preview"></canvas>
+            <p id="monitor-photo-description" class="field-help"></p>
+            <div class="photo-actions">
+            <button id="monitor-photo-upload" class="cta" type="button" disabled>Upload photo</button>
+            <button id="monitor-photo-cancel" type="button" disabled>Cancel upload</button>
+            <button id="monitor-photo-refresh" type="button" disabled>Refresh photos</button>
+            </div>
+            <label for="monitor-photo-list">Stored photos</label>
+            <select id="monitor-photo-list" disabled></select>
+            <button id="monitor-photo-delete" type="button" disabled>Delete selected photo</button>
+            <p id="monitor-photo-status" role="status" aria-live="polite">Connect to monitor 0.8.0 or newer to manage photos.</p>
+            </div>
+          </details>
+          </div>
         </div>
         <div id="monitor-status" class="flash-status" role="status" aria-live="polite" hidden></div>
-        <div class="setup-help" aria-labelledby="monitor-ota-heading">
-          <h3 id="monitor-ota-heading">Firmware updates</h3>
-          <p>Connect to monitor settings above, then check for an update. Bluetooth controls the update; the board downloads firmware over Wi-Fi. Finish voice activity first. The microphone stays off while checking and installing. Keep power connected until the board restarts.</p>
-          <p>Monitor 0.8.5 keeps saved bridge details, Wi-Fi and board preferences across public OTA updates. On older firmware, compiled bridge details must be entered once in connection setup after updating.</p>
-          <div class="monitor-ota-actions">
-          <button id="monitor-ota-check" class="cta" type="button" disabled>Check for update</button>
-          <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
-          </div>
-          <p id="monitor-ota-status" role="status" aria-live="polite">Install monitor 0.7.1 or newer over USB once to enable wireless updates. A 0.7.0 board also needs USB once for its reproducible speech-model baseline. This migration keeps saved Wi-Fi and board preferences, moves speech models and replaces old firmware/filesystem data. Keep “Erase device” unchecked to preserve settings. Model or partition changes still require USB.</p>
-        </div>
+
       </section>
 
       <section class="installer ble-setup" aria-labelledby="ble-heading">
@@ -283,12 +302,15 @@
         <h2 id="ble-heading">Set up Wi-Fi</h2>
         <p class="ble-intro">The monitor opens setup when no Wi-Fi is saved. To change networks, hold its Wi-Fi indicator for three seconds. Read the 12-character code on the board, then connect below. The standalone <strong>Wi-Fi over BLE</strong> firmware also works.</p>
         <div id="ble-support" class="notice" role="status"></div>
-        <div class="ble-fields">
+        <div class="ble-fields connection-code">
           <label for="ble-pop">Code shown on board</label>
           <input id="ble-pop" type="text" maxlength="12" minlength="12" pattern="[A-Fa-f0-9]{12}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="12-character code">
           <button id="ble-connect" class="cta" type="button">Connect to board</button>
         </div>
+        <div class="connection-workspace">
         <form id="ble-wifi-form" class="ble-fields" autocomplete="off">
+          <h3>Wi-Fi network</h3>
+          <p class="field-help">Save a 2.4 GHz network. The monitor restarts after connecting; open setup again if you also need to configure the bridge.</p>
           <label for="ble-ssid">2.4 GHz Wi-Fi name (SSID)</label>
           <input id="ble-ssid" type="text" required autocomplete="off" disabled>
           <label for="ble-password">Wi-Fi password</label>
@@ -309,6 +331,7 @@
           <button id="bridge-clear" type="button" disabled>Remove saved bridge and restart</button>
           <p id="bridge-status" role="status" aria-live="polite">Connect securely to configure the bridge. Saved bridge details, Wi-Fi and monitor preferences survive compatible OTA updates.</p>
         </form>
+        </div>
         <div id="ble-status" class="flash-status" role="status" aria-live="polite" hidden></div>
         <p class="data-note"><span aria-hidden="true">ⓘ</span> Check that this is the trusted HTTPS setup page. The device name alone does not prove identity. Enter the code from your own board and wait for “Connected securely” before entering a password. The code authenticates an encrypted provisioning session; this page does not save your password. The monitor returns automatically after setup.</p>
       </section>
@@ -317,6 +340,8 @@
         <p class="eyebrow">For the Codex monitor</p>
         <h2 id="server-heading">Run the local server</h2>
         <p class="ble-intro">The board polls a Python bridge on your computer over Wi-Fi. This website handles Bluetooth settings; the bridge supplies live Codex status and usage. Keep the board and server on a network where they can reach each other.</p>
+        <details class="setup-help server-guide">
+          <summary>Bridge launch instructions</summary>
         <ol class="server-steps">
           <li><strong>Save Wi-Fi on the board.</strong> Use the Wi-Fi setup section above if needed. The monitor reuses those saved credentials.</li>
           <li><strong>Set the bridge address and key.</strong> Use the encrypted <strong>Monitor bridge</strong> form above to save your computer’s LAN address, port (usually <code>8765</code>) and a generated private token on the board. Configure the same token on the computer using <code>MONITOR_TOKEN</code> or the ignored local <code>monitor_secrets.h</code>.</li>

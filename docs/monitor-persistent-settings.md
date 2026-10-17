@@ -13,7 +13,7 @@ re-entered. No partition, model, bootloader or security-setting changes are made
 3. Open [Device setup](https://cmwen.github.io/FNK0104B/setup.html#setup) in Chrome
    or Edge, enter that code in the Wi-Fi/connection setup section and connect to
    `FNK0104B-SETUP`. Wait for **Connected securely**.
-4. In **Monitor bridge**, enter the computer's LAN IPv4 address or hostname,
+4. In the **Monitor bridge** card beside Wi-Fi (below it on smaller screens), enter the computer's LAN IPv4 address or hostname,
    port (usually 8765), and the same token used by the bridge on the computer.
    Enter only the host, without `http://`, a port suffix or a URL path.
 5. Choose **Save bridge and restart**. The board saves the configuration and

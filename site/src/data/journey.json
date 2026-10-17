@@ -1,5 +1,20 @@
 [
   {
+    "timestamp": "2026-10-18T00:06:20+11:00",
+    "sha": null,
+    "title": "Making room for a growing setup",
+    "paragraphs": [
+      "The setup page had grown alongside the monitor: microphone mappings, LED patterns, photos and a saved bridge connection each brought more controls. Showing every detail at once made ordinary settings harder to reach, while the added panels left awkward gaps.",
+      "Everyday controls remained visible. Optional settings and longer instructions could be opened when needed, updates sat alongside the main controls, and Wi-Fi and bridge configuration became separate cards under the same secure connection. The page could accommodate the monitor’s options without presenting them all as one long form."
+    ],
+    "links": [
+      {
+        "label": "Device setup guide",
+        "path": "docs/monitor-setup.md"
+      }
+    ]
+  },
+  {
     "timestamp": "2026-10-17T23:53:40+11:00",
     "sha": "40cf382",
     "title": "Updates could keep the board personal",

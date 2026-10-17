@@ -56,17 +56,33 @@ try {
  await page.getByRole('heading',{name:'Photos on the SD card'}).waitFor();
  await page.getByRole('heading',{name:'Firmware updates'}).waitFor();
  assert.equal(await page.locator('#monitor-voice option[value="1"]').textContent(),'Hold to talk + Voice toggle');
+ // Additional panels must stay in the sidebar instead of creating a second grid row.
+ assert.equal(await page.locator('.monitor-workspace > *').count(),2);
+ const primary=await page.locator('#monitor-settings-form').boundingBox();
+ const sidebar=await page.locator('.monitor-sidebar').boundingBox();
+ assert.ok(Math.abs(primary.y-sidebar.y)<2,'Settings and sidebar must start together');
+ assert.ok(primary.height<1300,'Default settings must keep optional controls collapsed');
+ assert.equal(await page.locator('.server-guide').evaluate(n=>n.open),false);
  // Settings controls and help must stay vertically ordered at every supported width.
  for (const width of [1440, 768, 390]) {
   await page.setViewportSize({width,height:1000});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Setup overflow: ${width}`);
+  for(const group of await page.locator('#monitor-settings-form .settings-group').all()) {
+   if(!await group.evaluate(n=>n.open)) await group.locator('summary').click();
+  }
   const controls=page.locator('#monitor-settings-form');
-  const boxes=await controls.locator(':scope > *').evaluateAll(nodes=>nodes.map(n=>{
-   const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right};
-  }));
-  for(let i=1;i<boxes.length;i++)assert.ok(boxes[i].top>=boxes[i-1].bottom,`Settings overlap: ${width}, field ${i}`);
-  const formBox=await controls.boundingBox();
-  for(const box of boxes)assert.ok(box.left>=formBox.x && box.right<=formBox.x+formBox.width+1,`Control escapes form: ${width}`);
+  for(const form of [controls,page.locator('#bridge-settings-form'),page.locator('#ble-wifi-form')]) {
+   const boxes=await form.locator('label,input,select,button,.field-help,summary').evaluateAll(nodes=>
+    nodes.filter(n=>n.getClientRects().length).map(n=>{
+     const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right};
+    }));
+   for(let i=1;i<boxes.length;i++)assert.ok(boxes[i].top>=boxes[i-1].bottom-1,`Form overlap: ${width}, field ${i}`);
+   const formBox=await form.boundingBox();
+   for(const box of boxes)assert.ok(box.left>=formBox.x && box.right<=formBox.x+formBox.width+1,`Control escapes form: ${width}`);
+   const inputs=await form.locator('input,select').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect().width));
+   for(const inputWidth of inputs)assert.ok(inputWidth>=formBox.width-50,`Input squeezed into a grid cell: ${width}`);
+  }
+  for(const group of await page.locator('#monitor-settings-form .settings-group').all()) await group.locator('summary').click();
   await page.getByRole('heading',{name:'2. Map the keys in Desktop'}).waitFor();
   if(width!==768)await page.locator('[aria-labelledby="monitor-heading"]').screenshot({path:new URL(`setup-${width}.png`,captures).pathname});
  }
