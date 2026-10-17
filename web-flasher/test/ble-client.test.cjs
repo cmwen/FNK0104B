@@ -5,7 +5,7 @@ const { runInNewContext } = require('node:vm');
 const source = readFileSync(`${__dirname}/../photo-client.js`, 'utf8').replace(/^export /gm, '') + '\n' +
   readFileSync(`${__dirname}/../ble-client.js`, 'utf8').replace(/^import .*;\n/gm, '');
 
-function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ota = false, photos = false, failPhotoChunk = false } = {}) {
+function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ota = false, photos = false, failPhotoChunk = false, bridge = false, failBridge = false } = {}) {
   let packet = Uint8Array.from(settingsPacket);
   const timers = [];
   const otaWrites = [];
@@ -57,10 +57,14 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     return elements.get(id);
   }
   let client;
+  let savedBridge = {host: "old.local", port: 8765, has_token: true};
+  const bridgeWrites = [];
+  let bridgeReply;
   class ESPProvisioner {
     constructor() {
       client = this;
       this.sent = 0;
+      this.endpoints = new Map(bridge ? [["monitor-bridge", {}]] : []);
       this.isConnected = false;
       this.device = { addEventListener: (_, fn) => { this.onDisconnect = fn; },
         gatt: { disconnect: () => this.disconnect() } };
@@ -72,6 +76,16 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     }
     async disconnect() { this.isConnected = false; this.onDisconnect?.(); }
     async sendCredentials() { this.sent++; }
+    async writeValueToEndpoint(name, bytes) {
+      assert.equal(name, 'monitor-bridge');
+      const request = JSON.parse(new TextDecoder().decode(bytes));
+      bridgeWrites.push(request);
+      if (request.op === 'save') savedBridge = {host:request.host, port:request.port,
+        has_token:request.token ? true : savedBridge.has_token};
+      if (request.op === 'clear') savedBridge = {host:'', port:8765, has_token:false};
+      bridgeReply = {...savedBridge, ok:!failBridge || request.op === "read"};
+    }
+    async readValueFromEndpoint() { return new TextEncoder().encode(JSON.stringify(bridgeReply)); }
   }
   runInNewContext(source, {
     ESPProvisioner, Security1: class {}, TextEncoder, TextDecoder, Error,
@@ -104,7 +118,9 @@ function setup({ rejectHandshake = false, settingsPacket = [2, 50, 30, 0, 3], ot
     }; } } },
   });
   element('#ble-pop').value = '012345ABCDEF';
-  return { element, writes, otaWrites, photoWrites,
+  return { element, writes, otaWrites, photoWrites, bridgeWrites,
+    saveBridge: () => element('#bridge-settings-form').listeners.submit({preventDefault(){}}),
+    clearBridge: () => element('#bridge-clear').listeners.click(),
     setUpdate: value => { update={...update,...value}; },
     poll: async () => { const fn=timers.shift(); if(fn) { fn(); await new Promise(resolve => setImmediate(resolve)); } },
     checkOta: () => element('#monitor-ota-check').listeners.click(),
@@ -347,4 +363,73 @@ test('old LED clients keep animation controls unavailable', async () => {
   assert.equal(app.element('#monitor-led-brightness').disabled, true);
   await app.saveMonitor();
   assert.equal(app.writes[0].length, 10);
+});
+
+
+test('bridge controls require successful proof and supported firmware', async () => {
+  const wrongProof = setup({bridge:true, rejectHandshake:true});
+  await wrongProof.connect();
+  assert.equal(wrongProof.element('#bridge-save').disabled, true);
+  await wrongProof.saveBridge();
+  assert.equal(wrongProof.bridgeWrites.length, 0);
+  const oldFirmware = setup();
+  await oldFirmware.connect();
+  assert.equal(oldFirmware.element('#bridge-save').disabled, true);
+  assert.equal(oldFirmware.element('#ble-send').disabled, false);
+});
+
+test('bridge readback hides token; empty input preserves it on save', async () => {
+  const app = setup({bridge:true});
+  await app.connect();
+  assert.deepEqual(app.bridgeWrites[0], {op:'read'});
+  assert.equal(app.element('#bridge-host').value, 'old.local');
+  assert.equal(app.element('#bridge-token').value, '');
+  app.element('#bridge-host').value = 'new.local';
+  app.element('#bridge-port').value = '1234';
+  await app.saveBridge();
+  assert.deepEqual(app.bridgeWrites.at(-1), {op:'save',host:'new.local',port:1234});
+  assert.equal(app.element('#bridge-token').value, '');
+  assert.equal(app.element('#bridge-save').disabled, true);
+  assert.match(app.element('#bridge-status').textContent, /restarting/);
+});
+
+test('bridge token is submitted only on encrypted session and cleared from form', async () => {
+  const app = setup({bridge:true});
+  await app.connect();
+  app.element('#bridge-token').value = 'new-private-key';
+  await app.saveBridge();
+  assert.equal(app.bridgeWrites.at(-1).token, 'new-private-key');
+  assert.equal(app.element('#bridge-token').value, '');
+  assert.ok(!app.element('#bridge-status').textContent.includes('new-private-key'));
+});
+
+test('bridge rejects URL/header inputs and clears secrets on failure or disconnect', async () => {
+  const app = setup({bridge:true, failBridge:true});
+  await app.connect();
+  app.element('#bridge-host').value = 'http://wrong/';
+  await app.saveBridge();
+  assert.equal(app.bridgeWrites.length, 1);
+  app.element('#bridge-host').value = 'pc.local';
+  app.element('#bridge-port').value = '0';
+  await app.saveBridge(); assert.equal(app.bridgeWrites.length, 1);
+  app.element('#bridge-port').value = '8765';
+  app.element('#bridge-token').value = 'key\r\ninjected';
+  await app.saveBridge(); assert.equal(app.bridgeWrites.length, 1);
+  app.element('#bridge-token').value = 'private-test';
+  await app.saveBridge();
+  assert.equal(app.element('#bridge-token').value, '');
+  assert.ok(!app.element('#bridge-status').textContent.includes('private-test'));
+  app.element('#bridge-token').value = 'new-secret';
+  await app.client().disconnect();
+  assert.equal(app.element('#bridge-token').value, '');
+  assert.equal(app.element('#bridge-save').disabled, true);
+});
+
+test('bridge removal is explicit and closes controls until reconnect', async () => {
+  const app = setup({bridge:true});
+  await app.connect();
+  await app.clearBridge();
+  assert.deepEqual(app.bridgeWrites.at(-1), {op:'clear'});
+  assert.equal(app.element('#bridge-save').disabled, true);
+  assert.match(app.element('#bridge-status').textContent, /removed/);
 });

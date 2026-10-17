@@ -25,11 +25,10 @@ signed-in Codex session running. If its socket is elsewhere, set
 automatically provide this socket inside WSL.
 
 Connect the board to 2.4 GHz Wi-Fi on a network that can reach the computer.
-Use **Device setup → Set up Wi-Fi** after installing **Wi-Fi over BLE** firmware
-if credentials have not been saved. That firmware shows a setup code and
-advertises `FNK0104B-SETUP`. If credentials already exist, use the `connectivity`
-firmware's Wi-Fi screen to change networks. The monitor reuses saved credentials;
-a normal upload preserves NVS.
+Use **Device setup → Set up Wi-Fi** when credentials have not been saved.
+The monitor shows a setup code and advertises `FNK0104B-SETUP`. Hold its Wi-Fi
+indicator for three seconds to reopen setup. The monitor reuses saved credentials;
+a normal compatible upload preserves NVS.
 
 Find the computer's LAN IPv4 address in its network settings (`ipconfig` on
 Windows). Reserve it in your router if possible. The examples below use
@@ -54,12 +53,13 @@ Copy the generated key into the ignored header. Example values:
 #define MONITOR_SERVER_TOKEN "paste-your-generated-key-here"
 ```
 
-Do not commit this header. These values are compiled into the monitor firmware;
-Web BLE changes alert volume, idle screen timeout the USB Micro layout (three slots plus directions, or six slots), and the optional
-separate Voice button. Desktop key actions are configured in Desktop. A public
-GitHub Pages monitor build has no private bridge host/key. Use your locally
-configured build for the real bridge. Changing host, port or key requires a new
-build/upload.
+Do not commit this header. The computer's launcher can still read its port/key.
+With monitor 0.8.5, configure the board using **Device setup → Monitor bridge**
+in the encrypted connection setup session. The host, port and token are saved on
+the board and survive compatible public OTA updates. The header is now an optional
+one-time migration input for local firmware builds; saved board values take priority.
+Changing the bridge no longer needs a build/upload. See the
+[persistent configuration walkthrough](monitor-persistent-settings.md).
 
 ## 3. Start the bridge
 
@@ -111,7 +111,7 @@ netsh interface portproxy add v4tov4 listenaddress=$boardBridgeLanAddress listen
 New-NetFirewallRule -Name "FNK0104B-Bridge" -DisplayName "FNK0104B monitor bridge" -Direction Inbound -Action Allow -Protocol TCP -LocalAddress $boardBridgeLanAddress -LocalPort 8765 -RemoteAddress LocalSubnet -Profile Private
 ```
 
-The board header still uses the **Windows LAN address**. Check forwarding with
+The board’s saved bridge host uses the **Windows LAN address**. Check forwarding with
 `netsh interface portproxy show all`; update it if WSL's address changes after a
 restart. Keep the firewall rule scoped to your private LAN. With mirrored
 networking, LAN access may work directly, but Windows/Hyper-V firewall rules

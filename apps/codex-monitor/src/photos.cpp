@@ -1,4 +1,5 @@
 #include "monitor_photos.hpp"
+#include "monitor_configuration.hpp"
 #include <fnk0104b/monitor_photos.hpp>
 #include <Arduino.h>
 #include <atomic>
@@ -76,8 +77,8 @@ void process(const uint8_t* p, size_t size) {
   if (p[0] == 10) {
     ui::photos::Settings next;
     if (!ui::photos::decode(p + 3, size - 3, next)) return;
+    if (!monitor_config::savePhotos(*prefs, next)) { report("settings_storage_failed"); return; }
     portENTER_CRITICAL(&mux); config = next; portEXIT_CRITICAL(&mux);
-    prefs->putUChar("idleMode", next.mode); prefs->putUShort("photoDelay", next.delay); prefs->putUShort("photoInterval", next.interval);
     clearFrame();
     if (idle && next.mode == 2) rescan();
     dirty = true;
@@ -125,10 +126,7 @@ void startLoad() {
 }
 void begin(Preferences& preferences) {
   prefs = &preferences;
-  config = {prefs->getUChar("idleMode", 0), prefs->getUShort("photoDelay", 60), prefs->getUShort("photoInterval", 10)};
-  uint8_t bytes[] = {1, config.mode, uint8_t(config.delay), uint8_t(config.delay >> 8), uint8_t(config.interval), uint8_t(config.interval >> 8)};
-  ui::photos::Settings validated;
-  if (!ui::photos::decode(bytes, 6, validated)) config = {};
+  config = monitor_config::loadPhotos(*prefs);
 }
 void attach(BLEService* service) {
   auto* c = service->createCharacteristic(configUuid, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);

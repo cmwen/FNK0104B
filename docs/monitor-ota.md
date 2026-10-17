@@ -56,11 +56,12 @@ partition requires the full USB upload; sending only `firmware.bin` is insuffici
    Keep power connected while it downloads and restarts. Reconnect to verify
    the installed version. Bluetooth disconnection alone does not prove success.
 
-Wireless updates install the public CI monitor build. Saved Wi-Fi and board
-preferences remain in NVS, but a private bridge host/key compiled into a custom
-firmware is not retained. If you depend on that custom local bridge, build and
-install your customized firmware over USB instead. USB Desktop mode needs no
-private bridge configuration.
+Wireless updates install the public CI monitor build. On monitor 0.8.5+, bridge
+host/port/token and all saved board preferences persist alongside Wi-Fi in NVS.
+When upgrading from 0.8.4 or earlier, bridge details that existed only in compiled
+firmware must be entered once in encrypted Device setup after the update. A local
+0.8.5 build can migrate valid compiled values before later OTA updates. See
+[persistent configuration and migration](monitor-persistent-settings.md).
 
 The board microphone is off during checks and installation and stays closed
 when work finishes. Normal Hold to talk/Voice controls resume afterward. Existing
@@ -127,3 +128,12 @@ models or saved preferences. It is intended for app-only OTA from a compatible
 Wi-Fi bridge configuration; the public OTA build does not include or preserve a
 custom compiled bridge host/key. USB Micro controls remain available without it.
 Physical monitor OTA installation remains unverified until exercised.
+
+## Monitor 0.8.5
+
+Bridge configuration moves to persistent storage and encrypted connection setup;
+existing preference keys remain compatible. No partitions or speech models change.
+The 0.8.4 warning about losing compiled bridge values still applies to the initial
+upgrade from older firmware: public firmware cannot recover those old image-only
+values. Configure once on 0.8.5, then later compatible OTA updates retain them.
+Physical migration and OTA retention await device validation.

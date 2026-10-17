@@ -13,6 +13,71 @@ const passwordInput = document.querySelector("#ble-password");
 const sendButton = document.querySelector("#ble-send");
 const status = document.querySelector("#ble-status");
 
+const bridgeForm = document.querySelector('#bridge-settings-form');
+const bridgeHost = document.querySelector('#bridge-host');
+const bridgePort = document.querySelector('#bridge-port');
+const bridgeToken = document.querySelector('#bridge-token');
+const bridgeSave = document.querySelector('#bridge-save');
+const bridgeClear = document.querySelector('#bridge-clear');
+const bridgeStatus = document.querySelector('#bridge-status');
+let bridgeAvailable = false;
+function bridgeControls() {
+  const disabled = !secureSession || !bridgeAvailable || busy;
+  for (const element of [bridgeHost, bridgePort, bridgeToken, bridgeSave, bridgeClear]) element.disabled = disabled;
+}
+async function bridgeRequest(request) {
+  await provisioner.writeValueToEndpoint('monitor-bridge', encoder.encode(JSON.stringify(request)));
+  const response = JSON.parse(new TextDecoder().decode(await provisioner.readValueFromEndpoint('monitor-bridge')));
+  if (response.ok !== true) throw new Error(response.error || 'Bridge configuration was not accepted');
+  return response;
+}
+async function readBridge() {
+  bridgeAvailable = Boolean(provisioner.endpoints?.has('monitor-bridge'));
+  if (!bridgeAvailable) {
+    bridgeStatus.textContent = 'Bridge configuration requires monitor 0.8.5 or newer.';
+    return;
+  }
+  const response = await bridgeRequest({op: 'read'});
+  bridgeHost.value = response.host || ''; bridgePort.value = String(response.port);
+  bridgeToken.value = '';
+  bridgeStatus.textContent = response.host
+    ? `Saved bridge: ${response.host}:${response.port}. ${response.has_token ? 'An access token is saved.' : 'No access token is saved.'}`
+    : 'No bridge configured. Enter your computer’s address and matching access token.';
+}
+async function saveBridge(clear = false) {
+  if (busy || !secureSession || !bridgeAvailable || !provisioner?.isConnected) return;
+  let request = {op: 'clear'};
+  if (!clear) {
+    const host = bridgeHost.value.trim(), port = Number(bridgePort.value), token = bridgeToken.value;
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,125}[a-zA-Z0-9])?$/.test(host) ||
+        host.split('.').some(label => !label || label.startsWith('-') || label.endsWith('-')) ||
+        !Number.isInteger(port) || port < 1 || port > 65535 ||
+        (token && !/^[\x21-\x7e]{1,128}$/.test(token))) {
+      bridgeStatus.textContent = 'Enter a hostname or IPv4 address (no http:// or path), port 1–65535 and a token up to 128 printable characters without spaces.';
+      return;
+    }
+    request = {op: 'save', host, port};
+    if (token) request.token = token;
+  }
+  busy = true; bridgeControls(); setConnected(false);
+  bridgeStatus.textContent = 'Saving bridge configuration…';
+  try {
+    const response = await bridgeRequest(request);
+    if ((!clear && (response.host !== request.host || response.port !== request.port)) ||
+        (clear && (response.host || response.has_token))) throw new Error('Saved bridge did not match');
+    bridgeStatus.textContent = clear ? 'Bridge removed. The monitor is restarting; Wi-Fi and other preferences are kept.'
+      : 'Bridge saved on the board. The monitor is restarting; reconnect to monitor settings afterward.';
+    secureSession = false; wifiConfirmed = true; popInput.value = '';
+  } catch {
+    // Never echo request bodies or library errors that could contain a key.
+    bridgeStatus.textContent = 'Could not save the bridge. Reconnect using the board’s code and retry.';
+  } finally {
+    bridgeToken.value = ''; busy = false; bridgeControls(); setConnected(secureSession);
+  }
+}
+bridgeForm.addEventListener('submit', event => { event.preventDefault(); return saveBridge(); });
+bridgeClear.addEventListener('click', () => saveBridge(true));
+
 let provisioner = null;
 let busy = false;
 let wifiConfirmed = false;
@@ -28,6 +93,7 @@ function setConnected(connected) {
   ssidInput.disabled = !connected;
   passwordInput.disabled = !connected;
   sendButton.disabled = !connected;
+  bridgeControls();
 }
 
 function browserReady() {
@@ -53,6 +119,7 @@ connectButton.addEventListener("click", async () => {
   busy = true;
   wifiConfirmed = false;
   secureSession = false;
+  bridgeAvailable = false; bridgeToken.value = "";
   passwordInput.value = "";
   connectButton.disabled = true;
   setConnected(false);
@@ -68,7 +135,7 @@ connectButton.addEventListener("click", async () => {
     const connectedProvisioner = provisioner;
     connectedProvisioner.device?.addEventListener("gattserverdisconnected", () => {
       if (provisioner !== connectedProvisioner) return;
-      secureSession = false;
+      secureSession = false; bridgeAvailable = false; bridgeToken.value = "";
       setConnected(false);
       passwordInput.value = "";
       if (!busy && !wifiConfirmed) showStatus("Disconnected. Connect again using the board's current code.", true);
@@ -76,10 +143,12 @@ connectButton.addEventListener("click", async () => {
     showStatus("Securing the Bluetooth connection…");
     await provisioner.establishSession();
     secureSession = true;
+    await readBridge();
     setConnected(true);
     showStatus("Connected securely. Enter your 2.4 GHz Wi-Fi details.");
     ssidInput.focus();
   } catch (error) {
+    secureSession = false; bridgeAvailable = false; bridgeToken.value = "";
     setConnected(false);
     showStatus(`Bluetooth setup failed: ${error instanceof Error ? error.message : String(error)}`, true);
     if (provisioner) await provisioner.disconnect().catch(() => {});
@@ -87,6 +156,7 @@ connectButton.addEventListener("click", async () => {
   } finally {
     busy = false;
     connectButton.disabled = false;
+    bridgeControls();
   }
 });
 
@@ -104,10 +174,11 @@ wifiForm.addEventListener("submit", async event => {
   }
   busy = true;
   sendButton.disabled = true;
+  bridgeControls();
   showStatus("Sending Wi-Fi details and waiting for the board to connect…");
   try {
     await provisioner.sendCredentials({ ssid, passphrase }, 60000);
-    wifiConfirmed = true;
+    wifiConfirmed = true; secureSession = false; bridgeToken.value = "";
     passwordInput.value = "";
     popInput.value = "";
     setConnected(false);
@@ -118,6 +189,7 @@ wifiForm.addEventListener("submit", async event => {
   } finally {
     busy = false;
     sendButton.disabled = wifiConfirmed || !provisioner?.isConnected;
+    bridgeControls();
   }
 });
 

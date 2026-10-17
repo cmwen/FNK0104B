@@ -1,4 +1,5 @@
 #include <unity.h>
+#include "monitor_configuration_test.hpp"
 #include <storage/bmp.hpp>
 #include <image_codec/image.hpp>
 #include <image_codec/allocator.h>
@@ -1023,6 +1024,10 @@ int main() {
   RUN_TEST(test_keypad_touch_boundaries_and_gaps);
   RUN_TEST(test_monitor_voice_capture_gate);
   RUN_TEST(test_monitor_microphone_level);
+  RUN_TEST(test_bridge_migration_survives_public_ota_and_explicit_clear);
+  RUN_TEST(test_bridge_rejects_bad_records_and_storage_failures);
+  RUN_TEST(test_bridge_request_validation_and_token_preservation);
+  RUN_TEST(test_monitor_preferences_survive_restart_and_legacy_client_writes);
   RUN_TEST(test_monitor_limit_countdown_states);
   RUN_TEST(test_monitor_reset_countdown);
   RUN_TEST(test_recorder_ogg_boundaries_and_corruption);

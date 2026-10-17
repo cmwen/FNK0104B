@@ -32,7 +32,10 @@ The separate [mock server](../../monitor-server/MOCK.md) provides controllable s
 
 Follow [the full server-to-board setup guide](../../docs/monitor-setup.md) for
 server launch commands, WSL networking and connection checks. The public Pages
-firmware has no private bridge host/key; use the configured local build below.
+firmware has no private bridge host/key built in. Monitor 0.8.5 can save them
+using encrypted Device setup; see [persistent settings](../../docs/monitor-persistent-settings.md).
+
+For an optional locally configured build (public firmware can use the setup form):
 
 1. Copy `include/monitor_secrets.example.h` to `include/monitor_secrets.h` and set `MONITOR_SERVER_HOST` to the LAN address of the machine running the bridge. Set `MONITOR_SERVER_TOKEN` to the same value as the bridge's `MONITOR_TOKEN`; the copied file is Git-ignored. The board must already have Wi-Fi credentials saved, for example by the `wifi-ble` firmware.
 2. Start the bridge with a LAN bind and configure a trusted `TRANSCRIBE_URL` for speech. Without transcription, status still works and the voice request returns a clear error.
@@ -309,3 +312,12 @@ Voice/send controls remain available because quota exhaustion alone does not
 prove those actions are blocked. This needs the Wi-Fi bridge; USB/BLE slot
 status alone contains no quota data. Unknown reset times and expired timers
 never claim restored access. See [behavior and validation](../../docs/monitor-usage-reset.md).
+
+## Persistent bridge and preferences (0.8.5)
+
+The board saves bridge host/port/token separately from firmware. Configure them
+through the encrypted connection setup session; compatible public OTA updates
+retain them. A local build migrates valid compiled defaults once when no saved
+record exists. Older public-OTA upgrades need one manual bridge entry. Existing
+volume, timeout, layout, microphone, avatar, LED and idle-photo preference keys
+are preserved. See [setup, migration and validation](../../docs/monitor-persistent-settings.md).

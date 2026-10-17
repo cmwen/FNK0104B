@@ -54,3 +54,5 @@ Device observations and unresolved acceptance checks are in [the audio validatio
 
 - **F7:** [Freenove LedPixel source](https://github.com/Freenove/Freenove_ESP32_S3_Display/blob/main/Tutorial_With_Touch/Sketches/Sketch_02.1_LedPixel/Sketch_02.1_LedPixel.ino): checked 2026-10-14; FNK0104AB selects GPIO42, one pixel, TYPE_GRB.
 - **E15:** [Espressif Arduino RMT API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/rmt.html): WS2812 timing support; cross-checked against installed Arduino 3.3.12 RGB writer.
+
+- **E16:** [Espressif protocomm](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/provisioning/protocomm.html): secure application endpoints and Security 1 proof-of-possession sessions. For monitor 0.8.5, checked the pinned `espressif__network_provisioning` 1.0.3 manager header for endpoint create/register ordering and the installed `esp-ble-prov` 2.0.1 client for encrypted custom-endpoint writes/readback. This is source evidence; physical BLE bridge setup and OTA retention remain unverified.

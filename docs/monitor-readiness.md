@@ -1,5 +1,17 @@
 # Codex monitor readiness
 
+## Persistent settings, 2026-10-17
+
+Monitor 0.8.5 moves bridge configuration to NVS and encrypted provisioning.
+Existing monitor/photo preference keys are retained, with shared load/save
+regressions. Native tests passed (45); browser BLE tests passed (27). The monitor
+PlatformIO build, 44 host checks and the guide build/link checks passed.
+Browser smoke checks passed for navigation, mobile widths and page errors.
+The built OTA metadata is version 0.8.5 with the unchanged model hash/layout.
+Real secure BLE save/reboot, restored Wi-Fi and bridge connection, and settings
+retention across physical OTA remain UNKNOWN. No device upload was performed.
+See [migration and protocol](monitor-persistent-settings.md).
+
 ## Usage reset countdown, 2026-10-17
 
 The local change adds a central countdown when either bridge-reported allowance

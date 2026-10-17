@@ -113,3 +113,11 @@ available; this contract does not establish that every feature is blocked.
 an unavailable message; reaching zero waits for a fresh usage update rather
 than assuming recovery. No new fields or USB quota methods are introduced.
 See [usage reset behavior](monitor-usage-reset.md).
+
+## Persistent bridge configuration (0.8.5)
+
+Status/SSE and voice use the same saved host/port/token, loaded before workers
+start. The encrypted provisioning `monitor-bridge` endpoint configures one
+versioned NVS record and restarts the monitor; normal settings packets do not
+carry bridge secrets. Existing preference versions and NVS keys are unchanged.
+See [the configuration protocol](monitor-persistent-settings.md#protocol-and-validation).

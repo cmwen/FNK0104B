@@ -269,7 +269,7 @@
         <div class="setup-help" aria-labelledby="monitor-ota-heading">
           <h3 id="monitor-ota-heading">Firmware updates</h3>
           <p>Connect to monitor settings above, then check for an update. Bluetooth controls the update; the board downloads firmware over Wi-Fi. Finish voice activity first. The microphone stays off while checking and installing. Keep power connected until the board restarts.</p>
-          <p>Updates install the public monitor build. For custom local-bridge firmware, use USB.</p>
+          <p>Monitor 0.8.5 keeps saved bridge details, Wi-Fi and board preferences across public OTA updates. On older firmware, compiled bridge details must be entered once in connection setup after updating.</p>
           <div class="monitor-ota-actions">
           <button id="monitor-ota-check" class="cta" type="button" disabled>Check for update</button>
           <button id="monitor-ota-install" class="cta" type="button" disabled>Install update</button>
@@ -295,6 +295,20 @@
           <input id="ble-password" type="password" autocomplete="new-password" disabled>
           <button id="ble-send" class="cta" type="submit" disabled>Save Wi-Fi on board</button>
         </form>
+        <form id="bridge-settings-form" class="ble-fields" autocomplete="off">
+          <h3>Monitor bridge</h3>
+          <p class="field-help">Monitor 0.8.5 or newer. Hold the board’s Wi-Fi indicator for three seconds, enter its code above and connect securely. Configure Wi-Fi first if needed, then open setup again for the bridge.</p>
+          <label for="bridge-host">Computer’s LAN address or hostname</label>
+          <input id="bridge-host" type="text" maxlength="127" placeholder="192.168.1.20" spellcheck="false" required disabled>
+          <label for="bridge-port">Bridge port</label>
+          <input id="bridge-port" type="number" min="1" max="65535" value="8765" required disabled>
+          <label for="bridge-token">Bridge access token</label>
+          <input id="bridge-token" type="password" maxlength="128" autocomplete="new-password" aria-describedby="bridge-token-help" disabled>
+          <p id="bridge-token-help" class="field-help">Use the same token as your computer’s bridge. Leave blank to keep an existing saved token. The saved token is never read back or stored by this page.</p>
+          <button id="bridge-save" class="cta" type="submit" disabled>Save bridge and restart</button>
+          <button id="bridge-clear" type="button" disabled>Remove saved bridge and restart</button>
+          <p id="bridge-status" role="status" aria-live="polite">Connect securely to configure the bridge. Saved bridge details, Wi-Fi and monitor preferences survive compatible OTA updates.</p>
+        </form>
         <div id="ble-status" class="flash-status" role="status" aria-live="polite" hidden></div>
         <p class="data-note"><span aria-hidden="true">ⓘ</span> Check that this is the trusted HTTPS setup page. The device name alone does not prove identity. Enter the code from your own board and wait for “Connected securely” before entering a password. The code authenticates an encrypted provisioning session; this page does not save your password. The monitor returns automatically after setup.</p>
       </section>
@@ -305,17 +319,17 @@
         <p class="ble-intro">The board polls a Python bridge on your computer over Wi-Fi. This website handles Bluetooth settings; the bridge supplies live Codex status and usage. Keep the board and server on a network where they can reach each other.</p>
         <ol class="server-steps">
           <li><strong>Save Wi-Fi on the board.</strong> Use the Wi-Fi setup section above if needed. The monitor reuses those saved credentials.</li>
-          <li><strong>Set the bridge address and key.</strong> Copy <code>apps/codex-monitor/include/monitor_secrets.example.h</code> to <code>monitor_secrets.h</code> in the same directory. Set <code>MONITOR_SERVER_HOST</code> to your computer's LAN IPv4 address, port to <code>8765</code>, and token to a generated private key. The local launcher reads the same file.</li>
+          <li><strong>Set the bridge address and key.</strong> Use the encrypted <strong>Monitor bridge</strong> form above to save your computer’s LAN address, port (usually <code>8765</code>) and a generated private token on the board. Configure the same token on the computer using <code>MONITOR_TOKEN</code> or the ignored local <code>monitor_secrets.h</code>.</li>
           <li><strong>Start the bridge</strong> from the repository root in the environment with your running, signed-in Codex app-server:
             <pre><code>MONITOR_HOST=0.0.0.0 MONITOR_LOG_REQUESTS=1 python3 monitor-server/run.py</code></pre>
             Keep that terminal running. Allow TCP 8765 on your trusted LAN. Optional voice commands require a separately running speech service; the full guide includes its launch settings.</li>
-          <li><strong>Build and flash your configured monitor</strong> from the repository root:
+          <li><strong>Install the monitor once</strong> from the repository root:
             <pre><code>pio run -e codex-monitor
 pio run -e codex-monitor -t upload
 pio device monitor -b 115200</code></pre>
             Look for <code>monitor_status integration=connected</code> and numeric quotas. The bridge should log board requests to <code>/v1/status</code> returning HTTP 200.</li>
         </ol>
-        <p class="setup-limit">Host/key are compiled into firmware and cannot currently be changed through Web BLE. The public monitor firmware has no private bridge configuration; use your local build to connect to the real server. Changing host/key requires rebuilding and uploading.</p>
+        <p class="setup-limit">On monitor 0.8.5+, save bridge details through encrypted connection setup above. They stay on the board across compatible public OTA updates. Firmware older than 0.8.5 needs an update before that form is available.</p>
         <details class="setup-help">
           <summary>Running the server in WSL?</summary>
           <p>Windows browser Bluetooth access and the board's Wi-Fi access to WSL are separate. In WSL 2 NAT mode, localhost working on Windows does not make the bridge reachable from the board. Configure Windows TCP forwarding to WSL and allow the port through the private-network firewall. Use the Windows LAN address in the board header, not localhost or WSL's NAT address.</p>

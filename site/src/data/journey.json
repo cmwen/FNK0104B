@@ -1,5 +1,20 @@
 [
   {
+    "timestamp": "2026-10-17T23:51:18+11:00",
+    "sha": null,
+    "title": "Updates could keep the board personal",
+    "paragraphs": [
+      "Preparing a wireless update exposed a gap: the monitor’s preferences already stayed on the board, but its connection to the computer could still be tied to a private firmware build. Updating from the public image could leave the usage display without its bridge.",
+      "The bridge address and key became saved board configuration, with an encrypted setup form for changing computers or restoring a connection. Keeping those details alongside the existing preferences let later updates carry the application forward without asking the owner to rebuild their setup."
+    ],
+    "links": [
+      {
+        "label": "Persistent settings and migration",
+        "path": "docs/monitor-persistent-settings.md"
+      }
+    ]
+  },
+  {
     "timestamp": "2026-10-17T23:37:54+11:00",
     "sha": "adc4181",
     "title": "Knowing how long the pause will last",

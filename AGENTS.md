@@ -54,3 +54,14 @@ means observed work ended; it does not prove success. Repeated identical status
 must not restart the timeout. Preserve the existing USB blackout-retention
 policy. See `docs/monitor-status-led.md` and
 `test/hardware/rear-status-led-2026-10-14.md` for semantics and evidence limits.
+
+### Monitor settings persistence
+
+Monitor 0.8.5 stores bridge host/port/token as one versioned `bridgeConfig`
+record in the existing `monitor` NVS namespace. Encrypted connection setup uses
+`monitor-bridge` under the board-code provisioning session; never expose or log
+the token through ordinary BLE settings, readback, URLs or browser storage.
+Preserve existing monitor/photo preference keys and older-client field behavior.
+Compiled bridge defaults are only a one-time migration when the record is absent;
+a saved override or explicit clear must always win. Keep normal OTA app-only.
+See `docs/monitor-persistent-settings.md` for migration and evidence limits.

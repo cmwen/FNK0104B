@@ -22,6 +22,7 @@
 #include <codex_hid/voice_controls.hpp>
 #include <codex_hid/monitor_settings.hpp>
 #include "monitor_speech.hpp"
+#include "monitor_configuration.hpp"
 #include "monitor_commands.hpp"
 #include <codex_hid/backend.hpp>
 #include <codex_hid/diagnostics.hpp>
@@ -103,6 +104,7 @@ struct MonitorStatus {
 MonitorStatus status;
 portMUX_TYPE statusMux = portMUX_INITIALIZER_UNLOCKED;
 Preferences preferences;
+monitor_config::Bridge bridgeConfig;
 std::atomic<uint8_t> volumePercent{50};
 std::atomic<uint16_t> screenTimeoutMinutes{kScreenTimeoutDefault};
 ui::IdleTimer idleTimer;
@@ -514,38 +516,29 @@ class SettingsCallbacks : public BLECharacteristicCallbacks {
         static_cast<uint8_t>(compactMicroLayout ? 3 : 6), separateVoiceButton, microAvatars, ledEnabled, ledSeconds,
         ledWorkingPattern, ledCompletePattern, ledAttentionPattern, ledBrightness, ledPeriodMs};
     if (!codex_hid::decodeMonitorSettings(reinterpret_cast<const uint8_t*>(raw.c_str()), raw.length(), next)) return;
+    if (!monitor_config::savePreferences(preferences, next, version)) {
+      setMessage("Settings storage failed", 6000); return;
+    }
     volumePercent = next.volume; screenTimeoutMinutes = next.timeout;
-    preferences.putUChar("volume", volumePercent);
-    preferences.putUShort("timeout", screenTimeoutMinutes);
     if (version >= 2) {
       compactMicroLayout = next.slots == 3;
-      preferences.putUChar("microSlots", compactMicroLayout ? 3 : 6);
       microLayoutChanged = true;
     }
     if (version >= 3) {
       separateVoiceButton = next.separateVoice;
-      preferences.putBool("usbVoice", separateVoiceButton);
       voiceControlsChanged = true;
     }
     if (version >= 4) {
       microAvatars = next.avatars;
-      preferences.putBool("microAvatars", next.avatars);
       microLayoutChanged = true;
     }
     if (version >= 5) {
       ledEnabled = next.ledEnabled; ledSeconds = next.ledSeconds;
-      preferences.putBool("statusLed", next.ledEnabled);
-      preferences.putUShort("ledSeconds", next.ledSeconds);
     }
     if (version == 6) {
       ledWorkingPattern = next.ledWorkingPattern; ledCompletePattern = next.ledCompletePattern;
       ledAttentionPattern = next.ledAttentionPattern; ledBrightness = next.ledBrightness;
       ledPeriodMs = next.ledPeriodMs;
-      preferences.putUChar("ledWorking", next.ledWorkingPattern);
-      preferences.putUChar("ledComplete", next.ledCompletePattern);
-      preferences.putUChar("ledAttention", next.ledAttentionPattern);
-      preferences.putUChar("ledBrightness", next.ledBrightness);
-      preferences.putUShort("ledPeriod", next.ledPeriodMs);
     }
     publishSettings();
     Serial.printf("monitor_settings accepted=1 version=%u slots=%u avatars=%u\n",
@@ -699,13 +692,13 @@ bool applyStatusJson(const char* body, size_t bodyLength) {
 }
 
 bool streamStatus() {
-  if (!MONITOR_SERVER_HOST[0] || WiFi.status() != WL_CONNECTED) return false;
+  if (!bridgeConfig.host[0] || WiFi.status() != WL_CONNECTED) return false;
   std::unique_ptr<locallink::StatusEventParser<kMaxStatusBytes>> parser(
       new (std::nothrow) locallink::StatusEventParser<kMaxStatusBytes>());
   if (!parser) return false;
   WiFiClient client;
   HTTPClient http;
-  String url = String("http://") + MONITOR_SERVER_HOST + ":" + String(MONITOR_SERVER_PORT) + "/v1/events";
+  String url = String("http://") + bridgeConfig.host + ":" + String(bridgeConfig.port) + "/v1/events";
   const bool refresh = refreshOnWake.exchange(false);
   if (refresh) url += "?refresh=1";
   http.setConnectTimeout(5000);
@@ -714,7 +707,7 @@ bool streamStatus() {
   if (!http.begin(client, url)) { if (refresh) refreshOnWake = true; return false; }
   http.collectHeaders(headers, 2);
   http.addHeader("Accept", "text/event-stream");
-  if (MONITOR_SERVER_TOKEN[0]) http.addHeader("X-Monitor-Key", MONITOR_SERVER_TOKEN);
+  if (bridgeConfig.token[0]) http.addHeader("X-Monitor-Key", bridgeConfig.token);
   const int code = http.GET();
   if (code != HTTP_CODE_OK || !http.header("Content-Type").startsWith("text/event-stream") ||
       http.header("Transfer-Encoding").length()) {
@@ -854,7 +847,7 @@ void voiceWorker(void*) {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     if (monitor_ota::runPending()) { uiDirty = true; continue; }
-    if (WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
+    if (WiFi.status() != WL_CONNECTED || !bridgeConfig.host[0]) {
       voicePreparing = false;
       recording = false; voiceBusy = false; uiDirty = true;
       setMessage("Bridge unavailable"); continue;
@@ -892,7 +885,7 @@ void voiceWorker(void*) {
     }
     HTTPClient http; WiFiClient client;
     setMessage("Transcribing voice...", 35000);
-    String url = String("http://") + MONITOR_SERVER_HOST + ":" + String(MONITOR_SERVER_PORT) + "/v1/voice";
+    String url = String("http://") + bridgeConfig.host + ":" + String(bridgeConfig.port) + "/v1/voice";
     if (voiceOrchestratorOnly) url += "?route=orchestrator";
     else if (voiceAgent[0]) url += String("?agent_id=") + encodeQueryValue(voiceAgent);
     http.setTimeout(30000);
@@ -902,7 +895,7 @@ void voiceWorker(void*) {
       snprintf(requestId, sizeof(requestId), "%08lx-%08lx-%08lx", static_cast<unsigned long>(esp_random()),
                static_cast<unsigned long>(esp_random()), static_cast<unsigned long>(esp_random()));
       http.addHeader("X-Request-ID", requestId);
-      if (MONITOR_SERVER_TOKEN[0]) http.addHeader("X-Monitor-Key", MONITOR_SERVER_TOKEN);
+      if (bridgeConfig.token[0]) http.addHeader("X-Monitor-Key", bridgeConfig.token);
       const int code = http.POST(wav, pcmBytes + 44);
       Serial.printf("monitor_voice state=response http=%d\n", code);
       bool accepted = false;
@@ -940,7 +933,7 @@ void voiceWorker(void*) {
 
 void beginVoice() {
   if (usbMicroActive) return;
-  if (!voiceTask || !peripheralMutex || !monitor_speech::ready() || WiFi.status() != WL_CONNECTED || !MONITOR_SERVER_HOST[0]) {
+  if (!voiceTask || !peripheralMutex || !monitor_speech::ready() || WiFi.status() != WL_CONNECTED || !bridgeConfig.host[0]) {
     setMessage("Check Wi-Fi and bridge"); return;
   }
   if (voiceBusy.load()) {
@@ -1269,31 +1262,20 @@ void setup() {
   if (!peripheralMutex) setMessage("I/O unavailable");
   fnk0104b::touch.read(touchPoint);
   preferences.begin("monitor", false);
-  ledEnabled = preferences.getBool("statusLed", true);
-  ledSeconds = preferences.getUShort("ledSeconds", 60);
-  if (ledSeconds < 5 || ledSeconds > 600) ledSeconds = 60;
-  ledWorkingPattern = preferences.getUChar("ledWorking", 0);
-  ledCompletePattern = preferences.getUChar("ledComplete", 0);
-  ledAttentionPattern = preferences.getUChar("ledAttention", 0);
-  if (ledWorkingPattern > 3) ledWorkingPattern = 0;
-  if (ledCompletePattern > 3) ledCompletePattern = 0;
-  if (ledAttentionPattern > 3) ledAttentionPattern = 0;
-  ledBrightness = preferences.getUChar("ledBrightness", 6);
-  if (ledBrightness < 1 || ledBrightness > 100) ledBrightness = 6;
-  ledPeriodMs = preferences.getUShort("ledPeriod", 2000);
-  if (ledPeriodMs < 500 || ledPeriodMs > 10000) ledPeriodMs = 2000;
+  const auto saved = monitor_config::loadPreferences(preferences);
+  ledEnabled = saved.ledEnabled; ledSeconds = saved.ledSeconds;
+  ledWorkingPattern = saved.ledWorkingPattern; ledCompletePattern = saved.ledCompletePattern;
+  ledAttentionPattern = saved.ledAttentionPattern; ledBrightness = saved.ledBrightness; ledPeriodMs = saved.ledPeriodMs;
   fnk0104b::status_led::write(0, 0, 0);
   monitor_photos::begin(preferences);
-  compactMicroLayout = preferences.getUChar("microSlots", 3) != 6;
-  microAvatars = preferences.getBool("microAvatars", false);
+  compactMicroLayout = saved.slots == 3; microAvatars = saved.avatars;
   for (auto& seed : microAvatarSeeds) seed = esp_random();
-  separateVoiceButton = preferences.getBool("usbVoice", false);
+  separateVoiceButton = saved.separateVoice;
   usbVoiceControls.configure(separateVoiceButton);
   fnk0104b::usb_microphone::setMuted(true);
-  volumePercent = preferences.getUChar("volume", 50);
-  if (volumePercent > 100) volumePercent = 50;
-  screenTimeoutMinutes = preferences.getUShort("timeout", kScreenTimeoutDefault);
-  if (screenTimeoutMinutes < 1 || screenTimeoutMinutes > 120) screenTimeoutMinutes = kScreenTimeoutDefault;
+  volumePercent = saved.volume; screenTimeoutMinutes = saved.timeout;
+  const monitor_config::Bridge legacy{MONITOR_SERVER_HOST, MONITOR_SERVER_PORT, MONITOR_SERVER_TOKEN};
+  bridgeConfig = monitor_config::loadBridge(preferences, legacy);
   idleTimer.activity(millis());
   monitor_wifi_setup::prepare();
   fnk0104b::usb_microphone::setAllowed(false);
@@ -1317,7 +1299,7 @@ void setup() {
     statusTask = nullptr;
     setMessage("Status stream unavailable", 10000);
   }
-  setMessage(MONITOR_SERVER_HOST[0] ? "Connecting to bridge" : "Set monitor server host", 6000);
+  setMessage(bridgeConfig.host[0] ? "Connecting to bridge" : "Configure bridge in Device setup", 6000);
   drawScreen();
   // Keep the established Wi-Fi/BLE startup order and show the UI before the
   // recognition worker starts its model allocations. Raw USB capture is already
