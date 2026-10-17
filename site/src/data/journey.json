@@ -1,7 +1,7 @@
 [
   {
-    "timestamp": "2026-10-17T23:51:18+11:00",
-    "sha": null,
+    "timestamp": "2026-10-17T23:53:40+11:00",
+    "sha": "40cf382",
     "title": "Updates could keep the board personal",
     "paragraphs": [
       "Preparing a wireless update exposed a gap: the monitor’s preferences already stayed on the board, but its connection to the computer could still be tied to a private firmware build. Updating from the public image could leave the usage display without its bridge.",
