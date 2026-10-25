@@ -109,3 +109,9 @@ Both upstream code and model are Apache-2.0. Full source attribution and the
 retained license are in [lib/whistle](../../lib/whistle/README.md). This repository
 adds FNK0104B board integration, touch UI and the PlatformIO workflow; it does not
 claim authorship of the model or inference engine.
+
+On 25 October 2026, the owner requested the board returned to Codex monitor.
+The complete monitor 0.8.7 upload restored its OTA layout and speech models with
+all hashes verified; saved Wi-Fi and enabled avatars were retained. Whistle's
+source and test evidence remain available for reinstalling its named environment.
+See [monitor restoration evidence](../../test/hardware/monitor-restored-after-whistle-2026-10-25.md).

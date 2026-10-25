@@ -1,16 +1,17 @@
 # Codex monitor readiness
 
-## Board currently running Whistle, 2026-10-25
+## Monitor restored after Whistle, 2026-10-25
 
-The owner installed the standalone Whistle 0.1.0 app through PlatformIO. All
-four upload hashes verified and a short 115200-baud capture reached ready with
-stable idle heap. One physical English transcription then completed correctly
-with owner-confirmed on-screen output; broader accuracy remains unmeasured.
-Its single-app/model layout replaces the monitor's app/model
-regions. The NVS range was retained and not written, but saved settings have
-not been read back. Rebuild and upload the complete `codex-monitor` environment
-and speech images to restore the monitor; app-only OTA cannot restore its
-layout. No restoration has been performed. See [Whistle device evidence](../test/hardware/whistle-2026-10-25.md).
+The complete named `codex-monitor` environment restored monitor 0.8.7, its OTA
+layout and speech models after the Whistle test. All five image hashes verified.
+PlatformIO serial at 115200 baud reported Wi-Fi connected, both workers present,
+speech/audio ready and the saved three-slot/avatar layout. LCD readback showed
+live allowance/agent data and Wi-Fi voice controls. NVS was outside the written
+ranges; Wi-Fi and the enabled avatar preference were retained. Other preference
+coverage, physical touch/voice, sustained operation and OTA remain open checks.
+USB was detached from WSL; removing its forced Windows USB binding requires the
+owner's administrator command before Desktop USB acceptance can be checked.
+See [restoration evidence](../test/hardware/monitor-restored-after-whistle-2026-10-25.md).
 
 ## Attached-board recovery, 2026-10-18
 

@@ -181,6 +181,18 @@ retained. A subsequent physical touch-initiated 4.92-second English clip produce
 requested test sentence exactly, in 14.832 seconds; the owner confirmed the
 on-screen transcript. Free PSRAM returned to 5,363,580 bytes afterward, with
 a 2,819,660-byte observed minimum. Broader speech accuracy, detailed display
-acceptance, manual Stop/page coverage and sustained stability remain UNKNOWN. The board currently runs Whistle; restoring the
-monitor requires its complete named environment and models. See [the app guide](../apps/29-whistle/README.md)
+acceptance, manual Stop/page coverage and sustained stability remain UNKNOWN. Whistle was installed for this test; the monitor was subsequently restored
+through its complete named environment, as recorded below. See [the app guide](../apps/29-whistle/README.md)
 and [dated device evidence](../test/hardware/whistle-2026-10-25.md).
+
+## Monitor restored after Whistle (2026-10-25)
+
+PlatformIO installed monitor 0.8.7 with its OTA layout and speech models; all
+five written images passed hash verification. At 115200 baud, `health` reported
+Wi-Fi connected, both workers present, speech ready, three slots and enabled
+avatars. The full LCD readback showed live bridge data and Wi-Fi voice controls.
+NVS was outside the written ranges; saved Wi-Fi and the enabled avatar preference
+were retained. Physical touch/voice and long-running stability were not measured.
+The WSL serial session was closed and USB detached; Windows administrator
+unbinding is required to remove the forced binding before Desktop USB acceptance.
+See [restoration evidence](../test/hardware/monitor-restored-after-whistle-2026-10-25.md).

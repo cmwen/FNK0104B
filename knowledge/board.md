@@ -277,6 +277,17 @@ bytes. No GPIO assignment changed. A physical 4.92-second English clip subsequen
 sentence exactly in 14.832 seconds; the owner confirmed the on-screen transcript.
 PSRAM returned to its startup free level, with 2,819,660 bytes at its observed
 minimum. Broader accuracy, touch/display coverage and sustained runtime remain
-UNKNOWN. The board now uses Whistle's
-single-app layout; the complete monitor environment and speech images are
-required to restore monitor operation. See [device evidence](../test/hardware/whistle-2026-10-25.md).
+UNKNOWN. This test used Whistle's single-app layout. The monitor was subsequently
+restored with its complete named environment and speech images, as recorded
+below. See [device evidence](../test/hardware/whistle-2026-10-25.md).
+
+## Monitor restored after Whistle (2026-10-25)
+
+The complete monitor 0.8.7 PlatformIO upload restored OTA partitions and speech
+models with all five hashes verified. NVS boundaries were retained without
+writes. Serial showed Wi-Fi connected, speech/audio ready, both workers and
+three slots with avatars enabled; LCD readback showed live bridge data. No GPIO
+or security setting changed. Saved Wi-Fi/avatar retention was observed; broader
+preferences, physical touch/voice and sustained stability remain UNKNOWN. USB
+was detached from WSL, with administrator unbinding pending for Windows Desktop
+access. See [device evidence](../test/hardware/monitor-restored-after-whistle-2026-10-25.md).
