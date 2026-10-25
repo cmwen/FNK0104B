@@ -206,5 +206,13 @@
     "readme": "apps/23-keyboard/README.md",
     "installable": true,
     "status": "Device-verified"
+  },
+  {
+    "id": "whistle",
+    "title": "Whistle offline transcription",
+    "summary": "Short offline speech-to-text clips using the onboard microphone, touch Record/Stop and paged results. Seven model languages. Board startup and one physical English transcription verified; broader accuracy remains unmeasured.",
+    "readme": "apps/29-whistle/README.md",
+    "installable": false,
+    "status": "Experimental"
   }
 ]

@@ -70,3 +70,14 @@ OTA metadata and image requests use the canonical `https://cmwen.dev/FNK0104B/`
 origin. The old `cmwen.github.io` origin redirects and firmware up to 0.8.5
 rejects it. Do not claim that a successful browser request proves device OTA;
 verify redirect/status behavior and record physical recovery separately.
+
+### Whistle standalone firmware
+
+`whistle` uses an isolated IDF component/manifest under `apps/29-whistle`, selected
+by `scripts/whistle_environment.py`, and its own dependency lock. Keep its engine
+attribution/license and model source/image checksums intact. Prepare the model
+explicitly with `scripts/prepare_whistle_model.py`; ordinary builds must not
+fetch weights. Full uploads include the verified model and replace the monitor
+layout with one app slot, so document the effect and restore the complete named
+monitor environment when switching back. Keep board access in `lib/fnk0104b`.
+Host inference/memory checks do not establish physical speech accuracy or timing.

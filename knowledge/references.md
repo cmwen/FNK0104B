@@ -56,3 +56,10 @@ Device observations and unresolved acceptance checks are in [the audio validatio
 - **E15:** [Espressif Arduino RMT API](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/rmt.html): WS2812 timing support; cross-checked against installed Arduino 3.3.12 RGB writer.
 
 - **E16:** [Espressif protocomm](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/provisioning/protocomm.html): secure application endpoints and Security 1 proof-of-possession sessions. For monitor 0.8.5, checked the pinned `espressif__network_provisioning` 1.0.3 manager header for endpoint create/register ordering and the installed `esp-ble-prov` 2.0.1 client for encrypted custom-endpoint writes/readback. This is source evidence; physical BLE bridge setup and OTA retention remain unverified.
+
+## Whistle integration sources (2026-10-25)
+
+- [Whistle ESP32 source](https://github.com/andrisgauracs/whistle-esp32/tree/383e0088d7140a89a9111aa985671190a9048aa3): independent C99 engine, ESP32-S3 kernels and depth-reduction tools; Apache-2.0. Generic demo wiring does not describe FNK0104B.
+- [Cactus Compute Whistle model](https://huggingface.co/Cactus-Compute/whistle/tree/741118687e1f008f06d1351a402a731274789790): pinned source weights, downloaded separately.
+- [IDF 5.5.5 partition API](https://docs.espressif.com/projects/esp-idf/en/v5.5.5/esp32s3/api-reference/storage/partition.html) and [watchdogs](https://docs.espressif.com/projects/esp-idf/en/v5.5.5/esp32s3/api-reference/system/wdts.html): flash model mapping and task scheduling references. Espressif Documentation MCP was unavailable in this session; authoritative documentation was consulted directly.
+- FNK0104B integration and evidence limits: [Whistle guide](../apps/29-whistle/README.md), [host-only/device checklist](../test/hardware/whistle-2026-10-25.md). No GPIO mapping or fitted component fact changed.

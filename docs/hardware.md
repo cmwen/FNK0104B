@@ -167,3 +167,20 @@ Desktop USB active; Wi-Fi, the bridge and sampled preferences remained working.
 An earlier speech-loaded header failure remains unresolved. Full wireless
 installation and rollback remain UNKNOWN. See the
 [device evidence](../test/hardware/monitor-recovery-2026-10-18.md).
+
+## Whistle standalone startup (2026-10-25)
+
+The complete standalone `whistle` 0.1.0 environment was built and uploaded via
+PlatformIO with bootloader, partition, model and application hashes verified.
+After watchdog reset and USB/IP reattachment, 115200-baud serial showed the
+8 MB PSRAM test passing, display initialization, depth-4 model loading and ready
+state. Eight idle heartbeats through 40.496 seconds retained 5,363,580 free PSRAM
+bytes; internal free heap stabilized at 214,463 bytes. No runtime error appeared
+in this short idle capture. Existing GPIO assignments and board drivers were
+retained. A subsequent physical touch-initiated 4.92-second English clip produced the
+requested test sentence exactly, in 14.832 seconds; the owner confirmed the
+on-screen transcript. Free PSRAM returned to 5,363,580 bytes afterward, with
+a 2,819,660-byte observed minimum. Broader speech accuracy, detailed display
+acceptance, manual Stop/page coverage and sustained stability remain UNKNOWN. The board currently runs Whistle; restoring the
+monitor requires its complete named environment and models. See [the app guide](../apps/29-whistle/README.md)
+and [dated device evidence](../test/hardware/whistle-2026-10-25.md).

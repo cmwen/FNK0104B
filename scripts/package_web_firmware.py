@@ -22,7 +22,7 @@ OUTPUT_MARKER = ".fnk0104b-pages"
 # In particular, codex-audio-diag uses the monitor partition layout but does
 # not produce the speech model image required by the monitor manifest.
 BUILD_ONLY_ENVIRONMENTS = (
-    "hello-debug", "speech-diag", "recorder", "recorder-io-diag",
+    "hello-debug", "speech-diag", "recorder", "recorder-io-diag", "whistle",
     "codex-hid-diag", "codex-audio-diag", "codex-ble-diag", "rgb-diag",
 )
 

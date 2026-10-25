@@ -17,6 +17,7 @@ from package_web_firmware import (
 SCHEMA = 1
 # IDF compiles these libraries explicitly, independently of include discovery.
 IDF_APPS = {
+    "whistle": ("29-whistle", ("fnk0104b", "whistle"), "29-whistle"),
     "speech-diag": ("19-speech-diag", ("fnk0104b", "speech"), "19-speech-diag"),
     "recorder": ("20-recorder", ("fnk0104b", "speech", "recorder"), "20-recorder"),
     "recorder-io-diag": ("21-recorder-io-diag", ("fnk0104b",), "20-recorder"),
@@ -75,10 +76,13 @@ def inputs(root, environment, files=None):
                          f"apps/{defaults}/sdkconfig.defaults",
                          "apps/19-speech-diag/compile_req.yml"})
         monitor = environment in {"codex-monitor", "codex-audio-diag", "rgb-diag"}
-        selected.add("dependencies.monitor.lock" if monitor else "dependencies.lock")
+        selected.add("dependencies.whistle.lock" if environment == "whistle" else "dependencies.monitor.lock" if monitor else "dependencies.lock")
         if monitor:
             selected.update(path for path in files if path.startswith("components/"))
+        if monitor or environment == "whistle":
             selected.add("scripts/idf_linker_preprocessor.cmake")
+        if environment == "whistle":
+            selected.add("scripts/prepare_whistle_model.py")
     else:
         filters = re.findall(r'\+<([^>]+)>', option(config, section, "build_src_filter"))
         if not filters or any("*" in item or ".." in item for item in filters):

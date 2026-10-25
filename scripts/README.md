@@ -72,3 +72,7 @@ accepts these bundles via `--reuse-dir`; local packaging without that flag still
 uses `.pio/build`. See [incremental CI](../docs/development.md#incremental-firmware-ci--2026-10-08)
 for dependencies, cold-cache behavior and validation. `build_firmware.py` remains
 the explicit full-build command.
+
+## Whistle model preparation
+
+`prepare_whistle_model.py` explicitly downloads a pinned, SHA-256-verified Whistle model and uses the credited upstream tools to produce the depth-4 image. It requires NumPy and keeps weights under ignored `.pio/models/whistle/`. `--source` accepts a local official model; `--verify` checks the prepared image. `whistle_model.py` adds that verified image to full PlatformIO uploads while keeping firmware-only builds offline. See [the app guide](../apps/29-whistle/README.md).

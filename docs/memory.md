@@ -42,3 +42,7 @@ OTA updates only the inactive app; changed models/layouts require USB. See
 - Monitor speech packing now sorts model/file entries without changing weights.
   This removes CI/local raw-hash differences caused by upstream filesystem order;
   0.7.0 needs USB once to install the canonical baseline.
+
+## Whistle standalone layout
+
+The experimental `whistle` environment uses one 2 MiB factory app at `0x10000` and a `0xdf0000`-byte model region at `0x210000`. The depth-4 model is 14,515,887 bytes. NVS retains the monitor boundary (`0x9000`, `0x5000`); Whistle does not initialize it. PHY data is at `0xf000`. This replaces previous app/model/filesystem regions and provides no OTA slot. Reinstall the full named monitor environment and speech models when returning. [Whistle setup and memory budget](../apps/29-whistle/README.md) records the host estimate separately from unverified device behavior.

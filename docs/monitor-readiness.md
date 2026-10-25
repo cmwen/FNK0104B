@@ -1,5 +1,17 @@
 # Codex monitor readiness
 
+## Board currently running Whistle, 2026-10-25
+
+The owner installed the standalone Whistle 0.1.0 app through PlatformIO. All
+four upload hashes verified and a short 115200-baud capture reached ready with
+stable idle heap. One physical English transcription then completed correctly
+with owner-confirmed on-screen output; broader accuracy remains unmeasured.
+Its single-app/model layout replaces the monitor's app/model
+regions. The NVS range was retained and not written, but saved settings have
+not been read back. Rebuild and upload the complete `codex-monitor` environment
+and speech images to restore the monitor; app-only OTA cannot restore its
+layout. No restoration has been performed. See [Whistle device evidence](../test/hardware/whistle-2026-10-25.md).
+
 ## Attached-board recovery, 2026-10-18
 
 PlatformIO USB recovery from 0.8.3 installed 0.8.6, then 0.8.7. Wi-Fi, the

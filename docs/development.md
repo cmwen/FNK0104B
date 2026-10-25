@@ -142,3 +142,7 @@ main firmware catalog without a firmware matrix. Firmware success independently
 refreshes the published catalog. See [workflow triggers, artifact lifetime and
 manual recovery](ci-workflows.md). The fingerprint planner now tracks only the
 firmware workflow; changing the Pages workflow does not invalidate firmware.
+
+## Whistle transcription
+
+`pio run -e whistle` builds the isolated IDF 5.5.5 transcription app. Prepare the pinned model before full upload with `scripts/prepare_whistle_model.py`; see [setup, partition effects and credits](../apps/29-whistle/README.md). Firmware builds and CI need no model download. The selected upstream engine is vendored under `lib/whistle`; its own dependency lock is `dependencies.whistle.lock`.

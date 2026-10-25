@@ -1,0 +1,173 @@
+Script started on 2026-10-25 20:43:46+11:00 [COMMAND="env PLATFORMIO_SETTING_ENABLE_TELEMETRY=No pio device monitor --port /dev/ttyACM0 -b 115200 --dtr 0 --rts 0" <not executed on terminal>]
+--- forcing DTR inactive
+--- forcing RTS inactive
+--- Terminal on /dev/ttyACM0 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+SPIWP:0xee
+
+mode:DIO, clock div:1
+
+load:0x3fce2820,len:0x16a8
+
+load:0x403c8700,len:0xe88
+
+load:0x403cb700,len:0x3184
+
+entry 0x403c8940
+
+I (24) boot: ESP-IDF 5.5.5 2nd stage bootloader
+
+I (24) boot: compile time Oct 25 2026 20:20:27
+
+I (25) boot: Multicore bootloader
+
+I (25) boot: chip revision: v0.2
+
+I (25) boot: efuse block revision: v1.4
+
+I (25) qio_mode: Enabling default flash chip QIO
+
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+
+I (26) boot.esp32s3: SPI Mode       : QIO
+
+I (26) boot.esp32s3: SPI Flash Size : 16MB
+
+I (26) boot: Enabling RNG early entropy source...
+
+I (26) boot: Partition Table:
+
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00005000
+
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+
+I (27) boot:  2 factory          factory app      00 00 00010000 00200000
+
+I (28) boot:  3 model            Unknown data     01 40 00210000 00df0000
+
+I (28) boot: End of partition table
+
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=0dcc8h ( 56520) map
+
+I (38) esp_image: segment 1: paddr=0001dcf0 vaddr=3fc9a800 size=02328h (  9000) load
+
+I (40) esp_image: segment 2: paddr=00020020 vaddr=42000020 size=29e98h (171672) map
+
+I (67) esp_image: segment 3: paddr=00049ec0 vaddr=3fc9cb28 size=01398h (  5016) load
+
+I (68) esp_image: segment 4: paddr=0004b260 vaddr=40378000 size=1272ch ( 75564) load
+
+I (83) esp_image: segment 5: paddr=0005d994 vaddr=50000000 size=00020h (    32) load
+
+I (91) boot: Loaded app from partition at offset 0x10000
+
+I (91) boot: Disabling RNG early entropy source...
+
+I (92) octal_psram: vendor id    : 0x0d (AP)
+
+I (92) octal_psram: dev id       : 0x02 (generation 3)
+
+I (92) octal_psram: density      : 0x03 (64 Mbit)
+
+I (93) octal_psram: good-die     : 0x01 (Pass)
+
+I (93) octal_psram: Latency      : 0x01 (Fixed)
+
+I (93) octal_psram: VCC          : 0x01 (3V)
+
+I (93) octal_psram: SRF          : 0x01 (Fast Refresh)
+
+I (93) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+
+I (94) octal_psram: BurstLen     : 0x01 (32 Byte)
+
+I (94) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+
+I (94) octal_psram: DriveStrength: 0x00 (1/1)
+
+I (94) MSPI Timing: Enter psram timing tuning
+
+I (95) esp_psram: Found 8MB PSRAM device
+
+I (95) esp_psram: Speed: 80MHz
+
+I (96) cpu_start: Multicore app
+
+I (378) esp_psram: SPI SRAM memory test OK
+
+I (386) cpu_start: Pro cpu start user code
+
+I (386) cpu_start: cpu freq: 240000000 Hz
+
+I (386) app_init: Application information:
+
+I (387) app_init: Project name:     fnk0104b_firmware
+
+I (387) app_init: App version:      0.1.0
+
+I (387) app_init: Compile time:     Oct 25 2026 20:20:09
+
+I (387) app_init: ELF file SHA256:  f47ce7220...
+
+I (387) app_init: ESP-IDF:          5.5.5
+
+I (387) efuse_init: Min chip rev:     v0.0
+
+I (387) efuse_init: Max chip rev:     v0.99
+
+I (388) efuse_init: Chip rev:         v0.2
+
+I (388) heap_init: Initializing. RAM available for dynamic allocation:
+
+I (388) heap_init: At 3FCA4100 len 00045610 (277 KiB): RAM
+
+I (388) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+
+I (388) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+
+I (388) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+
+I (389) spi_flash: detected chip: generic
+
+I (389) spi_flash: flash io: qio
+
+I (389) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+
+I (390) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+
+I (390) main_task: Started on CPU0
+
+I (390) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+
+I (391) main_task: Calling app_main()
+
+I (394) ili9341: LCD panel create success, version: 2.1.0
+
+I (1257) whistle: model depth=4 head_cache=2164536
+
+I (1258) whistle: ready internal_free=205407 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (1263) main_task: Returned from app_main()
+
+I (5408) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (10416) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (15424) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (20448) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (25456) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (30464) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (35488) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+I (40496) whistle: heartbeat internal_free=214463 psram_free=5363580 psram_largest=5242880 psram_min=5363580
+
+
+Script done on 2026-10-25 20:44:30+11:00 [COMMAND_EXIT_CODE="0"]

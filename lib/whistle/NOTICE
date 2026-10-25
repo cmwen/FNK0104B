@@ -1,0 +1,12 @@
+Whistle ESP32 engine and model tools
+Source: https://github.com/andrisgauracs/whistle-esp32
+Revision: 383e0088d7140a89a9111aa985671190a9048aa3
+Author/project credit: andrisgauracs
+License: Apache License, Version 2.0 (LICENSE)
+
+Whistle model and weights: Cactus Compute
+https://huggingface.co/Cactus-Compute/whistle
+The weights are downloaded separately, not included in this source distribution.
+
+FNK0104B-specific firmware, touch UI and PlatformIO integration are maintained
+in this repository. The selected upstream engine files remain unchanged.

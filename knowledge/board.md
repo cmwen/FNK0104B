@@ -266,3 +266,17 @@ Monitor 0.8.3 extends the diagnostic with Solid/Blink/Breathe/Rainbow for every
 status. PlatformIO serial captured phases 0–12; integrated serial confirmed
 live Desktop status and timeout. Physical BLE pattern writes and animation
 appearance remain UNKNOWN. See [pattern evidence](../test/hardware/led-patterns-2026-10-14.md).
+
+## Whistle standalone startup (2026-10-25)
+
+PlatformIO installed Whistle 0.1.0 with bootloader, partition, model and app
+hashes verified. Serial at 115200 baud confirmed 16 MB flash, 8 MB PSRAM at
+80 MHz with its memory test passing, 240 MHz CPU, depth-4 model loading and
+ready. Eight idle heartbeats through 40.496 seconds held 5,363,580 free PSRAM
+bytes. No GPIO assignment changed. A physical 4.92-second English clip subsequently returned the requested test
+sentence exactly in 14.832 seconds; the owner confirmed the on-screen transcript.
+PSRAM returned to its startup free level, with 2,819,660 bytes at its observed
+minimum. Broader accuracy, touch/display coverage and sustained runtime remain
+UNKNOWN. The board now uses Whistle's
+single-app layout; the complete monitor environment and speech images are
+required to restore monitor operation. See [device evidence](../test/hardware/whistle-2026-10-25.md).

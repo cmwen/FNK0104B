@@ -92,3 +92,5 @@ run independently. See [workflow triggers and manual runs](docs/ci-workflows.md)
 ## PlatformIO board target
 
 PlatformIO does not list FNK0104B as a separate board. The environments use the supported generic `esp32-s3-devkitc-1` target with the FNK0104B's documented 16 MB flash and OPI PSRAM settings applied. That identifier names the PlatformIO software target only; it does not identify the physical board. The project selects PlatformIO's built-in `app3M_fat9M_16MB.csv`, matching the partition profile shown in Freenove's tutorial. This layout has two 3 MiB OTA app slots and a 9.9 MB FATFS partition. See `docs/memory.md` before upload or before changing the layout.
+
+`whistle` is an experimental standalone offline transcription firmware with touch Record/Stop and text results. Prepare its pinned model before upload; it uses a single-app layout without OTA. See [the Whistle guide](apps/29-whistle/README.md) for setup, credits and evidence limits.
