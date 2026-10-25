@@ -1,7 +1,7 @@
 [
   {
-    "timestamp": "2026-10-25T20:18:43+11:00",
-    "sha": null,
+    "timestamp": "2026-10-25T21:46:20+11:00",
+    "sha": "22076b0",
     "title": "Giving the board its own transcription",
     "paragraphs": [
       "The board already had local wake-word commands and a way to send recorded speech to another service. Whistle suggested a further possibility: short spoken phrases could become text entirely on the board, with the touchscreen making recording and the result visible.",
